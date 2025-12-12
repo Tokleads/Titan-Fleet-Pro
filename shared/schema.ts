@@ -15,6 +15,12 @@ export const companies = pgTable("companies", {
   secondaryColor: varchar("secondary_color", { length: 7 }).default("#1e293b"),
   neutralTint: varchar("neutral_tint", { length: 7 }).default("#f8fafc"),
   
+  // License tier and vehicle allowance
+  licenseTier: varchar("license_tier", { length: 20 }).notNull().default("core"), // core | pro | operator
+  vehicleAllowance: integer("vehicle_allowance").notNull().default(15),
+  graceOverage: integer("grace_overage").notNull().default(3),
+  enforcementMode: varchar("enforcement_mode", { length: 20 }).notNull().default("soft_block"), // soft_block
+  
   // Feature flags
   settings: jsonb("settings").notNull().default({
     poolFleet: true,
@@ -234,3 +240,34 @@ export const auditLogs = pgTable("audit_logs", {
 });
 
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+// License upgrade requests
+export const licenseUpgradeRequests = pgTable("license_upgrade_requests", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  managerId: integer("manager_id").references(() => users.id).notNull(),
+  message: text("message"),
+  currentTier: varchar("current_tier", { length: 20 }).notNull(),
+  requestedTier: varchar("requested_tier", { length: 20 }),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | contacted | completed
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertLicenseUpgradeRequestSchema = createInsertSchema(licenseUpgradeRequests).omit({ id: true, createdAt: true });
+export type LicenseUpgradeRequest = typeof licenseUpgradeRequests.$inferSelect;
+export type InsertLicenseUpgradeRequest = z.infer<typeof insertLicenseUpgradeRequestSchema>;
+
+// Vehicle usage state type for license enforcement
+export type VehicleUsageState = 'ok' | 'at_limit' | 'in_grace' | 'over_hard_limit';
+
+export interface VehicleUsageInfo {
+  activeVehicleCount: number;
+  allowance: number;
+  graceOverage: number;
+  softLimit: number;
+  hardLimit: number;
+  state: VehicleUsageState;
+  remainingToSoft: number;
+  remainingToHard: number;
+  percentUsed: number;
+}

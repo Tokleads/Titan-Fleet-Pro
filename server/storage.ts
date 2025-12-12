@@ -9,7 +9,9 @@ import {
   type Trailer, type InsertTrailer,
   type Document, type InsertDocument,
   type DocumentAcknowledgment, type InsertDocumentAcknowledgment,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments
+  type LicenseUpgradeRequest, type InsertLicenseUpgradeRequest,
+  type VehicleUsageInfo, type VehicleUsageState,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, count } from "drizzle-orm";
@@ -83,6 +85,12 @@ export interface IStorage {
   getUnreadDocuments(companyId: number, userId: number): Promise<Document[]>;
   acknowledgeDocument(documentId: number, userId: number): Promise<DocumentAcknowledgment>;
   getDocumentAcknowledgments(documentId: number): Promise<(DocumentAcknowledgment & { user?: User })[]>;
+  
+  // License operations
+  getVehicleUsage(companyId: number): Promise<VehicleUsageInfo>;
+  getCompanyById(companyId: number): Promise<Company | undefined>;
+  createLicenseUpgradeRequest(request: InsertLicenseUpgradeRequest): Promise<LicenseUpgradeRequest>;
+  getActiveVehicleCount(companyId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -456,6 +464,69 @@ export class DatabaseStorage implements IStorage {
     }));
     
     return enriched;
+  }
+
+  // License operations
+  async getCompanyById(companyId: number): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, companyId));
+    return company || undefined;
+  }
+
+  async getActiveVehicleCount(companyId: number): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.active, true)
+      ));
+    return result?.count || 0;
+  }
+
+  async getVehicleUsage(companyId: number): Promise<VehicleUsageInfo> {
+    const company = await this.getCompanyById(companyId);
+    if (!company) {
+      throw new Error("Company not found");
+    }
+
+    const activeVehicleCount = await this.getActiveVehicleCount(companyId);
+    const allowance = company.vehicleAllowance;
+    const graceOverage = company.graceOverage;
+    const softLimit = allowance;
+    const hardLimit = allowance + graceOverage;
+
+    // Determine state
+    let state: VehicleUsageState;
+    if (activeVehicleCount < allowance) {
+      state = 'ok';
+    } else if (activeVehicleCount === allowance) {
+      state = 'at_limit';
+    } else if (activeVehicleCount < hardLimit) {
+      state = 'in_grace';
+    } else {
+      state = 'over_hard_limit';
+    }
+
+    const remainingToSoft = Math.max(0, softLimit - activeVehicleCount);
+    const remainingToHard = Math.max(0, hardLimit - activeVehicleCount);
+    const percentUsed = Math.round((activeVehicleCount / allowance) * 100);
+
+    return {
+      activeVehicleCount,
+      allowance,
+      graceOverage,
+      softLimit,
+      hardLimit,
+      state,
+      remainingToSoft,
+      remainingToHard,
+      percentUsed
+    };
+  }
+
+  async createLicenseUpgradeRequest(request: InsertLicenseUpgradeRequest): Promise<LicenseUpgradeRequest> {
+    const [newRequest] = await db.insert(licenseUpgradeRequests).values(request).returning();
+    return newRequest;
   }
 }
 
