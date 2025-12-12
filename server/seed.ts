@@ -7,8 +7,9 @@ async function seed() {
   // Create demo company
   const [company] = await db.insert(companies).values({
     companyCode: "APEX",
-    name: "Apex Logistics Ltd",
-    primaryColor: "#2563eb",
+    name: "DC European Haulage Ltd",
+    logoUrl: "/dc-european-logo.png",
+    primaryColor: "#4169b2",
     settings: {
       poolFleet: true,
       showFuelPrices: false,

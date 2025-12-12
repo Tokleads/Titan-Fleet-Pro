@@ -58,15 +58,16 @@ export type Inspection = {
 export const MOCK_COMPANIES: Company[] = [
   {
     id: "comp-1",
-    name: "Apex Logistics Ltd",
+    name: "DC European Haulage Ltd",
     settings: {
       poolFleet: true,
       showFuelPrices: false,
       requireFuelCardPhoto: true,
       enableEndOfShiftCheck: false,
       brand: {
-        primaryColor: "#2563eb", // Blue-600
-        secondaryColor: "#1e293b", // Slate-800
+        primaryColor: "#4169b2",
+        secondaryColor: "#1e293b",
+        logoUrl: "/dc-european-logo.png",
         borderRadius: 8,
       },
     },

@@ -75,12 +75,12 @@ export default function Landing() {
             className="space-y-8"
         >
             {/* Header */}
-            <div className="text-center space-y-2 pt-8">
-                <div className="h-16 w-16 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-xl">
-                    <Truck className="h-8 w-8 text-white" />
+            <div className="text-center space-y-3 pt-8">
+                <div className="bg-white rounded-2xl p-4 inline-block mx-auto mb-4 shadow-xl">
+                    <img src="/dc-european-logo.png" alt="DC European Haulage" className="h-16 w-auto" />
                 </div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">FleetCheck</h1>
-                <p className="text-slate-400 text-sm font-medium">Professional Driver Portal</p>
+                <h1 className="text-2xl font-bold text-white tracking-tight">DC European Haulage Ltd</h1>
+                <p className="text-slate-400 text-sm font-medium">Driver Portal</p>
             </div>
 
             {/* Login Card */}
@@ -89,7 +89,7 @@ export default function Landing() {
                     {mode === "driver" ? (
                         <div className="space-y-5">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Company Code</label>
+                                <label className="titan-section-label ml-1">Company Code</label>
                                 <TitanInput 
                                     placeholder="e.g. APEX" 
                                     value={companyCode}
@@ -101,7 +101,7 @@ export default function Landing() {
                             </div>
                             
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Driver PIN</label>
+                                <label className="titan-section-label ml-1">Driver PIN</label>
                                 <TitanInput 
                                     placeholder="Enter 4-digit PIN" 
                                     type="password"
