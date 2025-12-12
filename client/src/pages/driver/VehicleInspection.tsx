@@ -389,15 +389,15 @@ export default function VehicleInspection() {
 
         <div className="space-y-3 pt-4">
           {/* Mileage Card - Data Entry Control */}
-          <div className="titan-card-elevated bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-            <label className="titan-section-label text-white/70 block mb-2">Mileage (miles)</label>
+          <div className="titan-card p-4">
+            <label className="titan-section-label block mb-2">Mileage (miles)</label>
             <input
               type="number"
               inputMode="numeric"
               placeholder="Enter current mileage"
               value={odometer}
               onChange={(e) => setOdometer(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 h-12 rounded-xl px-4 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl px-4 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               data-testid="input-odometer"
             />
           </div>
