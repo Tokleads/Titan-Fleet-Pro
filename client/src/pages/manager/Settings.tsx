@@ -1,11 +1,9 @@
 import { ManagerLayout } from "@/components/layout/AppShell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { TitanButton } from "@/components/titan-ui/Button";
+import { TitanCard, TitanCardContent, TitanCardHeader } from "@/components/titan-ui/Card";
+import { TitanInput } from "@/components/titan-ui/Input";
 import { useBrand } from "@/hooks/use-brand";
-import { Palette, HardDrive, RefreshCw } from "lucide-react";
+import { Palette, HardDrive, RefreshCw, Check, UploadCloud } from "lucide-react";
 import { useState } from "react";
 
 export default function Settings() {
@@ -13,108 +11,142 @@ export default function Settings() {
   const [primaryColor, setPrimaryColor] = useState(currentCompany.settings.brand?.primaryColor || "#2563eb");
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Helper to update CSS variable locally to preview
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const color = e.target.value;
-    setPrimaryColor(color);
-    // In a real app we'd convert hex to HSL and apply to :root
-    // For this prototype we can just visualize it in the picker
+    setPrimaryColor(e.target.value);
   };
 
   return (
     <ManagerLayout>
-      <div className="p-8 space-y-8 max-w-4xl">
-        <h1 className="text-3xl font-heading font-bold text-slate-900">Company Settings</h1>
+      <div className="p-8 space-y-8 max-w-4xl mx-auto">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-heading font-bold text-foreground tracking-tight">Settings</h1>
+            <p className="text-muted-foreground">Manage your company profile and integrations.</p>
+        </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" /> Brand Kit
-                </CardTitle>
-                <CardDescription>Customize the look and feel of your driver app.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label>Display Name</Label>
-                        <Input defaultValue={currentCompany.name} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Primary Brand Color</Label>
-                        <div className="flex gap-2">
-                            <Input 
-                                type="color" 
-                                value={primaryColor} 
-                                onChange={handleColorChange}
-                                className="w-12 h-10 p-1" 
-                            />
-                            <Input 
-                                value={primaryColor} 
-                                onChange={handleColorChange} 
-                                className="font-mono"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-slate-50">
-                    <Label className="mb-2 block text-xs uppercase tracking-wider text-slate-500">Preview Button Style</Label>
-                    <div className="flex gap-4">
-                        <Button style={{ backgroundColor: primaryColor }}>Primary Action</Button>
-                        <Button variant="outline" style={{ borderColor: primaryColor, color: primaryColor }}>Secondary Action</Button>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <HardDrive className="h-5 w-5" /> Storage Integration
-                </CardTitle>
-                <CardDescription>Bring Your Own Storage (Google Drive) for photos.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                    <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 bg-slate-100 rounded-lg flex items-center justify-center">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo_%282020-present%29.svg" alt="Drive" className="h-8 w-8" />
+        <div className="grid grid-cols-1 gap-8">
+            {/* Brand Kit Section */}
+            <TitanCard>
+                <TitanCardHeader>
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <Palette className="h-5 w-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-slate-900">Google Drive</h4>
-                            <p className="text-sm text-slate-500">
-                                {currentCompany.googleDriveConnected ? 'Connected to company drive' : 'Not connected'}
-                            </p>
+                            <h2 className="text-lg font-bold text-foreground">Brand Kit</h2>
+                            <p className="text-sm text-muted-foreground">Customize the driver app experience.</p>
                         </div>
                     </div>
-                    
-                    <Button 
-                        variant={currentCompany.googleDriveConnected ? "outline" : "default"}
-                        onClick={() => setIsConnecting(!isConnecting)}
-                    >
-                        {currentCompany.googleDriveConnected ? "Reconnect" : "Connect Drive"}
-                    </Button>
-                </div>
+                </TitanCardHeader>
+                <TitanCardContent className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <TitanInput label="Company Display Name" defaultValue={currentCompany.name} />
+                            
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground ml-1">Primary Color</label>
+                                <div className="flex gap-3">
+                                    <div className="relative overflow-hidden h-12 w-16 rounded-[10px] ring-1 ring-border shadow-sm">
+                                        <input 
+                                            type="color" 
+                                            value={primaryColor} 
+                                            onChange={handleColorChange}
+                                            className="absolute inset-0 w-[150%] h-[150%] -translate-x-1/4 -translate-y-1/4 cursor-pointer p-0 border-0" 
+                                        />
+                                    </div>
+                                    <TitanInput 
+                                        value={primaryColor} 
+                                        onChange={handleColorChange} 
+                                        className="font-mono flex-1"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-                {currentCompany.googleDriveConnected && (
-                    <div className="bg-slate-50 p-4 rounded-lg text-sm text-slate-600 space-y-2">
-                        <div className="flex justify-between">
-                            <span>Status</span>
-                            <span className="text-green-600 font-bold flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-green-500" /> Active</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Target Folder</span>
-                            <span className="font-mono">/FleetCheck/Uploads</span>
-                        </div>
-                        <div className="pt-2">
-                            <Button size="sm" variant="ghost" className="h-auto p-0 text-primary hover:text-primary/80">
-                                <RefreshCw className="h-3 w-3 mr-1" /> Test Upload Connection
-                            </Button>
+                        <div className="bg-secondary/30 rounded-xl p-6 border border-border/50">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 block">Live Preview</label>
+                            <div className="space-y-4">
+                                <button 
+                                    className="h-11 px-6 text-sm rounded-[14px] font-medium text-white shadow-md transition-transform active:scale-95 w-full flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    <Check className="h-4 w-4" /> Primary Button
+                                </button>
+                                <button 
+                                    className="h-11 px-6 text-sm rounded-[14px] font-medium bg-transparent border shadow-sm w-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                >
+                                    Secondary Action
+                                </button>
+                            </div>
                         </div>
                     </div>
-                )}
-            </CardContent>
-        </Card>
+                </TitanCardContent>
+            </TitanCard>
+
+            {/* Integration Section */}
+            <TitanCard>
+                <TitanCardHeader>
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                            <HardDrive className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-foreground">Storage Integration</h2>
+                            <p className="text-sm text-muted-foreground">Connect your corporate Google Drive.</p>
+                        </div>
+                    </div>
+                </TitanCardHeader>
+                <TitanCardContent>
+                    <div className="bg-secondary/20 border border-border rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 bg-white rounded-xl shadow-sm flex items-center justify-center p-3">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo_%282020-present%29.svg" alt="Drive" className="h-full w-full object-contain" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-foreground text-lg">Google Drive</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    {currentCompany.googleDriveConnected ? 'Connected to company workspace' : 'Not connected'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 min-w-[140px]">
+                            {currentCompany.googleDriveConnected ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm text-green-700 font-medium bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                        Sync Active
+                                    </div>
+                                    <TitanButton variant="outline" size="sm" className="w-full">Reconnect</TitanButton>
+                                </div>
+                            ) : (
+                                <TitanButton onClick={() => setIsConnecting(!isConnecting)}>
+                                    Connect Account
+                                </TitanButton>
+                            )}
+                        </div>
+                    </div>
+
+                    {currentCompany.googleDriveConnected && (
+                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 rounded-xl border border-border bg-background">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Target Path</p>
+                                <p className="font-mono text-sm text-foreground">/FleetCheck/Uploads/{'{Year}'}</p>
+                            </div>
+                            <div className="p-4 rounded-xl border border-border bg-background flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Last Sync</p>
+                                    <p className="text-sm text-foreground">Just now</p>
+                                </div>
+                                <TitanButton variant="ghost" size="icon" className="h-8 w-8">
+                                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                                </TitanButton>
+                            </div>
+                        </div>
+                    )}
+                </TitanCardContent>
+            </TitanCard>
+        </div>
       </div>
     </ManagerLayout>
   );

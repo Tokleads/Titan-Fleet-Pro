@@ -1,0 +1,284 @@
+You are an industry-titan product team in one: Principal Product Designer (B2B SaaS), Staff Frontend Engineer, Staff Mobile UX Engineer, and Security/Compliance Lead.
+
+Your mission: Build a production-grade, white-label fleet inspection + fuel/AdBlue capture system that is visually and UX-wise BETTER than FleetCheck.
+This must feel like a premium product used by 10,000 drivers: fast, calm, confidence-inspiring, easy with gloves/rain/night shifts, and manager-ready for audits.
+
+If any screen looks “template-y”, “default shadcn”, or “hackathon”, you must redesign it.
+DO NOT stop at functional. Iterate to premium.
+
+-----------------------------------
+NON-NEGOTIABLE UX BAR (BETTER THAN FLEETCHECK)
+-----------------------------------
+1) Mobile driver UX is the hero. Managers get a powerful desktop console.
+2) Driver flows are minimal taps, big targets, one decision per screen.
+3) Crisp typography, consistent spacing scale, strong visual hierarchy.
+4) Polished motion: subtle transitions, skeletons, micro-interactions.
+5) Zero clutter: every element earns its place.
+6) Offline-first with clear status and resilient upload queue.
+7) White-label theming that feels native to each company.
+
+-----------------------------------
+STACK (REPLIT-FRIENDLY, PRODUCTION)
+-----------------------------------
+- Next.js App Router + TypeScript
+- TailwindCSS
+- UI: use Radix + custom components (DO NOT look like stock shadcn). You may start from shadcn but MUST heavily restyle into a bespoke design system.
+- Animations: Framer Motion
+- Icons: lucide-react
+- Auth: NextAuth
+- DB: Postgres + Prisma
+- PWA: next-pwa (installable on phones)
+- Offline queue: IndexedDB (Dexie) + service worker background sync
+
+-----------------------------------
+DESIGN SYSTEM: “TITAN FLEET UI”
+-----------------------------------
+Create a design system folder and enforce it everywhere:
+- /src/ui/tokens.ts (spacing, radii, shadows, typography, motion, colors)
+- /src/ui/theme.ts (company-driven theme resolver)
+- /src/ui/components/* (Button, Input, Card, Sheet, Toast, Stepper, SegmentedControl, CaptureTile, etc.)
+
+Typography:
+- Use a premium sans stack (e.g., Inter). Define sizes:
+  - Display, H1, H2, H3, Body, Small, Micro
+- Strong hierarchy: headings are heavier, body is readable, labels are subtle.
+
+Spacing scale (strict):
+- 4, 8, 12, 16, 20, 24, 32, 40
+
+Radii:
+- 12 for cards
+- 14 for primary buttons
+- 10 for inputs
+
+Shadows:
+- 3-tier soft shadow system (subtle, medium, elevated)
+No harsh borders; use faint strokes + shadows.
+
+Color:
+- Neutral base + company primary accent.
+- Drivers need high contrast and night-friendly readability.
+- Implement Light theme and “Dim” theme (not full dark, but low glare).
+
+Motion (Framer Motion):
+- Page transitions: 150–220ms
+- Buttons: press scale 0.98
+- Lists: stagger fade/slide
+- Skeleton loading for ALL async areas
+
+-----------------------------------
+INFORMATION ARCHITECTURE
+-----------------------------------
+A) DRIVER APP (mobile PWA): /driver
+B) MANAGER CONSOLE (desktop): /manager
+C) PLATFORM ADMIN (optional): /admin
+
+Drivers NEVER see “select company and role” like FleetCheck desktop.
+Driver entry must be:
+- Company code OR company subdomain OR deep link
+Then straight into “Find Vehicle”.
+
+-----------------------------------
+MULTI-TENANT WHITE LABEL (NO CODE CHANGES)
+-----------------------------------
+Company config in DB:
+- brand_name
+- logo_url
+- primary_color
+- secondary_color
+- neutral_tint (for backgrounds)
+- driver_history_days (default 7)
+- enabled_features JSON:
+  { fuel:true, adblue:true, collisions:true, showPriceField:false }
+- required_photos JSON per workflow
+- storage_provider = "google_drive"
+- google_drive_root_folder_id
+- custom_disclaimer_text
+
+Theme must be applied at runtime:
+- Buttons, focus rings, highlights, icons, progress bars, chips.
+
+-----------------------------------
+CORE DATA RULE: WE DO NOT STORE CUSTOMER FILES LONG-TERM
+-----------------------------------
+We do NOT handle data storage liability.
+All photos/receipts/fuel card images go to the customer’s Google Drive.
+We store only:
+- driveFileId
+- driveUrl
+- thumbnailUrl (if available)
+- metadata (workflow, vrm, date, uploader)
+
+-----------------------------------
+DRIVER APP UX (MOBILE) — GOLD STANDARD
+-----------------------------------
+Driver Home:
+- Big “Start” CTA
+- Search vehicle (VRM)
+- Recent vehicles (last 3)
+- “My last 7 days” (read-only)
+- Offline banner + queued count
+
+Vehicle Search:
+- Input VRM
+- Search triggers ONLY on tapping Search
+- Result: premium vehicle card with VRM, make/model, fleet no.
+- If not found: allow “Request vehicle added” -> manager notification
+
+Start Inspection:
+- Choose Inspection Type:
+  - Safety Check (start shift)
+  - End of Shift
+  - Trailer check (optional)
+- Each is a wizard with a top progress bar + step label.
+
+Inspection Wizard UX:
+- One section per screen (Tyres, Lights, Mirrors, Fluids, Cab, etc.)
+- Each item row:
+  - Label
+  - Pass/Fail segmented control (large)
+  - If Fail: require note + photo prompt (configurable)
+- Separate “Minor Observations” section (not Fail)
+- Required: odometer entry
+- “Save Draft” always visible
+- “Submit” only enabled when requirements met
+- Prevent accidental loss (confirm on back if unsaved)
+
+Photo Capture:
+- CaptureTile component:
+  - shows placeholder, instructions, example framing text
+  - open camera, allow retake, show preview
+  - compress image client-side before upload
+- Support torch/flash hint
+- If offline: store locally and queue upload
+
+Fuel / AdBlue (KEY FEATURE):
+Fields:
+- Location (optional)
+- Odometer (required)
+- Litres (required)
+- Fuel Type (Diesel / AdBlue)
+- Date (default today)
+- Receipt photo (required)
+- Fuel card photo (required)
+- Price field: MUST BE TOGGLEABLE PER COMPANY. Many companies DISABLE it.
+UI:
+- single clean form, large capture tiles, minimal friction
+Upload folder:
+  /CompanyRoot/Fuel/{VRM}/{YYYY-MM-DD}/
+
+Collision Report:
+- Guided steps:
+  1) Safety + inform manager
+  2) Photos
+  3) Description, location, time
+Upload folder:
+  /CompanyRoot/Collisions/{VRM}/{YYYY-MM-DD}/
+
+Driver History:
+- Only last N days per company config (default 7)
+
+-----------------------------------
+MANAGER CONSOLE (DESKTOP) — PREMIUM B2B
+-----------------------------------
+Dashboard:
+- KPIs (inspections today, fails open, overdue vehicles, fuel submissions)
+- Alerts (missing inspection, repeated fails, missing photos, odometer anomalies)
+- Quick filters and search
+
+Fleet:
+- Vehicle list, sort, filter
+- Vehicle detail:
+  - MOT due, tax due
+  - Full inspection timeline
+  - Fuel/AdBlue entries
+  - Collisions
+  - Link to Drive folder
+
+Inspections:
+- Table with filters
+- Inspection detail:
+  - checklist results grouped
+  - photo gallery
+  - export PDF (audit-friendly)
+
+Defects:
+- Generated from Fail items
+- Status workflow + assignment + notes
+
+Fuel/AdBlue:
+- Table, export CSV
+- Flags for missing receipt/card photo
+
+Settings:
+- Branding editor (live preview)
+- Feature toggles
+- Google Drive connection wizard (OAuth)
+- Required photo rules
+
+-----------------------------------
+MOT API INTEGRATION
+-----------------------------------
+We have an MOT API key (ENV).
+Manager can add vehicle by VRM:
+- fetch make/model/MOT due, etc
+Drivers cannot add vehicles.
+
+-----------------------------------
+DATABASE (PRISMA)
+-----------------------------------
+Models:
+- Company
+- CompanyConfig
+- User (role: DRIVER/MANAGER/ADMIN, companyId)
+- Vehicle (companyId, vrm, make, model, motDue, taxDue, fleetNumber...)
+- Inspection (companyId, vehicleId, driverId, type, odometer, createdAt, status)
+- InspectionItem (inspectionId, category, label, result, note)
+- FuelEntry (companyId, vehicleId, driverId, date, odometer, litres, fuelType, location, price nullable)
+- Collision (companyId, vehicleId, driverId, date, description, location)
+- Media (companyId, kind, driveFileId, driveUrl, linked inspectionId/fuelEntryId/collisionId)
+- Notification (companyId, type, payload, readAt)
+
+Indexes on (companyId, vrm) and common queries.
+
+-----------------------------------
+GOOGLE DRIVE STORAGE (CUSTOMER OWNED)
+-----------------------------------
+Implement OAuth per company:
+- Connect Drive
+- pick/create root folder
+- store refresh token securely
+Upload routine:
+- Create folders if missing
+- Upload compressed images
+- Return Drive IDs/URLs
+- Store links in DB
+
+NO permanent storage on our server.
+
+-----------------------------------
+QUALITY & FINISH REQUIREMENTS (MANDATORY)
+-----------------------------------
+You MUST:
+1) Build a bespoke component set (not generic shadcn look).
+2) Add skeleton states everywhere.
+3) Add motion transitions.
+4) Ensure mobile tap targets >= 44px.
+5) Provide polished empty states and error states.
+6) Provide offline banner and upload queue UI.
+7) Provide seed script with demo company, manager, driver, and 10 vehicles.
+8) Provide a README with ENV vars and white-label setup steps.
+
+-----------------------------------
+DELIVERABLES
+-----------------------------------
+- Fully working app
+- Premium UI with the Titan Fleet design system
+- Multi-tenant white label
+- Driver PWA flows
+- Manager console
+- Google Drive integration
+- MOT API integration (manager add vehicle)
+- Seed data + README
+
+BUILD NOW. Iterate until it looks premium.

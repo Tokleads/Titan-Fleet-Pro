@@ -1,27 +1,42 @@
 import { useState } from "react";
 import { DriverLayout } from "@/components/layout/AppShell";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { TitanButton } from "@/components/titan-ui/Button";
+import { TitanCard } from "@/components/titan-ui/Card";
+import { TitanSegmentedControl } from "@/components/titan-ui/SegmentedControl";
+import { TitanCaptureTile } from "@/components/titan-ui/CaptureTile";
+import { TitanInput } from "@/components/titan-ui/Input";
 import { useLocation, useRoute } from "wouter";
 import { MOCK_VEHICLES } from "@/lib/mockData";
-import { CheckCircle2, XCircle, Camera, ChevronLeft, ChevronRight, UploadCloud, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, UploadCloud, AlertTriangle, Gauge } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { Textarea } from "@/components/ui/textarea";
 
-const CHECKLIST_SECTIONS = [
+const WIZARD_STEPS = [
   {
+    id: "odometer",
+    title: "Start Check",
+    items: []
+  },
+  {
+    id: "external",
     title: "External",
     items: ["Lights & Indicators", "Mirrors & Glass", "Tyres & Wheels", "Bodywork & Doors"]
   },
   {
+    id: "fluids",
     title: "Fluids",
     items: ["Engine Oil", "Coolant", "Screen Wash", "AdBlue Level"]
   },
   {
+    id: "cab",
     title: "In Cab",
     items: ["Wipers", "Horn", "Seatbelts", "Dashboard Warning Lights"]
+  },
+  {
+    id: "review",
+    title: "Review",
+    items: []
   }
 ];
 
@@ -31,179 +46,235 @@ export default function VehicleInspection() {
   const { toast } = useToast();
   const vehicle = MOCK_VEHICLES.find(v => v.id === params?.id);
 
-  const [step, setStep] = useState(0); // 0: Checklist, 1: Defects (if any), 2: Submit
-  const [checks, setChecks] = useState<Record<string, boolean>>({}); // true = pass, false = fail
-  const [defects, setDefects] = useState<Record<string, string>>({}); // itemId -> notes
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [checks, setChecks] = useState<Record<string, "pass" | "fail">>({});
+  const [defects, setDefects] = useState<Record<string, { note: string, photo?: string }>>({});
+  const [odometer, setOdometer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!vehicle) return <div>Vehicle not found</div>;
 
-  const handlePass = (item: string) => {
-    setChecks(prev => ({ ...prev, [item]: true }));
-    // Remove defect note if it exists
-    if (defects[item]) {
-      const newDefects = { ...defects };
-      delete newDefects[item];
-      setDefects(newDefects);
+  const currentStep = WIZARD_STEPS[currentStepIndex];
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === WIZARD_STEPS.length - 1;
+
+  // Validation for current step
+  const canProceed = () => {
+    if (currentStep.id === "odometer") return !!odometer;
+    if (currentStep.id === "review") return true;
+    
+    // For checklist steps, ensure all items are checked
+    return currentStep.items.every(item => checks[item] !== undefined);
+  };
+
+  const handleNext = () => {
+    if (canProceed()) {
+      setCurrentStepIndex(prev => Math.min(prev + 1, WIZARD_STEPS.length - 1));
+      window.scrollTo(0, 0);
     }
   };
 
-  const handleFail = (item: string) => {
-    setChecks(prev => ({ ...prev, [item]: false }));
+  const handleBack = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1);
+    } else {
+      setLocation("/driver");
+    }
   };
-
-  const allChecksComplete = CHECKLIST_SECTIONS.flatMap(s => s.items).every(item => checks[item] !== undefined);
-  const hasFailures = Object.values(checks).some(val => val === false);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Simulate upload delay
     await new Promise(r => setTimeout(r, 2000));
     setIsSubmitting(false);
+    
+    const hasFailures = Object.values(checks).some(v => v === "fail");
+    
     toast({
       title: "Inspection Submitted",
-      description: hasFailures ? "Defects reported. Transport manager notified." : "Vehicle passed inspection.",
+      description: hasFailures ? "Defects logged. Manager notified." : "Vehicle passed. Safe to drive.",
       className: hasFailures ? "border-amber-500 bg-amber-50" : "border-green-500 bg-green-50",
     });
     setLocation("/driver");
   };
 
+  const progress = ((currentStepIndex + 1) / WIZARD_STEPS.length) * 100;
+
   return (
     <DriverLayout>
-      <div className="space-y-6 pb-20">
-        <div className="flex items-center gap-2 mb-4">
-            <Button variant="ghost" size="icon" onClick={() => setLocation("/driver")}>
-                <ChevronLeft />
-            </Button>
-            <div>
-                <h2 className="font-heading font-bold text-xl">{vehicle.reg}</h2>
-                <p className="text-sm text-slate-500">Daily Walkaround Check</p>
-            </div>
-        </div>
-
-        {step === 0 && (
-          <div className="space-y-8 animate-in slide-in-from-right duration-300">
-            {CHECKLIST_SECTIONS.map((section, idx) => (
-              <div key={idx} className="space-y-3">
-                <h3 className="font-heading font-semibold text-slate-800 uppercase tracking-wider text-sm border-b pb-1 border-slate-200">
-                  {section.title}
-                </h3>
-                <div className="space-y-3">
-                  {section.items.map(item => (
-                    <div key={item} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex items-center justify-between">
-                      <span className="font-medium text-slate-700">{item}</span>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant={checks[item] === false ? "destructive" : "outline"}
-                          className={`rounded-full w-10 h-10 p-0 ${checks[item] === false ? 'ring-2 ring-red-200' : ''}`}
-                          onClick={() => handleFail(item)}
-                        >
-                          <XCircle className={checks[item] === false ? "fill-current" : ""} />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant={checks[item] === true ? "default" : "outline"}
-                          className={`rounded-full w-10 h-10 p-0 ${checks[item] === true ? 'bg-green-600 hover:bg-green-700 ring-2 ring-green-200' : 'text-slate-400'}`}
-                          onClick={() => handlePass(item)}
-                        >
-                          <CheckCircle2 className={checks[item] === true ? "fill-current" : ""} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {step === 1 && (
-           <div className="space-y-6 animate-in slide-in-from-right duration-300">
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex gap-3 items-start">
-                  <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                      <h3 className="font-bold text-amber-800">Defects Reported</h3>
-                      <p className="text-sm text-amber-700">Please provide details and photos for the failed items.</p>
-                  </div>
-              </div>
-
-              {Object.entries(checks).filter(([_, passed]) => !passed).map(([item]) => (
-                  <Card key={item} className="border-red-200 shadow-sm">
-                      <CardHeader className="bg-red-50/50 pb-3 border-b border-red-100">
-                          <CardTitle className="text-base text-red-900 flex items-center gap-2">
-                              <XCircle className="h-4 w-4" /> {item}
-                          </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4 pt-4">
-                          <div className="space-y-2">
-                              <Label>Description of Defect</Label>
-                              <Textarea 
-                                placeholder="Describe the issue..." 
-                                value={defects[item] || ""}
-                                onChange={(e) => setDefects({...defects, [item]: e.target.value})}
-                              />
-                          </div>
-                          <div className="flex items-center gap-2">
-                              <Button variant="outline" className="w-full gap-2 text-slate-600">
-                                  <Camera className="h-4 w-4" /> Add Photo
-                              </Button>
-                          </div>
-                      </CardContent>
-                  </Card>
-              ))}
-           </div>
-        )}
-
-        {step === 2 && (
-            <div className="space-y-6 animate-in slide-in-from-right duration-300">
-                <div className="text-center space-y-2 py-8">
-                    <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <UploadCloud className="h-8 w-8 text-primary animate-pulse" />
-                    </div>
-                    <h3 className="font-heading font-bold text-xl">Ready to Submit?</h3>
-                    <p className="text-slate-500 px-8">
-                        {hasFailures 
-                            ? "Your report includes defects. This will notify the transport manager immediately." 
-                            : "Vehicle is safe to drive. Good to go!"}
+      <div className="flex flex-col min-h-[calc(100vh-80px)]">
+        {/* Header with Progress */}
+        <div className="sticky top-0 bg-slate-50/95 backdrop-blur z-20 pt-2 pb-4 border-b border-slate-200/50 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+                <TitanButton variant="ghost" size="icon" onClick={handleBack} className="h-10 w-10 -ml-2">
+                    <ChevronLeft className="h-6 w-6 text-slate-600" />
+                </TitanButton>
+                <div>
+                    <h2 className="font-heading font-bold text-lg leading-none">{vehicle.reg}</h2>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">
+                        {currentStep.title} • Step {currentStepIndex + 1}/{WIZARD_STEPS.length}
                     </p>
                 </div>
             </div>
-        )}
+            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden w-full">
+                <motion.div 
+                    className="h-full bg-primary" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.3 }}
+                />
+            </div>
+        </div>
 
-        {/* Sticky Footer */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 z-50">
-            <div className="max-w-md mx-auto w-full flex gap-3">
-                {step > 0 && (
-                     <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
-                        Back
-                     </Button>
-                )}
-                {step === 0 && (
-                    <Button 
-                        className="flex-1" 
-                        disabled={!allChecksComplete} 
-                        onClick={() => hasFailures ? setStep(1) : setStep(2)}
-                    >
-                        Next <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                )}
-                {step === 1 && (
-                     <Button 
-                        className="flex-1"
-                        onClick={() => setStep(2)}
-                    >
-                        Review <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                )}
-                {step === 2 && (
-                     <Button 
-                        className={`flex-1 ${hasFailures ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'}`}
+        {/* Wizard Content */}
+        <div className="flex-1 pb-24">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentStep.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-6"
+                >
+                    {currentStep.id === "odometer" && (
+                        <div className="space-y-6 pt-4">
+                            <div className="text-center space-y-2 mb-8">
+                                <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-primary mb-4 ring-8 ring-blue-50/50">
+                                    <Gauge className="h-8 w-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900">Check Odometer</h3>
+                                <p className="text-slate-500">Please enter the current mileage to begin.</p>
+                            </div>
+                            
+                            <TitanInput 
+                                label="Current Odometer (km)"
+                                type="number" 
+                                placeholder="e.g. 125400" 
+                                className="text-2xl h-16 text-center font-mono tracking-widest"
+                                value={odometer}
+                                onChange={(e) => setOdometer(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    )}
+
+                    {/* Checklist Steps */}
+                    {currentStep.items.length > 0 && (
+                        <div className="space-y-6">
+                            {currentStep.items.map((item) => (
+                                <TitanCard key={item} className="p-5 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <label className="text-base font-bold text-slate-800">{item}</label>
+                                        {checks[item] === "pass" && <CheckCircle2 className="text-green-500 h-5 w-5" />}
+                                    </div>
+                                    
+                                    <TitanSegmentedControl 
+                                        value={checks[item] || ""}
+                                        onChange={(val) => setChecks(prev => ({ ...prev, [item]: val as "pass" | "fail" }))}
+                                        options={[
+                                            { label: "Pass", value: "pass", variant: "success" },
+                                            { label: "Fail", value: "fail", variant: "danger" }
+                                        ]}
+                                    />
+
+                                    {/* Defect Capture if Failed */}
+                                    <AnimatePresence>
+                                        {checks[item] === "fail" && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="pt-2 space-y-3 overflow-hidden"
+                                            >
+                                                <div className="bg-red-50 p-3 rounded-lg border border-red-100 text-red-800 text-sm flex gap-2">
+                                                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                                    Please describe the defect and take a photo.
+                                                </div>
+                                                <Textarea 
+                                                    placeholder="Describe defect..." 
+                                                    className="bg-white"
+                                                    value={defects[item]?.note || ""}
+                                                    onChange={(e) => setDefects(prev => ({ 
+                                                        ...prev, 
+                                                        [item]: { ...prev[item], note: e.target.value } 
+                                                    }))}
+                                                />
+                                                <TitanCaptureTile 
+                                                    label="Take Photo" 
+                                                    required 
+                                                    onCapture={() => {}} // Hook up camera later
+                                                    value={defects[item]?.photo}
+                                                    icon={<UploadCloud className="h-6 w-6" />}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </TitanCard>
+                            ))}
+                        </div>
+                    )}
+
+                    {currentStep.id === "review" && (
+                        <div className="space-y-6 pt-4">
+                            <div className="text-center space-y-2 mb-6">
+                                <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-600 mb-4">
+                                    <CheckCircle2 className="h-8 w-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900">Ready to Submit</h3>
+                                <p className="text-slate-500">Review your inspection details below.</p>
+                            </div>
+
+                            <TitanCard className="divide-y divide-slate-100">
+                                <div className="p-4 flex justify-between">
+                                    <span className="text-slate-500">Odometer</span>
+                                    <span className="font-mono font-bold">{odometer} km</span>
+                                </div>
+                                <div className="p-4 flex justify-between">
+                                    <span className="text-slate-500">Defects Found</span>
+                                    <span className={`font-bold ${Object.values(checks).includes("fail") ? "text-red-600" : "text-green-600"}`}>
+                                        {Object.values(checks).filter(v => v === "fail").length}
+                                    </span>
+                                </div>
+                            </TitanCard>
+                            
+                            {Object.values(checks).some(v => v === "fail") && (
+                                <div className="bg-red-50 border border-red-100 rounded-xl p-4 space-y-2">
+                                    <h4 className="font-bold text-red-900 flex items-center gap-2">
+                                        <AlertTriangle className="h-4 w-4" /> Attention Required
+                                    </h4>
+                                    <p className="text-sm text-red-700">
+                                        This vehicle has reported defects. The transport manager will be notified immediately upon submission.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
+        </div>
+
+        {/* Floating Action Bar */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur border-t border-slate-200 z-50 pb-safe">
+            <div className="max-w-md mx-auto w-full">
+                {currentStep.id === "review" ? (
+                    <TitanButton 
+                        size="lg" 
+                        className="w-full shadow-titan-lg" 
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        isLoading={isSubmitting}
+                        variant={Object.values(checks).some(v => v === "fail") ? "destructive" : "primary"}
                     >
-                        {isSubmitting ? "Uploading..." : "Submit Inspection"}
-                    </Button>
+                        Submit Inspection
+                    </TitanButton>
+                ) : (
+                    <TitanButton 
+                        size="lg" 
+                        className="w-full shadow-titan-lg" 
+                        onClick={handleNext}
+                        disabled={!canProceed()}
+                    >
+                        Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                    </TitanButton>
                 )}
             </div>
         </div>

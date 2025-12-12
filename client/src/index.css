@@ -5,13 +5,16 @@
 
 @theme inline {
   --font-sans: 'Inter', sans-serif;
-  --font-heading: 'Inter', sans-serif; /* Unify font family for cleaner look */
+  --font-heading: 'Inter', sans-serif;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Titan Fleet Radius Scale */
+  --radius-sm: 0.5rem;   /* 8px */
+  --radius-md: 0.625rem; /* 10px - Inputs */
+  --radius-lg: 0.75rem;  /* 12px - Cards */
+  --radius-xl: 0.875rem; /* 14px - Buttons */
+  --radius-2xl: 1rem;    /* 16px */
 
+  /* Titan Fleet Colors */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
 
@@ -54,52 +57,61 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
-  
-  --shadow-card: 0 20px 60px -10px hsl(222 47% 11% / 0.1), 0 10px 20px -5px hsl(222 47% 11% / 0.05);
-  --shadow-lift: 0 10px 40px -10px hsl(222 47% 11% / 0.15);
+
+  /* Titan Fleet Shadows - Soft & Premium */
+  --shadow-titan-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-titan-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-titan-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-titan-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 }
 
-/* PREMIUM ENTERPRISE THEME */
+/* TITAN FLEET THEME DEFINITIONS */
 :root {
-  --radius: 0.75rem; /* 12px for modern feel */
+  --radius: 0.75rem;
 
-  /* Base - Slate/Zinc inspired but warmer/softer */
-  --background: 210 40% 98%; 
-  --foreground: 222 47% 11%; 
+  /* Neutral Base - Calm, Professional, High Readability */
+  --background: 210 20% 98%;      /* Very light cool grey */
+  --foreground: 220 20% 12%;      /* Soft black */
 
-  /* Surface */
+  /* Surfaces */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 220 20% 12%;
   
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 220 20% 12%;
 
-  /* Brand - Deep Enterprise Blue */
-  --primary: 221 83% 53%; 
+  /* Brand - Configurable via JS, defaulting to Titan Blue */
+  --primary: 220 60% 50%;
   --primary-foreground: 0 0% 100%;
 
+  /* Secondary / Surface 2 */
   --secondary: 210 20% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary-foreground: 220 20% 12%;
 
+  /* Muted / Subtext */
   --muted: 210 20% 96%;
-  --muted-foreground: 215 16% 47%;
+  --muted-foreground: 220 10% 45%;
 
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
+  /* Accents */
+  --accent: 210 20% 94%;
+  --accent-foreground: 220 20% 12%;
 
+  /* Semantic */
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 221 83% 53%; /* Matches primary */
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 220 60% 50%;
 
-  --chart-1: 221 83% 53%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  /* Charts */
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 
+  /* Sidebar specific */
   --sidebar: 0 0% 98%;
   --sidebar-foreground: 240 5.3% 26.1%;
   --sidebar-primary: 240 5.9% 10%;
@@ -111,48 +123,34 @@
 }
 
 .dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
+  /* Dim Theme - Low Glare for Night Shifts */
+  --background: 220 25% 10%;
+  --foreground: 210 20% 98%;
   
-  --card: 217 33% 17%;
-  --card-foreground: 210 40% 98%;
+  --card: 220 25% 13%;
+  --card-foreground: 210 20% 98%;
   
-  --popover: 217 33% 17%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 220 25% 13%;
+  --popover-foreground: 210 20% 98%;
   
-  --primary: 217 91% 60%;
-  --primary-foreground: 222 47% 11%;
+  --primary: 220 70% 60%;
+  --primary-foreground: 220 25% 10%;
   
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 220 25% 16%;
+  --secondary-foreground: 210 20% 98%;
   
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
+  --muted: 220 25% 16%;
+  --muted-foreground: 220 10% 65%;
   
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 220 25% 16%;
+  --accent-foreground: 210 20% 98%;
   
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 20% 98%;
   
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 213 27% 84%;
-
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
-  
-  --sidebar: 240 5.9% 10%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 224.3 76.3% 48%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --border: 220 25% 16%;
+  --input: 220 25% 16%;
+  --ring: 220 70% 60%;
 }
 
 @layer base {
@@ -161,16 +159,11 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Soft premium gradient */
-    background-image: radial-gradient(circle at 50% 0%, hsla(210, 40%, 96%, 0.8), hsla(210, 40%, 98%, 0));
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight;
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  /* Titan Typography Scale */
+  h1 { @apply text-4xl font-bold tracking-tight text-foreground; }
+  h2 { @apply text-2xl font-semibold tracking-tight text-foreground; }
+  h3 { @apply text-xl font-semibold tracking-tight text-foreground; }
+  h4 { @apply text-lg font-medium tracking-tight text-foreground; }
+  p { @apply leading-relaxed; }
 }
