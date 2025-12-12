@@ -75,12 +75,41 @@ client/src/components/titan-ui/ - Custom UI components
 - `GET /api/dvsa/mot/:registration` - Get MOT status
 - `GET /api/dvsa/vehicle/:registration` - Get full DVSA vehicle data
 
+## Manager Dashboard
+
+Access at `/manager/login` with:
+- **Company Code**: APEX
+- **Manager PIN**: 0000
+
+### Manager Pages
+- **Dashboard** (`/manager`) - KPI cards, recent inspections, quick stats
+- **Inspections** (`/manager/inspections`) - All vehicle inspections with pagination
+- **Defects** (`/manager/defects`) - Kanban-style defect tracking (Open/In Progress/Resolved)
+- **Fuel Log** (`/manager/fuel`) - Diesel and AdBlue entries for past 30 days
+- **Fleet** (`/manager/fleet`) - Vehicle and trailer management grid
+- **Settings** (`/manager/settings`) - Company branding and Google Drive integration
+
+### Manager API Endpoints
+- `POST /api/manager/login` - Manager authentication
+- `GET /api/manager/stats/:companyId` - Dashboard KPIs
+- `GET /api/manager/inspections/:companyId` - All inspections (paginated)
+- `GET /api/manager/defects/:companyId` - All defects
+- `PATCH /api/manager/defects/:id` - Update defect status
+- `GET /api/manager/fuel/:companyId` - Fuel entries by company
+- `GET /api/manager/users/:companyId` - All users
+- `GET /api/manager/trailers/:companyId` - All trailers
+- `POST/PATCH/DELETE /api/manager/vehicles` - Vehicle CRUD
+
 ## Recent Changes
 
 ### 2025-12-12 (Latest)
+- Built complete Transport Manager Dashboard with desktop-optimized layout
+- Added manager API endpoints for auth, stats, inspections, defects, fuel, users, trailers
+- Extended database schema with defects and trailers tables
+- Added manager user to seed data (PIN: 0000)
+- Created manager pages: Dashboard, Inspections, Defects, FuelLog, Fleet, Settings
+- Fixed mileage input visibility in light mode
 - Added tenant configuration system (client/src/config/tenant.ts) for white-label branding
-- Wired tenant config to header, landing page, and brand context
-- Enhanced Vehicle Identity Card with Last Check date, MOT Due, and Status columns
 - DC European Haulage Ltd branding with custom logo
 
 ### 2025-12-12
