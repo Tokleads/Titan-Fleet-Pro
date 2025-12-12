@@ -1,156 +1,103 @@
 import { useBrand } from "@/hooks/use-brand";
-import { useLocation } from "wouter";
-import { LogOut, LayoutDashboard, Truck, Settings, FileText, Menu, X } from "lucide-react";
+import { useLocation, useRoute } from "wouter";
+import { LogOut, Home, History, UploadCloud, Settings, Menu, X, Truck, FileText } from "lucide-react";
 import { useState } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function ManagerLayout({ children }: { children: React.ReactNode }) {
-  const [, setLocation] = useLocation();
-  const { currentCompany } = useBrand();
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex w-64 bg-sidebar text-sidebar-foreground flex-col border-r border-sidebar-border h-screen sticky top-0">
-        <div className="p-6">
-          <h2 className="font-heading font-bold text-xl tracking-tight uppercase text-sidebar-foreground">{currentCompany.name}</h2>
-          <div className="mt-1 px-2 py-0.5 bg-sidebar-accent rounded-full inline-block">
-             <p className="text-[10px] font-bold tracking-wider uppercase text-sidebar-accent-foreground">Manager Console</p>
-          </div>
-        </div>
-        
-        <nav className="px-3 space-y-1 flex-1">
-          <NavItem icon={<LayoutDashboard size={20} />} label="Overview" active />
-          <NavItem icon={<Truck size={20} />} label="Vehicles" />
-          <NavItem icon={<FileText size={20} />} label="Inspections" />
-          <NavItem icon={<Settings size={20} />} label="Settings" />
-        </nav>
-
-        <div className="p-4 border-t border-sidebar-border">
-          <button 
-            className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-sm font-medium"
-            onClick={() => setLocation("/")}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-background">
-        {children}
-      </main>
-    </div>
-  );
-}
-
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
-  return (
-    <div className={`
-      flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200
-      ${active 
-        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm' 
-        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-      }
-    `}>
-      {icon}
-      <span className="font-medium text-sm">{label}</span>
-    </div>
-  );
-}
-
 export function DriverLayout({ children }: { children: React.ReactNode }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { currentCompany } = useBrand();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const isActive = (path: string) => location === path;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col pb-safe">
       {/* Mobile Header - Titan Style */}
-      <header className="bg-card text-card-foreground p-4 shadow-sm border-b border-border sticky top-0 z-40">
+      <header className="bg-white text-slate-900 px-4 py-3 shadow-sm border-b border-slate-100 sticky top-0 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto w-full">
             <div className="flex items-center gap-3">
-                {/* Brand Logo Placeholder */}
-                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
+                <div 
+                    className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold shadow-sm"
+                    style={{ backgroundColor: currentCompany.settings.brand?.primaryColor || 'var(--primary)' }}
+                >
                     {currentCompany.name.substring(0, 1)}
                 </div>
                 <div>
-                    <h1 className="font-heading font-bold text-base leading-none">{currentCompany.name}</h1>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Driver Portal</p>
+                    <h1 className="font-heading font-bold text-base leading-none text-slate-900">{currentCompany.name}</h1>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Driver Portal</p>
                 </div>
             </div>
             
-            <TitanButton 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9"
-                onClick={() => setIsMenuOpen(true)}
-            >
-                <Menu size={20} />
-            </TitanButton>
+            {/* Offline Badge (Mock) */}
+            <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-            <>
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
-                    onClick={() => setIsMenuOpen(false)}
-                />
-                <motion.div 
-                    initial={{ x: "100%" }}
-                    animate={{ x: 0 }}
-                    exit={{ x: "100%" }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="fixed inset-y-0 right-0 w-[280px] bg-card border-l border-border z-50 p-6 flex flex-col shadow-2xl"
-                >
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="font-bold text-lg">Menu</h2>
-                        <TitanButton variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
-                            <X size={20} />
-                        </TitanButton>
-                    </div>
-
-                    <nav className="space-y-2 flex-1">
-                        <MobileNavItem icon={<Truck size={20} />} label="My Vehicle" active />
-                        <MobileNavItem icon={<FileText size={20} />} label="History" />
-                        <MobileNavItem icon={<Settings size={20} />} label="Settings" />
-                    </nav>
-
-                    <TitanButton 
-                        variant="destructive" 
-                        className="w-full justify-start mt-auto"
-                        onClick={() => setLocation("/")}
-                    >
-                        <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                    </TitanButton>
-                </motion.div>
-            </>
-        )}
-      </AnimatePresence>
-
-      <main className="flex-1 max-w-md mx-auto w-full p-4">
+      <main className="flex-1 w-full max-w-md mx-auto p-4 pb-24">
         {children}
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 pb-safe">
+        <div className="max-w-md mx-auto flex items-center justify-around h-16 px-2">
+            <BottomNavItem 
+                icon={<Home size={22} />} 
+                label="Home" 
+                active={isActive("/driver")} 
+                onClick={() => setLocation("/driver")}
+            />
+            <BottomNavItem 
+                icon={<FileText size={22} />} 
+                label="History" 
+                active={isActive("/driver/history")} 
+                onClick={() => setLocation("/driver/history")}
+            />
+            <BottomNavItem 
+                icon={<UploadCloud size={22} />} 
+                label="Queue" 
+                active={isActive("/driver/queue")} 
+                onClick={() => setLocation("/driver/queue")}
+                badge={0}
+            />
+            <BottomNavItem 
+                icon={<Settings size={22} />} 
+                label="Settings" 
+                active={isActive("/driver/settings")} 
+                onClick={() => setLocation("/driver/settings")}
+            />
+        </div>
+      </nav>
     </div>
   );
 }
 
-function MobileNavItem({ icon, label, active }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function BottomNavItem({ icon, label, active, onClick, badge }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, badge?: number }) {
     return (
-        <div className={`
-            flex items-center gap-4 p-3 rounded-xl transition-colors
-            ${active ? 'bg-secondary text-foreground font-medium' : 'text-muted-foreground hover:bg-secondary/50'}
-        `}>
-            {icon}
-            <span>{label}</span>
-        </div>
+        <button 
+            onClick={onClick}
+            className={`
+                relative flex flex-col items-center justify-center w-full h-full gap-1 transition-colors
+                ${active ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}
+            `}
+        >
+            <div className="relative">
+                {icon}
+                {badge !== undefined && badge > 0 && (
+                    <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-2 border-white">
+                        {badge}
+                    </span>
+                )}
+            </div>
+            <span className="text-[10px] font-medium">{label}</span>
+            {active && (
+                <motion.div 
+                    layoutId="bottom-nav-indicator"
+                    className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full"
+                />
+            )}
+        </button>
     )
 }

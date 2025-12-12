@@ -1,0 +1,229 @@
+You are a world-class mobile product team (Principal Product Designer + Staff Mobile Engineer + Security lead).
+Build ONLY the DRIVER mobile app section of a fleet compliance platform.
+
+Goal: A driver-first PWA that feels better than FleetCheck: fewer taps, calmer, premium typography/spacing, fast, offline-resilient, and built for real depot life (gloves, rain, night shift, time pressure).
+
+IMPORTANT: Do NOT build manager screens. Do NOT build desktop UI. Driver only.
+
+========================================================
+TECH STACK (REPLIT FRIENDLY)
+========================================================
+- Next.js App Router + TypeScript
+- TailwindCSS
+- Framer Motion (micro-interactions + transitions)
+- Radix UI primitives + custom styled components (NO default “template look”)
+- Icons: lucide-react
+- Prisma + Postgres
+- PWA: next-pwa + service worker
+- Offline queue: IndexedDB (Dexie)
+- Image compression client-side (before upload)
+
+========================================================
+CORE PRINCIPLES
+========================================================
+1) Driver UX is minimal: one decision per screen, big tap targets (>=44px).
+2) Offline-first: inspections/fuel entries can be saved and queued; uploads resume later.
+3) White-label runtime theme (company-driven). No code changes to rebrand.
+4) We DO NOT store images long term. Upload all photos to the company’s Google Drive, store only Drive file IDs + metadata in DB.
+
+========================================================
+DRIVER ENTRY (NO “ROLE SELECT” SCREEN)
+========================================================
+Drivers should not see a “choose company + role” login page.
+Use this model:
+
+- Driver starts at /d
+- They enter a Company Code or open a company deep link like /d/{companyCode}
+- Then they go straight to “Find Vehicle (VRM search)”
+Optional auth:
+- Keep it simple: 4-digit driver PIN OR magic link.
+- But provide a “Guest Driver mode” if company allows (config flag).
+
+========================================================
+DRIVER APP INFORMATION ARCHITECTURE
+========================================================
+Routes:
+- /d (enter company code / deep link handler)
+- /d/home (Start, Search VRM, Recent vehicles, Upload Queue)
+- /d/vehicle/search (VRM input, search only on button tap)
+- /d/vehicle/[id] (vehicle card + actions)
+- /d/inspection/start?vehicleId=
+- /d/inspection/[inspectionId]/step/[n]
+- /d/fuel/new?vehicleId= (Fuel + AdBlue)
+- /d/collision/new?vehicleId=
+- /d/history (last N days read-only)
+- /d/settings (help, offline info, sign out)
+
+Bottom nav (mobile):
+- Home
+- History
+- Uploads (queue)
+- Settings
+
+========================================================
+KEY WORKFLOWS (MUST BUILD)
+========================================================
+
+A) VEHICLE SEARCH (VRM)
+- Input VRM (uppercase formatting)
+- Search triggers ONLY when user taps “Search”
+- If found: show a premium Vehicle Card (VRM, make/model, fleet #, MOT due if stored)
+- If not found: show “Not found” with action:
+  - “Request vehicle added” -> creates Notification record to managers (do not build manager UI, just store the record)
+
+B) INSPECTION (Start Shift + End Shift)
+Inspection types:
+- Safety Check (start shift)
+- End of Shift
+- Trailer check (optional config, but implement basic)
+
+Inspection UX:
+- Wizard flow with progress bar + section title
+- One section per screen (Tyres, Lights, Mirrors, Fluids, Cab, Load Security, etc.)
+- Each checklist item uses a large segmented control:
+  PASS | FAIL
+- If FAIL:
+  - require note
+  - require photo if configured
+- Require odometer for inspection (numeric, validation)
+- “Save Draft” always available
+- “Submit” disabled until requirements met
+- Confirm before leaving if unsaved changes
+
+Media capture:
+- Build a CaptureTile component:
+  - placeholder + guidance + required badge
+  - camera open
+  - preview + retake
+  - stores locally if offline
+  - compresses before upload
+
+C) FUEL + ADBLUE (Critical feature)
+Single form that can submit either Diesel or AdBlue.
+Required fields:
+- Odometer (required)
+- Litres (required)
+- Date (default today)
+- Fuel Type dropdown: Diesel | AdBlue
+- Receipt photo (required)
+- Fuel card photo (required)
+
+Optional fields:
+- Location
+- Price (£) field exists BUT can be DISABLED per company config.
+When disabled: do not show it at all (not even optional).
+
+Upload folder structure in Drive:
+- Fuel: /{Root}/Fuel/{VRM}/{YYYY-MM-DD}/
+- AdBlue: /{Root}/AdBlue/{VRM}/{YYYY-MM-DD}/
+
+D) COLLISION REPORT
+Guided steps:
+1) “Safety & inform manager” info screen
+2) Photos (required count configurable, default 4)
+3) Details: what happened, location, time
+Upload folder:
+- /{Root}/Collisions/{VRM}/{YYYY-MM-DD}/
+
+E) DRIVER HISTORY (last N days)
+Driver sees ONLY last N days (default 7; company config).
+List:
+- inspections
+- fuel/adblue entries
+- collision submissions
+Each entry opens a detail view with photos (Drive links), status, timestamps.
+
+F) UPLOAD QUEUE (Offline handling)
+If offline or upload fails:
+- entries saved locally + show badge count
+- dedicated Uploads tab shows each queued item with:
+  - type (inspection/fuel/collision)
+  - vehicle VRM
+  - created time
+  - status: queued/uploading/failed
+  - retry button
+Auto retry on reconnect.
+
+========================================================
+MULTI-TENANT WHITE LABEL (DRIVER ONLY)
+========================================================
+Company DB record includes:
+- companyCode (unique)
+- brandName
+- logoUrl
+- primaryColor
+- neutralTint
+- feature flags:
+  - fuelEnabled
+  - adblueEnabled
+  - collisionsEnabled
+  - showPriceField (false for your company)
+- driverHistoryDays (default 7)
+- requiredPhotos config per workflow
+- googleDriveRootFolderId
+- google OAuth tokens (refresh token stored encrypted)
+
+The app loads theme/config by companyCode and applies styles runtime.
+
+========================================================
+GOOGLE DRIVE INTEGRATION (MUST IMPLEMENT)
+========================================================
+Implement Google Drive upload utility.
+Requirements:
+- Create folder path if missing
+- Upload compressed images
+- Return driveFileId + driveUrl
+- Save metadata in DB (Media table)
+- Do not store image files on server disk permanently
+
+In development, allow a “mockDrive” mode with local stub if tokens aren’t configured,
+but keep the interface identical so it’s swappable.
+
+========================================================
+DATABASE (PRISMA)
+========================================================
+Minimum models:
+- Company
+- DriverUser (simple auth optional)
+- Vehicle
+- Inspection
+- InspectionItem
+- FuelEntry
+- Collision
+- Media
+- UploadJob (server-side record for audit, even if offline queue exists)
+- Notification (for vehicle not found requests)
+
+Indexes on:
+- Company + VRM
+- Company + createdAt
+- DriverUser + createdAt
+
+========================================================
+UI QUALITY REQUIREMENTS (DO NOT SKIP)
+========================================================
+- Bespoke component styling (NOT default)
+- Great empty states (friendly, clear)
+- Skeleton loaders for any async view
+- Framer Motion transitions between screens
+- Big controls, readable labels, calm hierarchy
+- “Dim” theme option (low glare) for night drivers
+- Accessibility: proper focus states, contrast, labels
+
+========================================================
+DELIVERABLES
+========================================================
+1) Driver PWA fully working with flows above
+2) Seed script:
+   - 1 demo company
+   - 1 driver PIN user
+   - 15 vehicles (VRMs)
+   - sample history
+3) README:
+   - env vars
+   - how to set company theme
+   - how to connect Google Drive
+   - how offline queue works
+
+Now build the driver app. After initial build, perform a second pass:
+“POLISH ONLY”: no new features—tighten spacing, typography, animations, empty/loading/error states until it feels premium.

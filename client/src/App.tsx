@@ -5,10 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { BrandProvider } from "@/hooks/use-brand";
 import Landing from "@/pages/Landing";
 import DriverDashboard from "@/pages/driver/DriverDashboard";
-import ManagerDashboard from "@/pages/manager/ManagerDashboard";
+import VehicleDetail from "@/pages/driver/VehicleDetail";
 import VehicleInspection from "@/pages/driver/VehicleInspection";
 import FuelEntry from "@/pages/driver/FuelEntry";
-import Settings from "@/pages/manager/Settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,10 +15,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/driver" component={DriverDashboard} />
+      <Route path="/driver/vehicle/:id" component={VehicleDetail} />
       <Route path="/driver/inspection/:id" component={VehicleInspection} />
       <Route path="/driver/fuel/:id" component={FuelEntry} />
-      <Route path="/manager" component={ManagerDashboard} />
-      <Route path="/manager/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
