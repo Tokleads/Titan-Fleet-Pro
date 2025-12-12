@@ -141,3 +141,62 @@ export const vehicleUsage = pgTable("vehicle_usage", {
 });
 
 export type VehicleUsage = typeof vehicleUsage.$inferSelect;
+
+// Trailers
+export const trailers = pgTable("trailers", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  trailerId: varchar("trailer_id", { length: 20 }).notNull(), // Trailer registration/ID
+  type: varchar("type", { length: 50 }).notNull(), // CURTAINSIDER | BOX | FLATBED | TANKER
+  make: text("make"),
+  model: text("model"),
+  axles: integer("axles").default(3),
+  motDue: timestamp("mot_due"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertTrailerSchema = createInsertSchema(trailers).omit({ id: true, createdAt: true });
+export type Trailer = typeof trailers.$inferSelect;
+export type InsertTrailer = z.infer<typeof insertTrailerSchema>;
+
+// Defects - Standalone defect tracking with lifecycle
+export const defects = pgTable("defects", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  trailerId: integer("trailer_id").references(() => trailers.id),
+  inspectionId: integer("inspection_id").references(() => inspections.id),
+  reportedBy: integer("reported_by").references(() => users.id).notNull(),
+  
+  category: varchar("category", { length: 50 }).notNull(), // LIGHTS | BRAKES | TYRES | etc.
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull().default("MEDIUM"), // LOW | MEDIUM | HIGH | CRITICAL
+  status: varchar("status", { length: 20 }).notNull().default("OPEN"), // OPEN | IN_PROGRESS | RESOLVED | DEFERRED
+  
+  assignedTo: text("assigned_to"), // Workshop/engineer name
+  resolutionNotes: text("resolution_notes"),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: integer("resolved_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertDefectSchema = createInsertSchema(defects).omit({ id: true, createdAt: true, updatedAt: true });
+export type Defect = typeof defects.$inferSelect;
+export type InsertDefect = z.infer<typeof insertDefectSchema>;
+
+// Manager audit log
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  managerId: integer("manager_id").references(() => users.id).notNull(),
+  action: varchar("action", { length: 50 }).notNull(), // CREATE | UPDATE | DELETE | LOGIN | EXPORT
+  entity: varchar("entity", { length: 50 }).notNull(), // VEHICLE | DEFECT | INSPECTION | USER
+  entityId: integer("entity_id"),
+  details: jsonb("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;

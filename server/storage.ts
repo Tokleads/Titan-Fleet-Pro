@@ -5,10 +5,12 @@ import {
   type Inspection, type InsertInspection,
   type FuelEntry, type InsertFuelEntry,
   type Media, type InsertMedia,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage
+  type Defect, type InsertDefect,
+  type Trailer, type InsertTrailer,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, gte, count } from "drizzle-orm";
 
 export interface IStorage {
   // Company operations
@@ -39,6 +41,37 @@ export interface IStorage {
   
   // Media operations
   createMedia(mediaData: InsertMedia): Promise<Media>;
+  
+  // Manager operations
+  getUserByCompanyAndPin(companyId: number, pin: string, role: string): Promise<User | undefined>;
+  getManagerDashboardStats(companyId: number): Promise<{
+    inspectionsToday: number;
+    openDefects: number;
+    vehiclesDue: number;
+    totalVehicles: number;
+  }>;
+  getAllInspections(companyId: number, limit?: number, offset?: number): Promise<Inspection[]>;
+  getInspectionById(id: number): Promise<Inspection | undefined>;
+  
+  // Defect operations
+  getDefectsByCompany(companyId: number): Promise<Defect[]>;
+  createDefect(defect: InsertDefect): Promise<Defect>;
+  updateDefect(id: number, updates: Partial<Defect>): Promise<Defect | undefined>;
+  
+  // Trailer operations
+  getTrailersByCompany(companyId: number): Promise<Trailer[]>;
+  createTrailer(trailer: InsertTrailer): Promise<Trailer>;
+  updateTrailer(id: number, updates: Partial<Trailer>): Promise<Trailer | undefined>;
+  
+  // Vehicle CRUD
+  updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined>;
+  deleteVehicle(id: number): Promise<void>;
+  
+  // Fuel for company
+  getFuelEntriesByCompany(companyId: number, days?: number): Promise<FuelEntry[]>;
+  
+  // User management
+  getUsersByCompany(companyId: number): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -188,6 +221,166 @@ export class DatabaseStorage implements IStorage {
   async createMedia(mediaData: InsertMedia): Promise<Media> {
     const [newMedia] = await db.insert(media).values(mediaData).returning();
     return newMedia;
+  }
+
+  // Manager auth
+  async getUserByCompanyAndPin(companyId: number, pin: string, role: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users)
+      .where(and(
+        eq(users.companyId, companyId),
+        eq(users.pin, pin),
+        eq(users.role, role),
+        eq(users.active, true)
+      ));
+    return user || undefined;
+  }
+
+  // Manager dashboard stats
+  async getManagerDashboardStats(companyId: number): Promise<{
+    inspectionsToday: number;
+    openDefects: number;
+    vehiclesDue: number;
+    totalVehicles: number;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    // Inspections today
+    const [inspectionsResult] = await db
+      .select({ count: count() })
+      .from(inspections)
+      .where(and(
+        eq(inspections.companyId, companyId),
+        gte(inspections.createdAt, today)
+      ));
+
+    // Open defects
+    const [defectsResult] = await db
+      .select({ count: count() })
+      .from(defects)
+      .where(and(
+        eq(defects.companyId, companyId),
+        sql`${defects.status} IN ('OPEN', 'IN_PROGRESS')`
+      ));
+
+    // Vehicles with MOT due soon
+    const [vehiclesDueResult] = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.active, true),
+        sql`${vehicles.motDue} <= ${thirtyDaysFromNow}`
+      ));
+
+    // Total active vehicles
+    const [totalVehiclesResult] = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.active, true)
+      ));
+
+    return {
+      inspectionsToday: inspectionsResult?.count || 0,
+      openDefects: defectsResult?.count || 0,
+      vehiclesDue: vehiclesDueResult?.count || 0,
+      totalVehicles: totalVehiclesResult?.count || 0
+    };
+  }
+
+  // All inspections for company
+  async getAllInspections(companyId: number, limit = 50, offset = 0): Promise<Inspection[]> {
+    return await db.select().from(inspections)
+      .where(eq(inspections.companyId, companyId))
+      .orderBy(desc(inspections.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getInspectionById(id: number): Promise<Inspection | undefined> {
+    const [inspection] = await db.select().from(inspections).where(eq(inspections.id, id));
+    return inspection || undefined;
+  }
+
+  // Defects
+  async getDefectsByCompany(companyId: number): Promise<Defect[]> {
+    return await db.select().from(defects)
+      .where(eq(defects.companyId, companyId))
+      .orderBy(desc(defects.createdAt));
+  }
+
+  async createDefect(defect: InsertDefect): Promise<Defect> {
+    const [newDefect] = await db.insert(defects).values(defect).returning();
+    return newDefect;
+  }
+
+  async updateDefect(id: number, updates: Partial<Defect>): Promise<Defect | undefined> {
+    const [updated] = await db.update(defects)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(defects.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Trailers
+  async getTrailersByCompany(companyId: number): Promise<Trailer[]> {
+    return await db.select().from(trailers)
+      .where(and(
+        eq(trailers.companyId, companyId),
+        eq(trailers.active, true)
+      ))
+      .orderBy(trailers.trailerId);
+  }
+
+  async createTrailer(trailer: InsertTrailer): Promise<Trailer> {
+    const [newTrailer] = await db.insert(trailers).values(trailer).returning();
+    return newTrailer;
+  }
+
+  async updateTrailer(id: number, updates: Partial<Trailer>): Promise<Trailer | undefined> {
+    const [updated] = await db.update(trailers)
+      .set(updates)
+      .where(eq(trailers.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Vehicle CRUD
+  async updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined> {
+    const [updated] = await db.update(vehicles)
+      .set(updates)
+      .where(eq(vehicles.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteVehicle(id: number): Promise<void> {
+    await db.update(vehicles).set({ active: false }).where(eq(vehicles.id, id));
+  }
+
+  // Fuel for company
+  async getFuelEntriesByCompany(companyId: number, days = 30): Promise<FuelEntry[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return await db.select().from(fuelEntries)
+      .where(and(
+        eq(fuelEntries.companyId, companyId),
+        gte(fuelEntries.createdAt, cutoffDate)
+      ))
+      .orderBy(desc(fuelEntries.createdAt));
+  }
+
+  // User management
+  async getUsersByCompany(companyId: number): Promise<User[]> {
+    return await db.select().from(users)
+      .where(eq(users.companyId, companyId))
+      .orderBy(users.name);
   }
 }
 

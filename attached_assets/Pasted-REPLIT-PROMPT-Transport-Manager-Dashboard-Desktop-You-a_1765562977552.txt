@@ -1,0 +1,284 @@
+REPLIT PROMPT — Transport Manager Dashboard (Desktop)
+
+You are a senior product engineer + UX lead building a Transport Manager Dashboard for a UK HGV fleet platform. The driver PWA already exists. Now build the manager web app with a premium enterprise feel (calm, sharp typography, consistent spacing, excellent tables/filters), using the existing backend and database. Do not change driver flows.
+
+Goal
+
+A transport manager can:
+
+See inspection compliance at a glance
+
+Review submitted inspections and defects (with photos)
+
+Track open defects and status
+
+Export/share reports (PDF/CSV)
+
+Manage vehicles/trailers/checksheets (basic CRUD)
+
+Search quickly by VRM, driver, date
+
+View history beyond 7 days
+
+Audit fuel/AdBlue uploads (receipts + card photo + mileage) without price field visible to drivers
+
+Tech requirements
+
+Frontend: React + TypeScript + Vite
+
+UI: Tailwind + shadcn/Radix (same design tokens as driver app but tuned for desktop)
+
+Charts: use recharts (lightweight) OR simple KPI cards if charts are overkill
+
+Routing: react-router
+
+Auth: separate Manager login (email/password OR company code + manager pin). Keep it minimal but secure.
+
+Backend: Express + Postgres (existing). Add endpoints only if missing.
+
+File storage: do not store files yourself. Support:
+
+S3-compatible later, but for now:
+
+Upload to server then forward to Google Drive via a folder webhook/config OR store upload URLs in DB.
+
+Provide a clean interface to “connect Google Drive” using an admin-provided folder link / ID (configuration screen).
+
+If full Drive OAuth is too big, implement manual folder ID config + service account approach placeholder.
+
+Information architecture (must implement)
+1) Manager Dashboard (Home)
+
+KPI cards:
+
+Inspections today
+
+Inspections overdue (by vehicle)
+
+Open defects
+
+Vehicles with MOT due soon
+
+“Attention Required” list (top 10):
+
+Open defects unassigned / high severity
+
+Overdue inspection vehicles
+
+Quick search: VRM / trailer ID / driver name
+
+2) Inspections
+
+A data table with:
+
+Date/time
+
+VRM
+
+Driver
+
+Type (Safety / End of shift / Trailer)
+
+Result (Pass / Defects)
+
+Completion %
+
+View button
+Filters:
+
+Date range
+
+VRM
+
+Driver
+
+Type
+
+Only with defects
+Row click opens Inspection Detail.
+
+3) Inspection Detail
+
+Header: VRM + make/model + time + driver
+
+Progress summary (x/y items)
+
+Sections list (accordion)
+
+Defects panel:
+
+defect description
+
+photos gallery (click to expand)
+
+status: Open / In Progress / Resolved
+
+assign to workshop/engineer (simple text field ok)
+
+add internal notes
+
+Download/export: PDF + CSV
+
+4) Defects
+
+A board or table view:
+
+Status columns (Open/In Progress/Resolved) OR table with status filter
+
+Severity (Low/Med/High)
+
+Linked VRM + inspection reference
+
+SLA indicator (age)
+
+Attachments (photos)
+
+Bulk actions: mark resolved, export
+
+5) Fuel / AdBlue Log
+
+Table with:
+
+Date/time
+
+VRM
+
+Driver
+
+Mileage
+
+Fuel or AdBlue
+
+Receipt photo(s)
+
+Fuel card photo
+
+Station name (optional)
+
+Notes
+Important: Driver does NOT input price; manager may optionally see price if present in data, but UI defaults to hidden.
+
+6) Fleet (Vehicles & Trailers)
+
+CRUD (basic, fast):
+
+Vehicles: VRM, make, model, depot, MOT date, service date, status
+
+Trailers: trailer ID/VRM equivalent, type, status
+
+Ability to import CSV (optional, but add placeholder UI)
+
+7) Checksheet Builder (Phase 1 minimal)
+
+Manager can view existing checksheets and enable/disable
+
+Don’t build a full builder unless easy
+
+Must support:
+
+“Safety check”
+
+“End of shift”
+
+Trailer-only checks
+
+8) Company Settings
+
+Branding: company name, logo upload, primary colour
+
+User management: add/remove managers (simple)
+
+Google Drive integration settings:
+
+“Drive folder ID”
+
+test connection button (or placeholder)
+
+show how driver uploads map to folders (e.g., /Receipts/YYYY-MM/DD/VRM)
+
+UX/UI quality bar (must)
+
+Desktop-first layout with left sidebar nav (collapsible)
+
+Sticky top bar with search + company switch (if multi-tenant)
+
+Tables:
+
+proper row density toggle (comfortable/compact)
+
+sticky header
+
+column sorting
+
+filters in a drawer or top filter bar
+
+Empty states and skeleton loading everywhere
+
+Polished component states: hover, active, focus-visible, disabled
+
+Microcopy uses UK fleet language (VRM, MOT, defect, inspection)
+
+Export buttons always visible on detail pages
+
+All dates UK format (DD/MM/YYYY), time 24h
+
+Data model expectations
+
+Use existing tables if present. If missing, create minimal tables:
+
+companies
+
+managers
+
+drivers (optional)
+
+vehicles
+
+trailers
+
+inspections
+
+inspection_items
+
+defects
+
+uploads (receipt/fuel card/defect photos)
+
+fuel_logs
+Ensure multi-tenant boundaries (company_id everywhere).
+
+Security & compliance basics
+
+Manager routes protected (auth guard)
+
+Audit log table (minimal): manager_id, action, entity, timestamp
+
+File upload validation: file type and size limits
+
+No sensitive secrets in frontend; use env vars
+
+Output requirements
+
+Implement the manager dashboard in a new folder: /manager-app OR as a new route group in the same Vite app with separate layout.
+
+Provide seed data for demo (1 company, 5 vehicles, 3 drivers, 10 inspections, 6 defects).
+
+Ensure it runs locally with one command.
+
+Provide a short README with:
+
+how to create a manager user
+
+how to set company branding
+
+how to configure Google Drive folder ID
+
+Now build it to a production-quality standard.
+
+If you want, tell me which style you want for the manager dashboard:
+
+“FleetCheck-like clean corporate” (light, calm, lots of whitespace), or
+
+“Industrial premium” (slightly darker UI, more “logistics command centre”).
+
+Either way, we can also make it fully rebrandable so you can resell it to 100+ companies fast.

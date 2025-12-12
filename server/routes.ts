@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema } from "@shared/schema";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 
@@ -201,6 +201,187 @@ export async function registerRoutes(
     } catch (error) {
       console.error("DVSA vehicle lookup error:", error);
       res.status(500).json({ error: "Failed to fetch vehicle data" });
+    }
+  });
+
+  // ==================== MANAGER API ROUTES ====================
+
+  // Manager login
+  app.post("/api/manager/login", async (req, res) => {
+    try {
+      const { companyCode, pin } = req.body;
+      if (!companyCode || !pin) {
+        return res.status(400).json({ error: "Missing company code or PIN" });
+      }
+
+      const company = await storage.getCompanyByCode(companyCode);
+      if (!company) {
+        return res.status(401).json({ error: "Invalid company code" });
+      }
+
+      const manager = await storage.getUserByCompanyAndPin(company.id, pin, "MANAGER");
+      if (!manager) {
+        return res.status(401).json({ error: "Invalid PIN" });
+      }
+
+      res.json({ manager, company });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Manager dashboard stats
+  app.get("/api/manager/stats/:companyId", async (req, res) => {
+    try {
+      const stats = await storage.getManagerDashboardStats(Number(req.params.companyId));
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // All inspections for manager
+  app.get("/api/manager/inspections/:companyId", async (req, res) => {
+    try {
+      const { limit = '50', offset = '0' } = req.query;
+      const inspectionList = await storage.getAllInspections(
+        Number(req.params.companyId),
+        Number(limit),
+        Number(offset)
+      );
+      res.json(inspectionList);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single inspection
+  app.get("/api/manager/inspection/:id", async (req, res) => {
+    try {
+      const inspection = await storage.getInspectionById(Number(req.params.id));
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+      res.json(inspection);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Defects
+  app.get("/api/manager/defects/:companyId", async (req, res) => {
+    try {
+      const defectList = await storage.getDefectsByCompany(Number(req.params.companyId));
+      res.json(defectList);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/manager/defects", async (req, res) => {
+    try {
+      const validated = insertDefectSchema.parse(req.body);
+      const defect = await storage.createDefect(validated);
+      res.status(201).json(defect);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/manager/defects/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateDefect(Number(req.params.id), req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Defect not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Trailers
+  app.get("/api/manager/trailers/:companyId", async (req, res) => {
+    try {
+      const trailerList = await storage.getTrailersByCompany(Number(req.params.companyId));
+      res.json(trailerList);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/manager/trailers", async (req, res) => {
+    try {
+      const validated = insertTrailerSchema.parse(req.body);
+      const trailer = await storage.createTrailer(validated);
+      res.status(201).json(trailer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Vehicle CRUD for manager
+  app.patch("/api/manager/vehicles/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateVehicle(Number(req.params.id), req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Vehicle not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/manager/vehicles", async (req, res) => {
+    try {
+      const validated = insertVehicleSchema.parse(req.body);
+      const vehicle = await storage.createVehicle(validated);
+      res.status(201).json(vehicle);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/manager/vehicles/:id", async (req, res) => {
+    try {
+      await storage.deleteVehicle(Number(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Fuel entries for manager
+  app.get("/api/manager/fuel/:companyId", async (req, res) => {
+    try {
+      const { days = '30' } = req.query;
+      const entries = await storage.getFuelEntriesByCompany(
+        Number(req.params.companyId),
+        Number(days)
+      );
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Users for manager
+  app.get("/api/manager/users/:companyId", async (req, res) => {
+    try {
+      const userList = await storage.getUsersByCompany(Number(req.params.companyId));
+      res.json(userList);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
