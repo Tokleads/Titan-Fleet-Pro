@@ -147,18 +147,32 @@ export default function DriverDashboard() {
                 <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
                     <Clock className="h-3 w-3" /> Recent Vehicles
                 </h2>
-                <div className="space-y-3">
-                    {recentVehicles.map((vehicle, i) => (
-                        <motion.div
-                            key={vehicle.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                        >
-                            <VehicleCard vehicle={vehicle} onSelect={() => handleSelectVehicle(vehicle.id)} />
-                        </motion.div>
-                    ))}
-                </div>
+                {recentVehicles.length === 0 ? (
+                    <TitanCard className="p-6 text-center border-2 border-dashed border-slate-200 bg-slate-50/50">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                                <Truck className="h-7 w-7 text-slate-400" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-bold text-slate-900">No recent vehicles</p>
+                                <p className="text-sm text-slate-500">Search for a vehicle above to get started with your first inspection</p>
+                            </div>
+                        </div>
+                    </TitanCard>
+                ) : (
+                    <div className="space-y-3">
+                        {recentVehicles.map((vehicle, i) => (
+                            <motion.div
+                                key={vehicle.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                            >
+                                <VehicleCard vehicle={vehicle} onSelect={() => handleSelectVehicle(vehicle.id)} />
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </motion.section>
         )}
 
