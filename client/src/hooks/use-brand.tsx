@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Company, MOCK_COMPANIES } from "@/lib/mockData";
+import tenantConfig from "@/config/tenant";
 
 type BrandContextType = {
   currentCompany: Company;
   setCompanyId: (id: string) => void;
+  tenant: typeof tenantConfig;
 };
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
@@ -15,20 +17,13 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const root = document.documentElement;
 
-    // Apply brand colors to CSS variables
-    if (currentCompany.settings.brand) {
-      if (companyId === "comp-1") {
-        root.style.setProperty("--primary", "221 83% 53%"); // Blue
-        root.style.setProperty("--radius", "0.5rem");
-      } else if (companyId === "comp-2") {
-        root.style.setProperty("--primary", "25 95% 53%"); // Orange/Red
-        root.style.setProperty("--radius", "0rem");
-      }
-    }
+    // Apply tenant brand colors to CSS variables
+    root.style.setProperty("--primary", tenantConfig.colors.primaryHsl);
+    root.style.setProperty("--radius", "0.75rem");
   }, [companyId, currentCompany]);
 
   return (
-    <BrandContext.Provider value={{ currentCompany, setCompanyId }}>
+    <BrandContext.Provider value={{ currentCompany, setCompanyId, tenant: tenantConfig }}>
       {children}
     </BrandContext.Provider>
   );

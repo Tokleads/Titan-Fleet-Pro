@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function DriverLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { currentCompany } = useBrand();
+  const { currentCompany, tenant } = useBrand();
 
   const isActive = (path: string) => location === path;
 
@@ -17,22 +17,22 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
       <header className="bg-white text-slate-900 px-4 py-3 shadow-sm border-b border-slate-100 sticky top-0 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto w-full">
             <div className="flex items-center gap-3">
-                {currentCompany.settings.brand?.logoUrl ? (
+                {tenant.logoUrl ? (
                     <img 
-                        src={currentCompany.settings.brand.logoUrl} 
-                        alt={currentCompany.name}
+                        src={tenant.logoUrl} 
+                        alt={tenant.companyName}
                         className="h-8 w-auto"
                     />
                 ) : (
                     <div 
                         className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold shadow-sm"
-                        style={{ backgroundColor: currentCompany.settings.brand?.primaryColor || 'var(--primary)' }}
+                        style={{ backgroundColor: tenant.colors.primary }}
                     >
-                        {currentCompany.name.substring(0, 1)}
+                        {tenant.companyName.substring(0, 1)}
                     </div>
                 )}
                 <div>
-                    <h1 className="font-semibold text-[15px] leading-none text-slate-900">{currentCompany.name}</h1>
+                    <h1 className="font-semibold text-[15px] leading-none text-slate-900">{tenant.companyName}</h1>
                     <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Driver Portal</p>
                 </div>
             </div>

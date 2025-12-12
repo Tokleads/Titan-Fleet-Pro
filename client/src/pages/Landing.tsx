@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
+import tenantConfig from "@/config/tenant";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -77,9 +78,9 @@ export default function Landing() {
             {/* Header */}
             <div className="text-center space-y-3 pt-8">
                 <div className="bg-white rounded-2xl p-3 inline-block mx-auto mb-3 shadow-xl">
-                    <img src="/dc-european-logo.png" alt="DC European Haulage" className="h-12 w-auto" />
+                    <img src={tenantConfig.logoUrl} alt={tenantConfig.companyName} className="h-12 w-auto" />
                 </div>
-                <h1 className="text-xl font-bold text-white tracking-tight">DC European Haulage Ltd</h1>
+                <h1 className="text-xl font-bold text-white tracking-tight">{tenantConfig.companyName}</h1>
                 <p className="text-slate-400 text-sm font-medium">Driver Portal</p>
             </div>
 

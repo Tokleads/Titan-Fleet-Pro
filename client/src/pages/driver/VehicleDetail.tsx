@@ -127,29 +127,28 @@ export default function VehicleDetail() {
             </div>
           </div>
           
-          <div className="mt-6 pt-6 border-t border-white/10 flex gap-6">
+          <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-3 gap-4">
             <div>
               <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">MOT Due</p>
-              <p className={`font-medium mt-0.5 ${isMotDueSoon ? 'text-amber-400' : ''}`}>
-                {motDueDate ? motDueDate.toLocaleDateString() : 'N/A'}
+              <p className={`font-medium text-sm mt-0.5 ${isMotDueSoon ? 'text-amber-400' : ''}`}>
+                {motDueDate ? motDueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Last Check</p>
+              <p className="font-medium text-sm mt-0.5">
+                {recentInspections.length > 0 
+                  ? new Date(recentInspections[0].createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                  : 'None'}
               </p>
             </div>
             <div>
               <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Status</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className={`h-2 w-2 rounded-full ${vehicle.active ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="font-medium">{vehicle.active ? 'Active' : 'Inactive'}</span>
+                <span className="font-medium text-sm">{vehicle.active ? 'Active' : 'Off Road'}</span>
               </div>
             </div>
-            {motStatus && (
-              <div>
-                <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">DVSA MOT</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className={`h-2 w-2 rounded-full ${motStatus.valid ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <span className="font-medium">{motStatus.valid ? 'Valid' : 'Expired'}</span>
-                </div>
-              </div>
-            )}
           </div>
         </TitanCard>
 
