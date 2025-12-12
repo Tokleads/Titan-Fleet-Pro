@@ -1,177 +1,159 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useBrand } from "@/hooks/use-brand";
-import { MOCK_COMPANIES, MOCK_USERS } from "@/lib/mockData";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Truck, ShieldCheck, ArrowRight, Check, Loader2, Building2 } from "lucide-react";
-import generatedImage from '@assets/generated_images/minimalist_abstract_hexagon_logo_for_logistics_app.png';
+import { TitanButton } from "@/components/titan-ui/Button";
+import { TitanInput } from "@/components/titan-ui/Input";
+import { TitanCard } from "@/components/titan-ui/Card";
+import { ArrowRight, Truck, ShieldCheck, QrCode } from "lucide-react";
+import { MOCK_COMPANIES } from "@/lib/mockData";
+import { motion } from "framer-motion";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { setCompanyId } = useBrand();
-  const [selectedCompany, setSelectedCompany] = useState(MOCK_COMPANIES[0].id);
-  const [selectedRole, setSelectedRole] = useState<"MANAGER" | "DRIVER">("DRIVER");
+  const [companyCode, setCompanyCode] = useState("APEX"); // Default for demo
+  const [driverId, setDriverId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<"driver" | "manager">("driver");
 
-  const handleLogin = async () => {
+  const handleStart = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
-    setCompanyId(selectedCompany);
     
-    // Simulate network delay for premium feel
+    // Simulate API lookup
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    const user = MOCK_USERS.find(u => u.companyId === selectedCompany && u.role === selectedRole);
+    // For demo, just pick the first company if code matches mock logic
+    // In real app, this would fetch config
+    setCompanyId(MOCK_COMPANIES[0].id);
     
-    if (user) {
-        if (selectedRole === "DRIVER") {
-            setLocation("/driver");
-        } else {
-            setLocation("/manager");
-        }
+    if (mode === "driver") {
+        setLocation("/driver");
+    } else {
+        setLocation("/manager");
     }
     setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background ambience */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white -z-10" />
-      <div className="absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100/50 via-transparent to-transparent -z-10" />
-
-      <div className="w-full max-w-[460px] space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        
-        {/* Header Section - Tighter & Cleaner */}
-        <div className="flex flex-col items-center text-center space-y-6">
-          <div className="h-20 w-20 bg-white rounded-2xl shadow-lg shadow-slate-200/50 flex items-center justify-center p-3.5 ring-1 ring-slate-100">
-             <img src={generatedImage} alt="FleetCheck Lite Logo" className="h-full w-full object-contain" />
-          </div>
-          <div className="space-y-1.5">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome to FleetCheck</h1>
-            <p className="text-slate-500 text-[15px]">Sign in to manage your fleet inspections</p>
-          </div>
-        </div>
-
-        {/* Main Card */}
-        <Card className="border-0 shadow-card bg-white/80 backdrop-blur-sm ring-1 ring-slate-200/60">
-          <CardContent className="p-8 space-y-8">
-            
-            {/* Company Selector */}
-            <div className="space-y-3">
-              <Label className="text-xs font-medium text-slate-500 uppercase tracking-wider ml-1">Company</Label>
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger className="h-[52px] px-4 bg-slate-50/50 border-slate-200 hover:border-slate-300 hover:bg-white transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary text-base">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center text-slate-500">
-                      <Building2 className="h-4 w-4" />
-                    </div>
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="shadow-xl border-slate-100">
-                  {MOCK_COMPANIES.map(c => (
-                    <SelectItem key={c.id} value={c.id} className="py-3 px-4 focus:bg-slate-50 cursor-pointer">
-                      <span className="font-medium text-slate-700">{c.name}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center relative overflow-hidden">
+      {/* Abstract Background Shapes for Premium Feel */}
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-slate-900 rounded-b-[3rem] shadow-2xl z-0" />
+      
+      <div className="w-full max-w-md mx-auto p-6 z-10">
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8"
+        >
+            {/* Header */}
+            <div className="text-center space-y-2 pt-8">
+                <div className="h-16 w-16 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-xl">
+                    <Truck className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">FleetCheck</h1>
+                <p className="text-slate-400 text-sm font-medium">Professional Driver Portal</p>
             </div>
 
-            {/* Role Selection - Custom Component */}
-            <div className="space-y-3">
-              <Label className="text-xs font-medium text-slate-500 uppercase tracking-wider ml-1">Select Role</Label>
-              <div className="grid grid-cols-2 gap-4" role="radiogroup">
-                <RoleCard 
-                  icon={<Truck className="h-6 w-6" />}
-                  label="Driver"
-                  selected={selectedRole === "DRIVER"}
-                  onClick={() => setSelectedRole("DRIVER")}
-                />
-                <RoleCard 
-                  icon={<ShieldCheck className="h-6 w-6" />}
-                  label="Manager"
-                  selected={selectedRole === "MANAGER"}
-                  onClick={() => setSelectedRole("MANAGER")}
-                />
-              </div>
-            </div>
+            {/* Login Card */}
+            <TitanCard className="p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-black/5 bg-white">
+                <form onSubmit={handleStart} className="space-y-6">
+                    {mode === "driver" ? (
+                        <div className="space-y-5">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Company Code</label>
+                                <TitanInput 
+                                    placeholder="e.g. APEX" 
+                                    value={companyCode}
+                                    onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
+                                    className="h-14 text-lg font-mono tracking-wide uppercase bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                    icon={<ShieldCheck className="h-5 w-5" />}
+                                />
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Driver ID</label>
+                                <TitanInput 
+                                    placeholder="Enter your ID" 
+                                    value={driverId}
+                                    onChange={(e) => setDriverId(e.target.value)}
+                                    className="h-14 text-lg bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                         <div className="space-y-5">
+                            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-3 items-start">
+                                <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-bold text-blue-900">Manager Console</p>
+                                    <p className="text-xs text-blue-700 mt-1">Please log in with your corporate credentials to access the fleet dashboard.</p>
+                                </div>
+                            </div>
+                            <TitanInput 
+                                placeholder="Email Address" 
+                                type="email"
+                                className="h-14 bg-slate-50"
+                            />
+                            <TitanInput 
+                                placeholder="Password" 
+                                type="password"
+                                className="h-14 bg-slate-50"
+                            />
+                        </div>
+                    )}
 
-            {/* CTA Button */}
-            <Button 
-              className="w-full h-[52px] text-[15px] font-semibold tracking-wide shadow-md shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all" 
-              size="lg" 
-              onClick={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
+                    <TitanButton 
+                        size="lg" 
+                        className="w-full h-14 text-base font-bold shadow-titan-lg shadow-primary/20"
+                        isLoading={isLoading}
+                    >
+                        {mode === "driver" ? "Start Shift" : "Access Console"} <ArrowRight className="ml-2 h-5 w-5" />
+                    </TitanButton>
+                </form>
 
-          </CardContent>
-        </Card>
+                <div className="mt-8 pt-6 border-t border-slate-100">
+                    {mode === "driver" ? (
+                         <button 
+                            type="button"
+                            onClick={() => setMode("manager")}
+                            className="w-full py-2 text-sm text-slate-400 font-medium hover:text-slate-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <ShieldCheck className="h-4 w-4" /> Transport Manager Login
+                        </button>
+                    ) : (
+                        <button 
+                            type="button"
+                            onClick={() => setMode("driver")}
+                            className="w-full py-2 text-sm text-slate-400 font-medium hover:text-slate-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Truck className="h-4 w-4" /> Back to Driver Login
+                        </button>
+                    )}
+                </div>
+            </TitanCard>
 
-        {/* Footer */}
-        <div className="text-center space-y-2">
-            <p className="text-[13px] text-slate-400 font-medium">
-            Protected by enterprise-grade security
-            </p>
-        </div>
+            {/* Quick Actions (Mock) */}
+            {mode === "driver" && (
+                <div className="grid grid-cols-2 gap-4">
+                    <button className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center gap-2 text-white/60 hover:bg-white/10 hover:text-white transition-all">
+                        <QrCode className="h-6 w-6" />
+                        <span className="text-xs font-medium">Scan Vehicle</span>
+                    </button>
+                    <button className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center gap-2 text-white/60 hover:bg-white/10 hover:text-white transition-all">
+                        <ShieldCheck className="h-6 w-6" />
+                        <span className="text-xs font-medium">Help & Support</span>
+                    </button>
+                </div>
+            )}
+        </motion.div>
       </div>
-    </div>
-  );
-}
-
-function RoleCard({ icon, label, selected, onClick }: { icon: React.ReactNode, label: string, selected: boolean, onClick: () => void }) {
-  return (
-    <div 
-      className={`
-        relative cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200
-        hover:-translate-y-0.5 hover:shadow-md
-        ${selected 
-          ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
-          : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50'
-        }
-      `}
-      onClick={onClick}
-      role="radio"
-      aria-checked={selected}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      }}
-    >
-      {selected && (
-        <div className="absolute top-2 right-2 text-primary animate-in zoom-in duration-200">
-          <div className="bg-primary rounded-full p-0.5">
-            <Check className="h-3 w-3 text-white" strokeWidth={3} />
-          </div>
-        </div>
-      )}
       
-      <div className={`
-        p-3 rounded-full transition-colors
-        ${selected ? 'bg-white text-primary shadow-sm' : 'bg-slate-50 text-slate-400'}
-      `}>
-        {icon}
+      {/* Footer Branding */}
+      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
+        <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase opacity-50">Powered by Titan Fleet</p>
       </div>
-      
-      <span className={`font-semibold text-[15px] ${selected ? 'text-primary' : 'text-slate-600'}`}>
-        {label}
-      </span>
     </div>
   );
 }
