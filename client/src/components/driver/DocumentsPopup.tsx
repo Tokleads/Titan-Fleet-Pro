@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { session } from "@/lib/session";
-import { FileText, CheckCircle2, X } from "lucide-react";
+import { FileText, CheckCircle2, X, ChevronRight } from "lucide-react";
 
 const categoryLabels: Record<string, string> = {
   TOOLBOX_TALK: "Toolbox Talk",
@@ -161,6 +161,7 @@ export function DocumentsPopup({ onClose }: DocumentsPopupProps) {
                 <p className="font-medium text-slate-900 truncate">{doc.title}</p>
                 <p className="text-xs text-slate-500">{categoryLabels[doc.category] || doc.category}</p>
               </div>
+              <ChevronRight className="h-5 w-5 text-slate-400 flex-shrink-0" />
             </button>
           ))}
         </div>
