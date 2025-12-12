@@ -1,4 +1,4 @@
-import { ManagerLayout } from "@/components/layout/AppShell";
+import { ManagerLayout } from "./ManagerLayout";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanCard, TitanCardContent, TitanCardHeader } from "@/components/titan-ui/Card";
 import { TitanInput } from "@/components/titan-ui/Input";

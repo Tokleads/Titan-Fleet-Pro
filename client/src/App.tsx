@@ -10,6 +10,11 @@ import VehicleInspection from "@/pages/driver/VehicleInspection";
 import FuelEntry from "@/pages/driver/FuelEntry";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
 import ManagerDashboard from "@/pages/manager/Dashboard";
+import ManagerInspections from "@/pages/manager/Inspections";
+import ManagerDefects from "@/pages/manager/Defects";
+import ManagerFuelLog from "@/pages/manager/FuelLog";
+import ManagerFleet from "@/pages/manager/Fleet";
+import ManagerSettings from "@/pages/manager/Settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +27,11 @@ function Router() {
       <Route path="/driver/fuel/:id" component={FuelEntry} />
       <Route path="/manager/login" component={ManagerLogin} />
       <Route path="/manager" component={ManagerDashboard} />
+      <Route path="/manager/inspections" component={ManagerInspections} />
+      <Route path="/manager/defects" component={ManagerDefects} />
+      <Route path="/manager/fuel" component={ManagerFuelLog} />
+      <Route path="/manager/fleet" component={ManagerFleet} />
+      <Route path="/manager/settings" component={ManagerSettings} />
       <Route component={NotFound} />
     </Switch>
   );
