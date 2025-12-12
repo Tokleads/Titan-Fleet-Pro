@@ -1,0 +1,181 @@
+Replit Agent Mega Prompt (FleetCheck-Lite + Drive BYOS)
+You are a senior full-stack engineer and product designer. Build a production-quality multi-tenant web app (PWA) for UK haulage companies: a FleetCheck-Lite that supports vehicle walkaround inspections, defect reporting with photos, fuel + AdBlue receipt capture, and Google Drive OAuth “bring your own storage” so the platform does not store images.
+0) Tech & Quality Requirements
+Use Next.js (App Router) + TypeScript + Tailwind.
+Use a modern component library (Radix UI or shadcn) and produce high-quality UX (clear hierarchy, large touch targets, offline-friendly, minimal friction).
+Use PostgreSQL with an ORM (Prisma recommended).
+Auth: secure email magic link (or passcode) and role-based access.
+Roles: Company Admin/Transport Manager and Driver.
+Multi-tenant: strict company_id isolation in all DB queries.
+PWA: installable icon, offline caching for fleet vehicle list and forms; queue submissions when offline and auto retry.
+Image handling: compress images on client before upload, and upload only to the company’s Google Drive.
+Logging: server-side structured logs, error handling, retries for Drive uploads.
+Accessibility: proper labels, contrast, keyboard nav (for manager web).
+Deliver complete code with seeded demo data and clear setup instructions.
+1) Core User Stories
+Driver (pool fleet, any truck)
+Start a check → enter partial reg → press Search → see list of matching vehicles (max 10), sorted by recently used → select vehicle → confirm → complete inspection → submit.
+Recent vehicles list (last 5–10 used) shown under search box.
+Inspection types: Daily Walkaround (required), optional End of Shift (feature flag).
+Defects: allow notes + multiple photos. “Defect found?” toggles extra fields.
+Fuel entry: Fuel / AdBlue / Fuel+AdBlue with odometer (required), litres optional; receipt photo required, fuel card photo required. Price fields hidden by default (admin toggle).
+Driver can see last 7 days of their inspections + fuel entries; no older history by default.
+Transport Manager / Admin
+Create company, connect Google Drive, add vehicles, manage users/drivers.
+Add vehicles by reg: call MOT API (we’ll stub function fetchMotDetails(reg) returning make/model/motDue) to auto-fill details.
+Pool fleet mode ON: all drivers can search any fleet vehicle.
+See full history: inspections + fuel entries with filters (date range, vehicle, driver, defects-only).
+Exports: CSV export for inspections and fuel entries (no images).
+Drive connection: “Connected ✅” status; “Test upload” button.
+Settings toggles:
+Pool fleet mode (default ON)
+Show price fields (default OFF)
+Require fuel card photo every time (default ON)
+Enable End-of-Shift check (default OFF)
+2) Google Drive BYOS (Must Implement)
+Implement Google OAuth + Drive API integration:
+Manager clicks Connect Google Drive.
+OAuth consent, store encrypted refresh token per company.
+On connect, create folder structure in their Drive:
+HGVChecks/Inspections/, HGVChecks/Fuel/, HGVChecks/Collisions/, HGVChecks/Exports/
+On inspection submit, upload photos to:
+HGVChecks/Inspections/{REG}/{YYYY-MM-DD}/...
+On fuel submit, upload to:
+HGVChecks/Fuel/{REG}/{YYYY-MM-DD}/receipt.jpg and fuelcard.jpg
+Store in DB: Drive fileId + webViewLink (or at least fileId).
+The app must never store image binaries long-term. Only transient handling for upload.
+If offline or upload fails: queue job locally and retry; show “Pending upload” state.
+3) Search & Vehicle Lookup (Must Match Spec)
+Driver enters partial reg and presses Search (no live autocomplete).
+Server returns matches in fleet for that company only.
+Sort results by: (1) recently used by that driver, (2) reg asc.
+Show vehicle card with reg + make/model + MOT due.
+If no results: “Vehicle not found. Contact transport.”
+Drivers cannot create vehicles. Only managers can add vehicles.
+4) Data Model (Use Prisma)
+Minimum tables:
+Company (id, name, settings JSON, googleDriveConnected, driveRootFolderId, createdAt)
+User (id, companyId, email, role: MANAGER|DRIVER, name, createdAt)
+Vehicle (id, companyId, reg, make, model, motDueDate, active, createdAt)
+Inspection (id, companyId, vehicleId, driverId, type, checklistJson, notes, hasDefect, createdAt)
+InspectionFile (id, inspectionId, driveFileId, driveLink, kind: DEFECT|GENERAL, createdAt)
+FuelEntry (id, companyId, vehicleId, driverId, odometer, dieselLitres?, adblueLitres?, receiptDriveFileId, fuelCardDriveFileId, createdAt, dieselPrice?, adbluePrice?)
+VehicleUsage (id, companyId, driverId, vehicleId, lastUsedAt)
+OAuthToken (companyId, provider=GOOGLE, refreshTokenEncrypted, scope, createdAt, updatedAt)
+5) UI/UX Standards
+Mobile-first driver UI: big buttons, minimal typing, progress indicator, sticky submit button.
+Use stepper flow:
+Choose vehicle
+Walkaround checklist
+Defects + photos
+Review & submit
+Checklist: use grouped sections (Lights, Tyres, Mirrors, Fluids, Body, Load). Each item: Pass / Fail.
+If any Fail: require defect note + at least 1 photo.
+Fuel UI: single screen with clear required fields and photo capture.
+Show last submission status + “Uploaded to Drive ✅ / Pending upload ⏳”.
+Manager UI: clean dashboard with filters, tables, and quick actions.
+6) Security & Compliance
+Enforce company isolation everywhere.
+Validate reg inputs, sanitize file names.
+Protect OAuth tokens: encrypt at rest (use libsodium or AES via node crypto with env secret).
+Rate limit auth and upload endpoints.
+Audit trail: store createdAt + actor userId.
+7) Deliverables
+Full working app in Replit.
+Seed script: create one demo company, one manager, two drivers, and 10 vehicles.
+Provide a /demo mode where Drive calls can be mocked if credentials not set.
+Provide clear README:
+environment variables needed for Google OAuth + Drive
+how to run migrations
+how to test Drive connection
+how to install PWA
+8) Environment Variables Needed
+DATABASE_URL
+NEXTAUTH_SECRET (or your auth secret)
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI
+ENCRYPTION_KEY (for refresh token encryption)
+MOT_API_KEY (optional; implement stub if missing)
+9) Build Order
+Implement in this order:
+DB schema + migrations + seed
+Auth + roles + multi-tenant guards
+Manager: vehicles CRUD + settings toggles + basic dashboard
+Driver: vehicle search (partial, press search) + recents
+Inspections flow + local offline queue
+Fuel/AdBlue flow + required photos
+Google Drive OAuth + folder creation + file upload + retry queue
+Manager full history + filters + exports
+Polish UI/UX + edge cases + test upload
+Important: prioritize reliability in low-signal environments, clear error states, and minimal driver friction.
+10) White-Label Rebranding (Must Implement)
+This app will be resold to many companies. Build rebranding so a new company can be set up in minutes with no code changes.
+Company Brand Kit (DB + UI)
+Add CompanyBrand fields (either in Company table or separate table):
+displayName (string)
+legalName (string, optional)
+logoUrl (string, stored as file in Drive OR stored as base64 small image in DB OR stored in app static storage; keep simple)
+primaryColor (hex)
+secondaryColor (hex)
+accentColor (hex)
+backgroundColor (hex)
+textColor (hex)
+borderRadius (number, e.g., 12)
+buttonStyle (enum: solid | outline)
+appName (string shown in UI header and PWA install name)
+supportEmail (string)
+supportPhone (string optional)
+favicon (optional)
+loginScreenMessage (optional)
+Create a Manager/Admin screen: Settings → Brand Kit
+Upload logo
+Pick colours (with live preview)
+Set appName + support details
+Save and apply instantly (no redeploy)
+Theming System
+Implement a robust theming approach:
+Use CSS variables generated per tenant, e.g.:
+--brand-primary, --brand-secondary, --brand-accent, --brand-bg, --brand-text, --brand-radius
+On each request, load the company brand config and inject CSS variables into layout (server-side) so it’s fast and consistent.
+Ensure all components use the variables (buttons, links, headers, badges, focus rings, etc.)
+Provide safe defaults for missing brand fields.
+Easy “Clone Company Template”
+Create a “Create Company Wizard” for super fast onboarding:
+Step 1: Company name
+Step 2: Brand Kit (optional) with presets
+Step 3: Connect Google Drive
+Step 4: Add vehicles (bulk import)
+Step 5: Invite drivers
+This wizard should allow me (platform admin) to create a new tenant in under 3 minutes.
+Bulk Vehicle Import (critical for selling)
+Transport managers need to add 45–200 vehicles quickly.
+Implement:
+CSV import (reg list) OR multi-line textarea paste (“one reg per line”)
+For each reg, call fetchMotDetails(reg) to autofill make/model/motDue
+Show progress + failures + retry
+Multi-Tenant White Label Domain (Phase-ready)
+Make the architecture domain-ready, even if not fully implemented:
+Store optional customDomain in Company
+Build routing so tenant is resolved by either:
+subdomain: company.hgvchecks.app
+OR path: /c/{companySlug}
+For now, implement path-based tenant resolution (/c/acme) as default (simpler on Replit), but keep code modular to add subdomains later.
+Platform Admin (You) Features
+Add a SUPERADMIN role (only for me) with:
+Create new company
+Switch/impersonate company (admin view only)
+Reset company Drive connection
+View company list and status (Drive connected? drivers count? vehicles count?)
+This makes reselling and support massively easier.
+Non-goals
+Do NOT fork code per company. Do NOT require redeploy for branding changes. Do NOT store customer photos in the app.
+
+What this gives you (in practice)
+You sell a company “their own app”
+They can upload logo + choose colours
+You bulk-import their regs
+Connect their Drive
+Invite drivers
+✅ done in under 10 minutes (and eventually under 3)
+
