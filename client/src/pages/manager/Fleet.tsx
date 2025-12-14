@@ -40,8 +40,10 @@ export default function ManagerFleet() {
   const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
   const [deletingVehicle, setDeletingVehicle] = useState<any | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV' });
+  const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
   const [addError, setAddError] = useState<string | null>(null);
+  const [motLookupResult, setMotLookupResult] = useState<{ motDue?: string; status?: string; error?: string } | null>(null);
+  const [isLookingUpMot, setIsLookingUpMot] = useState(false);
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
@@ -66,6 +68,27 @@ export default function ManagerFleet() {
     };
   }, [openMenuId]);
 
+  // MOT lookup function
+  const lookupMot = async () => {
+    if (!addFormData.vrm || addFormData.vrm.length < 5) return;
+    setIsLookingUpMot(true);
+    setMotLookupResult(null);
+    try {
+      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`);
+      const data = await res.json();
+      if (res.ok && data.motDue) {
+        setMotLookupResult({ motDue: data.motDue, status: data.status });
+        setAddFormData(d => ({ ...d, motDue: data.motDue }));
+      } else {
+        setMotLookupResult({ error: data.error || 'Vehicle not found in DVSA database' });
+      }
+    } catch (err) {
+      setMotLookupResult({ error: 'Failed to lookup MOT status' });
+    } finally {
+      setIsLookingUpMot(false);
+    }
+  };
+
   // Create vehicle mutation
   const createVehicleMutation = useMutation({
     mutationFn: async (data: typeof addFormData) => {
@@ -79,6 +102,7 @@ export default function ManagerFleet() {
           model: data.model,
           fleetNumber: data.fleetNumber || null,
           vehicleCategory: data.vehicleCategory,
+          motDue: data.motDue || null,
           active: true,
         }),
       });
@@ -90,8 +114,9 @@ export default function ManagerFleet() {
       queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
       queryClient.invalidateQueries({ queryKey: ['license', companyId] });
       setShowAddForm(false);
-      setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV' });
+      setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
       setAddError(null);
+      setMotLookupResult(null);
     },
     onError: (error: Error) => {
       setAddError(error.message);
@@ -247,14 +272,30 @@ export default function ManagerFleet() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Registration (VRM) *</label>
-                <input
-                  type="text"
-                  value={addFormData.vrm}
-                  onChange={(e) => setAddFormData(d => ({ ...d, vrm: e.target.value.toUpperCase() }))}
-                  placeholder="e.g. AB12 CDE"
-                  className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  data-testid="input-add-vrm"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={addFormData.vrm}
+                    onChange={(e) => { setAddFormData(d => ({ ...d, vrm: e.target.value.toUpperCase() })); setMotLookupResult(null); }}
+                    placeholder="e.g. AB12 CDE"
+                    className="flex-1 h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    data-testid="input-add-vrm"
+                  />
+                  <button
+                    type="button"
+                    onClick={lookupMot}
+                    disabled={!addFormData.vrm || addFormData.vrm.length < 5 || isLookingUpMot}
+                    className="px-3 h-11 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    data-testid="button-lookup-mot"
+                  >
+                    {isLookingUpMot ? 'Checking...' : 'Check MOT'}
+                  </button>
+                </div>
+                {motLookupResult && (
+                  <div className={`mt-2 p-2 rounded-lg text-xs ${motLookupResult.error ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                    {motLookupResult.error ? motLookupResult.error : `MOT Due: ${new Date(motLookupResult.motDue!).toLocaleDateString('en-GB')} (${motLookupResult.status})`}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Make *</label>
