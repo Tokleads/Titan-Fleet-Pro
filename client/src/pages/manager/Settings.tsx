@@ -5,14 +5,21 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { useBrand } from "@/hooks/use-brand";
 import { session } from "@/lib/session";
 import { Palette, HardDrive, RefreshCw, Check, X, Loader2, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Settings() {
-  const { currentCompany } = useBrand();
+  const { tenant } = useBrand();
   const company = session.getCompany();
   const queryClient = useQueryClient();
-  const [primaryColor, setPrimaryColor] = useState(currentCompany.settings.brand?.primaryColor || "#2563eb");
+  const [primaryColor, setPrimaryColor] = useState(company?.primaryColor || "#2563eb");
+  const [googleDriveConnected, setGoogleDriveConnected] = useState(company?.googleDriveConnected || false);
+  
+  useEffect(() => {
+    if (company) {
+      setGoogleDriveConnected(company.googleDriveConnected || false);
+    }
+  }, [company]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -43,11 +50,16 @@ export default function Settings() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      session.setCompany(data);
+      setGoogleDriveConnected(true);
       setIsConnecting(false);
+      setClientId("");
+      setClientSecret("");
       setRefreshToken("");
+      setFolderId("");
+      setTestResult(null);
       queryClient.invalidateQueries({ queryKey: ["company"] });
-      window.location.reload();
     },
   });
 
@@ -60,9 +72,10 @@ export default function Settings() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      session.setCompany(data);
+      setGoogleDriveConnected(false);
       queryClient.invalidateQueries({ queryKey: ["company"] });
-      window.location.reload();
     },
   });
 
@@ -95,7 +108,7 @@ export default function Settings() {
                 <TitanCardContent className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <TitanInput label="Company Display Name" defaultValue={currentCompany.name} />
+                            <TitanInput label="Company Display Name" defaultValue={company?.name || ""} />
                             
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted-foreground ml-1">Primary Color</label>
@@ -160,13 +173,13 @@ export default function Settings() {
                             <div>
                                 <h4 className="font-bold text-foreground text-lg">Google Drive</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    {currentCompany.googleDriveConnected ? 'Connected to company workspace' : 'Not connected'}
+                                    {googleDriveConnected ? 'Connected to company workspace' : 'Not connected'}
                                 </p>
                             </div>
                         </div>
                         
                         <div className="flex flex-col gap-2 min-w-[140px]">
-                            {currentCompany.googleDriveConnected ? (
+                            {googleDriveConnected ? (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-sm text-green-700 font-medium bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
                                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
@@ -190,7 +203,7 @@ export default function Settings() {
                         </div>
                     </div>
 
-                    {isConnecting && !currentCompany.googleDriveConnected && (
+                    {isConnecting && !googleDriveConnected && (
                         <div className="mt-6 space-y-6 p-6 bg-background rounded-xl border border-border">
                             <div className="space-y-2">
                                 <h4 className="font-semibold text-foreground">Setup Instructions</h4>
@@ -287,7 +300,7 @@ export default function Settings() {
                         </div>
                     )}
 
-                    {currentCompany.googleDriveConnected && (
+                    {googleDriveConnected && (
                         <div className="mt-6 p-4 rounded-xl border border-border bg-background">
                             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Status</p>
                             <p className="text-sm text-foreground">Inspection PDFs will automatically upload to your configured Google Drive folder.</p>
