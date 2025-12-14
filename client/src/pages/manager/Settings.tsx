@@ -2,6 +2,7 @@ import { ManagerLayout } from "./ManagerLayout";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanCard, TitanCardContent, TitanCardHeader } from "@/components/titan-ui/Card";
 import { TitanInput } from "@/components/titan-ui/Input";
+import { LogoUploader } from "@/components/LogoUploader";
 import { useBrand } from "@/hooks/use-brand";
 import { session } from "@/lib/session";
 import { Palette, HardDrive, RefreshCw, Check, X, Loader2, ExternalLink } from "lucide-react";
@@ -13,13 +14,22 @@ export default function Settings() {
   const company = session.getCompany();
   const queryClient = useQueryClient();
   const [primaryColor, setPrimaryColor] = useState(company?.primaryColor || "#2563eb");
+  const [logoUrl, setLogoUrl] = useState(company?.logoUrl || "");
   const [googleDriveConnected, setGoogleDriveConnected] = useState(company?.googleDriveConnected || false);
   
   useEffect(() => {
     if (company) {
       setGoogleDriveConnected(company.googleDriveConnected || false);
+      setLogoUrl(company.logoUrl || "");
     }
   }, [company]);
+
+  const handleLogoUpload = (newLogoPath: string) => {
+    setLogoUrl(newLogoPath);
+    if (company) {
+      session.setCompany({ ...company, logoUrl: newLogoPath });
+    }
+  };
   const [isConnecting, setIsConnecting] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -107,8 +117,16 @@ export default function Settings() {
                 </TitanCardHeader>
                 <TitanCardContent className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <TitanInput label="Company Display Name" defaultValue={company?.name || ""} />
+                            
+                            {company?.id && (
+                              <LogoUploader
+                                currentLogoUrl={logoUrl}
+                                companyId={company.id}
+                                onUploadComplete={handleLogoUpload}
+                              />
+                            )}
                             
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted-foreground ml-1">Primary Color</label>

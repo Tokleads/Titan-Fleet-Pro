@@ -733,5 +733,65 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== LOGO UPLOAD ====================
+
+  // Get presigned URL for logo upload
+  app.post("/api/manager/company/:companyId/logo/upload", async (req, res) => {
+    try {
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorage = new ObjectStorageService();
+      const uploadURL = await objectStorage.getLogoUploadURL(Number(req.params.companyId));
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting logo upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Save uploaded logo URL to company
+  app.patch("/api/manager/company/:companyId/logo", async (req, res) => {
+    try {
+      const { logoURL } = req.body;
+      const companyId = Number(req.params.companyId);
+      
+      if (!logoURL) {
+        return res.status(400).json({ error: "Missing logoURL" });
+      }
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorage = new ObjectStorageService();
+      const normalizedPath = objectStorage.normalizeLogoPath(logoURL);
+      
+      const updated = await storage.updateCompany(companyId, {
+        logoUrl: normalizedPath,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error saving logo:", error);
+      res.status(500).json({ error: "Failed to save logo" });
+    }
+  });
+
+  // Serve uploaded objects (logos, etc.)
+  app.get("/objects/*", async (req, res) => {
+    try {
+      const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+      const objectStorage = new ObjectStorageService();
+      const objectFile = await objectStorage.getObjectFile(req.path);
+      objectStorage.downloadObject(objectFile, res);
+    } catch (error) {
+      if ((error as any).name === "ObjectNotFoundError") {
+        return res.status(404).json({ error: "Object not found" });
+      }
+      console.error("Error serving object:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }
