@@ -1,0 +1,148 @@
+Where it falls just short of Tide / Monzo (and why)
+
+This is the important bit.
+
+1. It’s polite, but not confident yet
+
+Tide / Monzo UIs own the screen.
+
+Your dashboard currently reports data —
+Monzo dashboards reassure the user.
+
+Example difference:
+
+Now:
+
+Inspections Today
+0
+
+Tide-style:
+
+Inspections today
+All done ✓
+
+Same data. Very different emotional effect.
+
+👉 Action:
+Add micro-copy states:
+
+“All clear today”
+
+“No open defects”
+
+“You’re compliant”
+
+This is huge psychologically.
+
+2. The numbers feel static (Monzo hates static)
+
+Monzo dashboards feel alive even when nothing changes.
+
+You can fix this without charts.
+
+Ideas:
+
+“0 open defects — last issue resolved 3 days ago”
+
+“15 vehicles active — 100% reporting this week”
+
+“MOTs due — next due in 12 days”
+
+👉 This makes it feel managed, not logged.
+
+3. Icon colour hierarchy needs tightening
+
+Right now:
+
+Blue
+
+Yellow
+
+Red
+
+Green
+
+All at equal visual weight.
+
+Monzo/Tide rule:
+
+Neutral first
+
+Colour only for meaning
+
+Recommendation:
+
+Make default cards neutral grey/blue
+
+Reserve:
+
+Red = action required
+
+Amber = upcoming risk
+
+Green = explicitly “safe”
+
+That way colour signals, not decorates.
+
+4. The header area could do more emotional work
+
+At the top you have:
+
+Dashboard
+Fleet compliance overview
+
+This is fine — but Monzo would do:
+
+Dashboard
+You’re compliant today
+
+Or dynamically:
+
+“No issues detected”
+
+“2 items need attention”
+
+“All vehicles reported”
+
+👉 This is status language, not software language.
+
+5. It’s missing 1 “trust flex” element
+
+Tide and Monzo always reinforce trust somewhere subtle.
+
+You could add one of these:
+
+“Audit-ready DVSA records”
+
+“Records stored securely for 15+ months”
+
+“Exported in DVSA-friendly format”
+
+“Every inspection time-stamped & driver signed”
+
+Not a banner.
+Just a quiet line under the dashboard title.
+
+Verdict (honest)
+
+If a Tide or Monzo designer saw this, they would not cringe.
+
+They would say:
+
+“This is solid. Needs a bit more confidence and warmth.”
+
+That’s a very good position to be in.
+
+You’re not fighting bad design — you’re polishing good design.
+
+What I’d do next (in order)
+
+Add positive state copy (“All clear”, “You’re compliant”)
+
+Add one trust reinforcement line
+
+Reduce colour usage to make alerts pop
+
+Add “last activity” or “trend” micro-context
+
+Do nothing else — don’t overbuild
