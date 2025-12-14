@@ -115,12 +115,12 @@ export default function ManagerFuelLog() {
           </div>
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => { console.log('Filter clicked!'); setShowFilters(!showFilters); }}
               className={`inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium transition-colors ${showFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`} 
               data-testid="button-fuel-filters"
             >
               <Filter className="h-4 w-4" />
-              Filters
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
               {fuelTypeFilter !== "ALL" && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">1</span>
               )}
