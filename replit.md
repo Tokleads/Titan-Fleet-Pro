@@ -103,6 +103,11 @@ Access at `/manager/login` with:
 ## Recent Changes
 
 ### 2025-12-14 (Latest)
+- **Load Security N/A Option**: When driver selects "no trailer", Load & Security section allows N/A
+  - Tap cycles: unchecked -> pass -> N/A -> unchecked
+  - Shows clear visual state for N/A items (gray badge)
+  - Helpful hints guide driver through the options
+  - N/A is recorded in checklist for audit trail
 - **DVSA Auditable Timer**: Added timed inspection workflow for DVSA compliance
   - Records start and end timestamps for every inspection
   - Shows live timer during checks with MM:SS display

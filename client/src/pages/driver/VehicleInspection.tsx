@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 const MIN_CHECK_TIME_HGV = 10 * 60; // 10 minutes for HGV
 const MIN_CHECK_TIME_LGV = 5 * 60;  // 5 minutes for LGV
 
-type CheckStatus = "unchecked" | "pass" | "fail";
+type CheckStatus = "unchecked" | "pass" | "fail" | "na";
 
 interface CheckItem {
   id: string;
@@ -24,6 +24,7 @@ interface CheckItem {
   status: CheckStatus;
   defectNote?: string;
   defectPhoto?: string;
+  allowNA?: boolean; // Whether this item can be marked as N/A
 }
 
 interface Section {
@@ -160,7 +161,19 @@ export default function VehicleInspection() {
 
   // Build the sections based on type and trailer
   const initialSections = useMemo(() => {
-    const baseSections = [...VEHICLE_SECTIONS];
+    const baseSections = VEHICLE_SECTIONS.map(section => {
+      if (section.id === "load" && !hasTrailer) {
+        return {
+          ...section,
+          items: section.items.map(item => ({
+            ...item,
+            allowNA: true,
+            label: item.id === "load" ? "Load security (N/A if no load)" : item.label
+          }))
+        };
+      }
+      return section;
+    });
     if (hasTrailer) {
       return [...baseSections, ...TRAILER_SECTIONS];
     }
@@ -270,9 +283,17 @@ export default function VehicleInspection() {
         ...s,
         items: s.items.map(item => {
           if (item.id !== itemId) return item;
-          // Tap cycles: unchecked -> pass -> unchecked
-          if (item.status === "unchecked") return { ...item, status: "pass" as CheckStatus };
-          if (item.status === "pass") return { ...item, status: "unchecked" as CheckStatus };
+          // Tap cycles depend on allowNA
+          if (item.allowNA) {
+            // For items that allow N/A: unchecked -> pass -> na -> unchecked
+            if (item.status === "unchecked") return { ...item, status: "pass" as CheckStatus };
+            if (item.status === "pass") return { ...item, status: "na" as CheckStatus };
+            if (item.status === "na") return { ...item, status: "unchecked" as CheckStatus };
+          } else {
+            // Standard: unchecked -> pass -> unchecked
+            if (item.status === "unchecked") return { ...item, status: "pass" as CheckStatus };
+            if (item.status === "pass") return { ...item, status: "unchecked" as CheckStatus };
+          }
           return item; // fail stays fail until cleared via sheet
         })
       };
@@ -784,6 +805,7 @@ function CheckItemRow({
         ${isPressed ? 'scale-[0.98] bg-slate-50' : ''}
         ${item.status === 'pass' ? 'titan-check-pass' : ''}
         ${item.status === 'fail' ? 'titan-check-fail' : ''}
+        ${item.status === 'na' ? 'bg-slate-50 border-slate-300' : ''}
         ${item.status === 'unchecked' ? 'titan-check-unchecked' : ''}
       `}
     >
@@ -792,10 +814,12 @@ function CheckItemRow({
           h-11 w-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all
           ${item.status === 'pass' ? 'bg-emerald-500 text-white shadow-sm' : ''}
           ${item.status === 'fail' ? 'bg-amber-500 text-white shadow-sm' : ''}
+          ${item.status === 'na' ? 'bg-slate-400 text-white shadow-sm' : ''}
           ${item.status === 'unchecked' ? 'bg-slate-100 text-slate-400 border-2 border-dashed border-slate-300' : ''}
         `}>
           {item.status === 'pass' && <Check className="h-5 w-5" />}
           {item.status === 'fail' && <AlertTriangle className="h-5 w-5" />}
+          {item.status === 'na' && <span className="text-xs">N/A</span>}
           {item.status === 'unchecked' && '?'}
         </div>
         
@@ -819,14 +843,21 @@ function CheckItemRow({
       </div>
       
       <div className="flex-1 min-w-0">
-        <p className={`titan-body font-medium ${item.status === 'unchecked' ? 'text-slate-800' : item.status === 'pass' ? 'text-emerald-900' : 'text-amber-900'}`}>
+        <p className={`titan-body font-medium ${item.status === 'unchecked' ? 'text-slate-800' : item.status === 'pass' ? 'text-emerald-900' : item.status === 'na' ? 'text-slate-700' : 'text-amber-900'}`}>
           {item.label}
         </p>
         {item.status === 'unchecked' && (
-          <p className="titan-micro mt-0.5">Tap to pass · Hold to log defect</p>
+          <p className="titan-micro mt-0.5">
+            {item.allowNA ? 'Tap to pass · Tap again for N/A · Hold for defect' : 'Tap to pass · Hold to log defect'}
+          </p>
         )}
         {item.status === 'pass' && (
-          <p className="titan-micro text-emerald-600 font-medium mt-0.5">Passed</p>
+          <p className="titan-micro text-emerald-600 font-medium mt-0.5">
+            {item.allowNA ? 'Passed · Tap for N/A' : 'Passed'}
+          </p>
+        )}
+        {item.status === 'na' && (
+          <p className="titan-micro text-slate-500 font-medium mt-0.5">Not Applicable (no load)</p>
         )}
         {item.status === 'fail' && (
           <div className="flex items-center gap-2 mt-1">
