@@ -41,7 +41,9 @@ export default function Landing() {
           role: "DRIVER" as const,
           pin: "1234",
           active: true,
-          createdAt: new Date()
+          createdAt: new Date(),
+          totpSecret: null,
+          totpEnabled: null
         };
         session.setUser(mockDriver);
         setLocation("/driver");
@@ -190,9 +192,9 @@ export default function Landing() {
       
       {/* Footer Branding */}
       <div className="absolute bottom-6 left-0 right-0 text-center z-10">
-        <span className="text-[10px] tracking-widest uppercase opacity-50">
-          <span className="font-bold text-white">Titan</span>
-          <span className="font-normal text-slate-400 ml-1">Fleet</span>
+        <span className="text-[10px] tracking-widest uppercase opacity-60">
+          <span className="font-bold text-slate-700">Titan</span>
+          <span className="font-normal text-slate-500 ml-1">Fleet</span>
         </span>
       </div>
     </div>
