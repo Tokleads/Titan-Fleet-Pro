@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
@@ -12,7 +12,10 @@ import {
   Search,
   MoreVertical,
   AlertTriangle,
-  ArrowUpRight
+  ArrowUpRight,
+  Pencil,
+  Power,
+  Trash2
 } from "lucide-react";
 
 interface LicenseInfo {
@@ -33,7 +36,51 @@ export default function ManagerFleet() {
   const company = session.getCompany();
   const companyId = company?.id;
   const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
+  const [deletingVehicle, setDeletingVehicle] = useState<any | null>(null);
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+
+  // Close dropdown when clicking outside - uses pointerdown on capture phase
+  useEffect(() => {
+    if (openMenuId === null) return;
+    
+    function handleClickOutside(event: PointerEvent) {
+      const target = event.target as HTMLElement;
+      // Check if click is inside the menu container
+      if (!target.closest(`[data-menu-id="${openMenuId}"]`)) {
+        setOpenMenuId(null);
+      }
+    }
+    
+    // Use pointerdown on capture phase and add immediately
+    // The opening click has already happened by the time this effect runs
+    document.addEventListener('pointerdown', handleClickOutside, true);
+    
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside, true);
+    };
+  }, [openMenuId]);
+
+  // Toggle vehicle active status
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+      const res = await fetch(`/api/manager/vehicles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active }),
+      });
+      if (!res.ok) throw new Error('Failed to update vehicle');
+      // Handle 204 No Content or JSON response
+      if (res.status === 204) return null;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
+      setOpenMenuId(null);
+    },
+  });
 
   const { data: license } = useQuery<LicenseInfo>({
     queryKey: ["license", companyId],
@@ -200,9 +247,54 @@ export default function ManagerFleet() {
                         <p className="text-xs text-slate-500">{vehicle.fleetNumber || 'No fleet #'}</p>
                       </div>
                     </div>
-                    <button className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" data-testid={`button-vehicle-menu-${vehicle.id}`}>
-                      <MoreVertical className="h-4 w-4 text-slate-400" />
-                    </button>
+                    <div className="relative" data-menu-id={vehicle.id}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
+                        }}
+                        className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-opacity" 
+                        data-testid={`button-vehicle-menu-${vehicle.id}`}
+                      >
+                        <MoreVertical className="h-4 w-4 text-slate-400" />
+                      </button>
+                      
+                      {openMenuId === vehicle.id && (
+                        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-slate-200 shadow-lg z-50 py-1 overflow-hidden">
+                          <button
+                            onClick={() => {
+                              setEditingVehicle(vehicle);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            data-testid={`button-edit-vehicle-${vehicle.id}`}
+                          >
+                            <Pencil className="h-4 w-4 text-slate-400" />
+                            Edit vehicle
+                          </button>
+                          <button
+                            onClick={() => toggleActiveMutation.mutate({ id: vehicle.id, active: !vehicle.active })}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            data-testid={`button-toggle-vehicle-${vehicle.id}`}
+                          >
+                            <Power className="h-4 w-4 text-slate-400" />
+                            {vehicle.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <div className="border-t border-slate-100 my-1" />
+                          <button
+                            onClick={() => {
+                              setDeletingVehicle(vehicle);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            data-testid={`button-delete-vehicle-${vehicle.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete vehicle
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <p className="text-sm text-slate-600 mb-4">{vehicle.make} {vehicle.model}</p>
@@ -276,7 +368,252 @@ export default function ManagerFleet() {
             </div>
           </div>
         )}
+
+        {/* Edit Vehicle Modal */}
+        {editingVehicle && (
+          <EditVehicleModal
+            vehicle={editingVehicle}
+            companyId={companyId}
+            onClose={() => setEditingVehicle(null)}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deletingVehicle && (
+          <DeleteVehicleModal
+            vehicle={deletingVehicle}
+            companyId={companyId}
+            onClose={() => setDeletingVehicle(null)}
+          />
+        )}
       </div>
     </ManagerLayout>
+  );
+}
+
+function EditVehicleModal({ 
+  vehicle, 
+  companyId,
+  onClose 
+}: { 
+  vehicle: any; 
+  companyId: number | undefined;
+  onClose: () => void; 
+}) {
+  const [vrm, setVrm] = useState(vehicle.vrm);
+  const [make, setMake] = useState(vehicle.make);
+  const [model, setModel] = useState(vehicle.model);
+  const [fleetNumber, setFleetNumber] = useState(vehicle.fleetNumber || '');
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: { vrm: string; make: string; model: string; fleetNumber: string | null }) => {
+      const res = await fetch(`/api/manager/vehicles/${vehicle.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: 'Failed to update vehicle' }));
+        throw new Error(errData.message || 'Failed to update vehicle');
+      }
+      // Handle 204 No Content
+      if (res.status === 204) return null;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
+      onClose();
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    updateMutation.mutate({ vrm, make, model, fleetNumber: fleetNumber || null });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900">Edit Vehicle</h2>
+          <p className="text-sm text-slate-500">Update vehicle details</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Registration (VRM)</label>
+            <input
+              type="text"
+              value={vrm}
+              onChange={(e) => setVrm(e.target.value.toUpperCase())}
+              className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              required
+              data-testid="input-edit-vrm"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Make</label>
+              <input
+                type="text"
+                value={make}
+                onChange={(e) => setMake(e.target.value)}
+                className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                required
+                data-testid="input-edit-make"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Model</label>
+              <input
+                type="text"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                required
+                data-testid="input-edit-model"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fleet Number</label>
+            <input
+              type="text"
+              value={fleetNumber}
+              onChange={(e) => setFleetNumber(e.target.value)}
+              placeholder="Optional"
+              className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              data-testid="input-edit-fleet-number"
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={updateMutation.isPending}
+              className="flex-1 h-11 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+              data-testid="button-cancel-edit"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="flex-1 h-11 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              data-testid="button-save-vehicle"
+            >
+              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DeleteVehicleModal({ 
+  vehicle, 
+  companyId,
+  onClose 
+}: { 
+  vehicle: any; 
+  companyId: number | undefined;
+  onClose: () => void; 
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/manager/vehicles/${vehicle.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: 'Failed to delete vehicle' }));
+        throw new Error(errData.message || 'Failed to delete vehicle');
+      }
+      // Handle 204 No Content
+      if (res.status === 204) return null;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['license', companyId] });
+      onClose();
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+              <Trash2 className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Delete Vehicle</h2>
+              <p className="text-sm text-slate-500">This action cannot be undone</p>
+            </div>
+          </div>
+          
+          <p className="text-sm text-slate-600 mb-4">
+            Are you sure you want to delete <span className="font-mono font-semibold">{vehicle.vrm}</span>? 
+            All associated inspection and fuel records will remain in the system.
+          </p>
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 mb-4">
+              {error}
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={deleteMutation.isPending}
+              className="flex-1 h-11 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="flex-1 h-11 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
