@@ -453,30 +453,24 @@ export default function VehicleInspection() {
   if (!checkStarted) {
     return (
       <DriverLayout>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
-          <div className="titan-card p-8 text-center max-w-md w-full">
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Timer className="h-10 w-10 text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <div className="titan-card p-5 text-center max-w-md w-full">
+            <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+              <Timer className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">{checkTitle}</h1>
-            <p className="text-slate-600 mb-2">{vehicle.vrm} · {vehicle.make} {vehicle.model}</p>
+            <h1 className="text-xl font-bold text-slate-900 mb-1">{checkTitle}</h1>
+            <p className="text-slate-600 text-sm mb-2">{vehicle.vrm} · {vehicle.make} {vehicle.model}</p>
             
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-6 ${
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mb-4 ${
               vehicleCategory === 'HGV' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
             }`}>
-              <Clock className="h-4 w-4" />
-              {vehicleCategory} · Min {minCheckTimeMinutes} minutes
-            </div>
-            
-            <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left">
-              <p className="text-sm text-slate-600">
-                <strong className="text-slate-900">DVSA Compliance:</strong> This check is timed to provide evidence that you dedicated the required time to your vehicle inspection.
-              </p>
+              <Clock className="h-3 w-3" />
+              {vehicleCategory} · Min {minCheckTimeMinutes} min
             </div>
             
             <TitanButton
               size="lg"
-              className="w-full"
+              className="w-full mb-3"
               onClick={handleStartCheck}
               data-testid="button-start-check"
             >
@@ -484,9 +478,13 @@ export default function VehicleInspection() {
               Start Check
             </TitanButton>
             
+            <p className="text-[11px] text-slate-400 mb-2">
+              Timed for DVSA compliance evidence
+            </p>
+            
             <button
               onClick={() => setLocation(`/driver/vehicle/${vehicle.id}`)}
-              className="mt-4 text-sm text-slate-500 hover:text-slate-700"
+              className="text-xs text-slate-400 hover:text-slate-600"
             >
               Cancel
             </button>
