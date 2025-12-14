@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
@@ -7,12 +8,15 @@ import {
   Filter,
   Download,
   Droplets,
-  MapPin
+  MapPin,
+  X
 } from "lucide-react";
 
 export default function ManagerFuelLog() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>("ALL");
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data: fuelEntries, isLoading } = useQuery({
     queryKey: ["manager-fuel", companyId],
@@ -56,6 +60,11 @@ export default function ManagerFuelLog() {
 
   const totalDiesel = fuelEntries?.filter((e: any) => e.fuelType === 'DIESEL').reduce((sum: number, e: any) => sum + (e.litres || 0), 0) || 0;
   const totalAdBlue = fuelEntries?.filter((e: any) => e.fuelType === 'ADBLUE').reduce((sum: number, e: any) => sum + (e.litres || 0), 0) || 0;
+
+  const filteredEntries = fuelEntries?.filter((entry: any) => {
+    if (fuelTypeFilter === "ALL") return true;
+    return entry.fuelType === fuelTypeFilter;
+  }) || [];
 
   const exportToCSV = () => {
     if (!fuelEntries || fuelEntries.length === 0) {
@@ -105,9 +114,16 @@ export default function ManagerFuelLog() {
             <p className="text-slate-500 mt-0.5">Diesel and AdBlue fill-ups (last 30 days)</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" data-testid="button-fuel-filters">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium transition-colors ${showFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`} 
+              data-testid="button-fuel-filters"
+            >
               <Filter className="h-4 w-4" />
               Filters
+              {fuelTypeFilter !== "ALL" && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">1</span>
+              )}
             </button>
             <button 
               onClick={exportToCSV}
@@ -119,6 +135,35 @@ export default function ManagerFuelLog() {
             </button>
           </div>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Fuel Type:</span>
+              <select
+                value={fuelTypeFilter}
+                onChange={(e) => setFuelTypeFilter(e.target.value)}
+                className="h-9 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                data-testid="select-fuel-type-filter"
+              >
+                <option value="ALL">All Types</option>
+                <option value="DIESEL">Diesel</option>
+                <option value="ADBLUE">AdBlue</option>
+              </select>
+            </div>
+            {fuelTypeFilter !== "ALL" && (
+              <button
+                onClick={() => setFuelTypeFilter("ALL")}
+                className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -173,15 +218,15 @@ export default function ManagerFuelLog() {
                       <td className="px-5 py-4"><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></td>
                     </tr>
                   ))
-                ) : fuelEntries?.length === 0 ? (
+                ) : filteredEntries.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-16 text-center">
                       <Fuel className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-500">No fuel entries found</p>
+                      <p className="text-slate-500">{fuelTypeFilter !== "ALL" ? "No entries match filter" : "No fuel entries found"}</p>
                     </td>
                   </tr>
                 ) : (
-                  fuelEntries?.map((entry: any) => (
+                  filteredEntries.map((entry: any) => (
                     <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
