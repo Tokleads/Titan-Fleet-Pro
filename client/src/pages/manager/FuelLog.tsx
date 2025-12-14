@@ -57,6 +57,45 @@ export default function ManagerFuelLog() {
   const totalDiesel = fuelEntries?.filter((e: any) => e.fuelType === 'DIESEL').reduce((sum: number, e: any) => sum + (e.litres || 0), 0) || 0;
   const totalAdBlue = fuelEntries?.filter((e: any) => e.fuelType === 'ADBLUE').reduce((sum: number, e: any) => sum + (e.litres || 0), 0) || 0;
 
+  const exportToCSV = () => {
+    if (!fuelEntries || fuelEntries.length === 0) {
+      alert('No fuel entries to export');
+      return;
+    }
+
+    // CSV header
+    const headers = ['Date', 'Time', 'VRM', 'Driver', 'Mileage', 'Fuel Type', 'Litres', 'Location'];
+    
+    // CSV rows
+    const rows = fuelEntries.map((entry: any) => {
+      const date = new Date(entry.createdAt);
+      return [
+        date.toLocaleDateString('en-GB'),
+        date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        getVehicleVrm(entry.vehicleId),
+        getDriverName(entry.driverId),
+        entry.odometer || '',
+        entry.fuelType,
+        entry.litres || '',
+        entry.location || ''
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+    });
+
+    // Combine header and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fuel-log-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <ManagerLayout>
       <div className="space-y-6">
@@ -70,7 +109,11 @@ export default function ManagerFuelLog() {
               <Filter className="h-4 w-4" />
               Filters
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" data-testid="button-fuel-export">
+            <button 
+              onClick={exportToCSV}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" 
+              data-testid="button-fuel-export"
+            >
               <Download className="h-4 w-4" />
               Export CSV
             </button>
