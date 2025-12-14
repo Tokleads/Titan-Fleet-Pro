@@ -92,6 +92,20 @@ class ApiClient {
     return this.request(`/api/fuel?companyId=${companyId}&driverId=${driverId}&days=${days}`);
   }
 
+  // Defects
+  async createDefect(defect: {
+    companyId: number;
+    vehicleId: number;
+    reportedBy: number;
+    description: string;
+    hasPhoto?: boolean;
+  }): Promise<any> {
+    return this.request(`/api/defects`, {
+      method: "POST",
+      body: JSON.stringify(defect),
+    });
+  }
+
   // DVSA API
   async getMotStatus(registration: string): Promise<{
     valid: boolean;

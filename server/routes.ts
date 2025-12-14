@@ -176,6 +176,30 @@ export async function registerRoutes(
     }
   });
 
+  // Create defect report (driver)
+  app.post("/api/defects", async (req, res) => {
+    try {
+      const { companyId, vehicleId, reportedBy, description, hasPhoto } = req.body;
+      if (!companyId || !vehicleId || !reportedBy || !description) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const defect = await storage.createDefect({
+        companyId,
+        vehicleId,
+        reportedBy,
+        description,
+        category: "VEHICLE",
+        status: "OPEN",
+      });
+      
+      res.status(201).json(defect);
+    } catch (error) {
+      console.error("Failed to create defect:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // DVSA MOT lookup
   app.get("/api/dvsa/mot/:registration", async (req, res) => {
     try {

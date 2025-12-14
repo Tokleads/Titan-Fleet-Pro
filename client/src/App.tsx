@@ -8,6 +8,7 @@ import DriverDashboard from "@/pages/driver/DriverDashboard";
 import VehicleDetail from "@/pages/driver/VehicleDetail";
 import VehicleInspection from "@/pages/driver/VehicleInspection";
 import FuelEntry from "@/pages/driver/FuelEntry";
+import DefectReport from "@/pages/driver/DefectReport";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
 import ManagerDashboard from "@/pages/manager/Dashboard";
 import ManagerInspections from "@/pages/manager/Inspections";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/driver/vehicle/:id" component={VehicleDetail} />
       <Route path="/driver/inspection/:id" component={VehicleInspection} />
       <Route path="/driver/fuel/:id" component={FuelEntry} />
+      <Route path="/driver/defect/:id" component={DefectReport} />
       <Route path="/manager/login" component={ManagerLogin} />
       <Route path="/manager" component={ManagerDashboard} />
       <Route path="/manager/inspections" component={ManagerInspections} />
