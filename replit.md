@@ -102,14 +102,20 @@ Access at `/manager/login` with:
 
 ## Recent Changes
 
-### Google Drive Integration (TODO)
-- User wants PDF reports uploaded to Google Drive per-company
-- Integration dismissed - need to implement manual credential configuration
-- Each company should be able to configure their own Google Drive folder in Settings
-- PDFs should be generated for inspections with date/time stamps
-- Credentials should be configurable per-tenant for white-label deployments
-
 ### 2025-12-14 (Latest)
+- **Google Drive Integration**: Per-company PDF upload to Google Drive
+  - Manager Settings page has Google Drive configuration UI
+  - Each company configures their own OAuth refresh token and folder ID
+  - Inspection PDFs auto-upload to Google Drive after submission
+  - Requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables
+  - API endpoints: PATCH/POST /api/manager/company/:id/gdrive
+  - Files: server/googleDriveService.ts, updated Settings.tsx
+- **PDF Generation**: Inspection reports downloadable as PDF
+  - GET /api/inspections/:id/pdf - Download inspection PDF
+  - Includes company info, vehicle, driver, checklist, defects, timing evidence
+  - Download button on Manager Inspections page
+
+### 2025-12-14 (Earlier)
 - **Load Security N/A Option**: When driver selects "no trailer", Load & Security section allows N/A
   - Tap cycles: unchecked -> pass -> N/A -> unchecked
   - Shows clear visual state for N/A items (gray badge)

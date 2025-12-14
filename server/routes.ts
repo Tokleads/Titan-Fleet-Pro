@@ -98,6 +98,66 @@ export async function registerRoutes(
         inspection.vehicleId
       );
       
+      // Auto-upload PDF to Google Drive if configured (async, non-blocking)
+      setImmediate(async () => {
+        try {
+          const company = await storage.getCompanyById(inspection.companyId);
+          if (company?.googleDriveConnected && company.driveRefreshToken) {
+            const vehicle = await storage.getVehicleById(inspection.vehicleId);
+            const driver = await storage.getUser(inspection.driverId);
+            
+            if (vehicle && driver) {
+              const { generateInspectionPDF, getInspectionFilename } = await import("./pdfService");
+              const { googleDriveService } = await import("./googleDriveService");
+              
+              const pdfData = {
+                id: inspection.id,
+                companyName: company.name,
+                vehicleVrm: vehicle.vrm,
+                vehicleMake: vehicle.make,
+                vehicleModel: vehicle.model,
+                driverName: driver.name,
+                type: inspection.type,
+                status: inspection.status,
+                odometer: inspection.odometer,
+                checklist: inspection.checklist as any[],
+                defects: inspection.defects as any[] | null,
+                hasTrailer: inspection.hasTrailer || false,
+                startedAt: inspection.startedAt?.toISOString() || null,
+                completedAt: inspection.completedAt?.toISOString() || null,
+                durationSeconds: inspection.durationSeconds,
+                createdAt: inspection.createdAt.toISOString(),
+              };
+              
+              const filename = getInspectionFilename({
+                vehicleVrm: vehicle.vrm,
+                createdAt: inspection.createdAt.toISOString(),
+                type: inspection.type,
+              });
+              
+              const pdfStream = generateInspectionPDF(pdfData);
+              
+              // Decrypt the stored refresh token
+              const { decrypt } = await import("./encryption");
+              const decryptedToken = decrypt(company.driveRefreshToken);
+              
+              const result = await googleDriveService.uploadPDF(pdfStream, filename, {
+                refreshToken: decryptedToken,
+                folderId: company.driveRootFolderId || undefined,
+              });
+              
+              if (result.success) {
+                console.log(`PDF uploaded to Google Drive: ${result.fileId}`);
+              } else {
+                console.error(`Google Drive upload failed: ${result.error}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Google Drive auto-upload error:', err);
+        }
+      });
+      
       res.status(201).json(inspection);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -628,9 +688,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing refresh token" });
       }
       
+      // Encrypt refresh token before storing
+      const { encrypt } = await import("./encryption");
+      const encryptedToken = encrypt(refreshToken);
+      
       const updated = await storage.updateCompany(companyId, {
         googleDriveConnected: true,
-        driveRefreshToken: refreshToken,
+        driveRefreshToken: encryptedToken,
         driveRootFolderId: folderId || null,
       });
       
