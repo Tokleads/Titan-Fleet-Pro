@@ -72,18 +72,18 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
             const isActive = location === item.path || 
               (item.path !== "/manager" && location.startsWith(item.path));
             return (
-              <Link key={item.path} href={item.path}>
-                <a 
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-600 shadow-sm' 
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                >
-                  <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                  {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
-                </a>
+              <Link 
+                key={item.path} 
+                href={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                  isActive 
+                    ? 'bg-blue-50 text-blue-600 shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+              >
+                <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
               </Link>
             );
           })}
