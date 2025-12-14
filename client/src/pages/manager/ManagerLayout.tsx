@@ -48,19 +48,15 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
       <aside className={`${sidebarOpen ? 'w-64' : 'w-[72px]'} bg-white border-r border-slate-200/80 flex flex-col transition-all duration-300 ease-out relative`}>
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-100">
-          {tenantConfig.logoUrl ? (
-            <img src={tenantConfig.logoUrl} alt={tenantConfig.companyName} className="h-8 w-auto flex-shrink-0" />
-          ) : (
-            <div 
-              className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm"
-              style={{ backgroundColor: tenantConfig.colors.primary }}
-            >
-              {tenantConfig.companyName.substring(0, 2).toUpperCase()}
-            </div>
-          )}
+          <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm bg-slate-900">
+            TF
+          </div>
           {sidebarOpen && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-semibold text-sm text-slate-900 truncate">{tenantConfig.companyName}</h1>
+              <span className="text-lg tracking-tight">
+                <span className="font-bold text-slate-900">Titan</span>
+                <span className="font-normal text-slate-600 ml-1">Fleet</span>
+              </span>
               <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Fleet Manager</p>
             </div>
           )}

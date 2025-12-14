@@ -77,10 +77,15 @@ export default function Landing() {
         >
             {/* Header */}
             <div className="text-center space-y-3 pt-8">
-                <div className="bg-white rounded-2xl p-3 inline-block mx-auto mb-3 shadow-xl">
-                    <img src={tenantConfig.logoUrl} alt={tenantConfig.companyName} className="h-12 w-auto" />
+                <div className="bg-white rounded-2xl p-4 inline-block mx-auto mb-3 shadow-xl">
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg bg-slate-900">
+                        TF
+                    </div>
                 </div>
-                <h1 className="text-xl font-bold text-white tracking-tight">{tenantConfig.companyName}</h1>
+                <span className="text-xl tracking-tight">
+                    <span className="font-bold text-white">Titan</span>
+                    <span className="font-normal text-slate-400 ml-1">Fleet</span>
+                </span>
                 <p className="text-slate-400 text-sm font-medium">Driver Portal</p>
             </div>
 
@@ -185,7 +190,10 @@ export default function Landing() {
       
       {/* Footer Branding */}
       <div className="absolute bottom-6 left-0 right-0 text-center z-10">
-        <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase opacity-50">Powered by Titan Fleet</p>
+        <span className="text-[10px] tracking-widest uppercase opacity-50">
+          <span className="font-bold text-white">Titan</span>
+          <span className="font-normal text-slate-400 ml-1">Fleet</span>
+        </span>
       </div>
     </div>
   );

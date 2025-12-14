@@ -83,13 +83,14 @@ export default function ManagerLogin() {
       >
         <div className="text-center mb-8">
           <div className="bg-white rounded-2xl p-4 inline-block mb-4 shadow-xl">
-            {tenantConfig.logoUrl ? (
-              <img src={tenantConfig.logoUrl} alt={tenantConfig.companyName} className="h-12 w-auto" />
-            ) : (
-              <Shield className="h-12 w-12 text-primary" />
-            )}
+            <div className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg bg-slate-900">
+              TF
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white">{tenantConfig.companyName}</h1>
+          <span className="text-2xl tracking-tight">
+            <span className="font-bold text-white">Titan</span>
+            <span className="font-normal text-slate-400 ml-1">Fleet</span>
+          </span>
           <p className="text-slate-400 mt-1">Transport Manager Portal</p>
         </div>
 

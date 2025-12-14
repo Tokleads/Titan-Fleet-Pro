@@ -17,22 +17,14 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
       <header className="bg-white text-slate-900 px-4 py-3 shadow-sm border-b border-slate-100 sticky top-0 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto w-full">
             <div className="flex items-center gap-3">
-                {tenant.logoUrl ? (
-                    <img 
-                        src={tenant.logoUrl} 
-                        alt={tenant.companyName}
-                        className="h-8 w-auto"
-                    />
-                ) : (
-                    <div 
-                        className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold shadow-sm"
-                        style={{ backgroundColor: tenant.colors.primary }}
-                    >
-                        {tenant.companyName.substring(0, 1)}
-                    </div>
-                )}
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold shadow-sm bg-slate-900">
+                    TF
+                </div>
                 <div>
-                    <h1 className="font-semibold text-[15px] leading-none text-slate-900">{tenant.companyName}</h1>
+                    <span className="text-lg tracking-tight">
+                        <span className="font-bold text-slate-900">Titan</span>
+                        <span className="font-normal text-slate-600 ml-1">Fleet</span>
+                    </span>
                     <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Driver Portal</p>
                 </div>
             </div>
