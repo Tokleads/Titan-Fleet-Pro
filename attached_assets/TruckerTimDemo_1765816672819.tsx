@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
+import { useBrand } from "@/hooks/use-brand";
 import { TitanCard } from "@/components/titan-ui/Card";
-import { ArrowRight, Truck, ShieldCheck, Users, FileCheck, Copy } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Users, FileCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { api } from "@/lib/api";
+import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
 
 const COMPANY = {
@@ -11,26 +15,61 @@ const COMPANY = {
   vehicles: 10,
   drivers: 3,
   description: "Owner-operator fleet management",
-  initials: "TT",
-  driverPin: "1234",
-  managerPin: "0000"
+  initials: "TT"
 };
 
 export default function TruckerTimDemo() {
   const [, setLocation] = useLocation();
+  const { setCompanyId } = useBrand();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoToLogin = (type: "driver" | "manager") => {
-    if (type === "driver") {
-      setLocation("/");
-    } else {
-      setLocation("/manager/login");
+  const handleLogin = async (type: "driver" | "manager") => {
+    setIsLoading(true);
+    
+    try {
+      const company = await api.getCompanyByCode(COMPANY.code);
+      session.setCompany(company);
+      setCompanyId(String(company.id));
+
+      if (type === "driver") {
+        const mockDriver = {
+          id: 6,
+          companyId: company.id,
+          email: "driver1@truckertim.com",
+          name: "Mike Thompson",
+          role: "DRIVER" as const,
+          pin: "1234",
+          active: true,
+          createdAt: new Date(),
+          totpSecret: null,
+          totpEnabled: null
+        };
+        session.setUser(mockDriver);
+        setLocation("/driver");
+      } else {
+        const response = await fetch("/api/manager/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companyCode: COMPANY.code, pin: "0000" }),
+        });
+        
+        if (!response.ok) throw new Error("Login failed");
+        
+        const data = await response.json();
+        session.setUser(data.manager);
+        session.setCompany(data.company);
+        setLocation("/manager");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Demo Error",
+        description: "Failed to load demo. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copied!", description: `${label} copied to clipboard` });
   };
 
   return (
@@ -78,36 +117,14 @@ export default function TruckerTimDemo() {
               <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold tracking-wide">
                 <FileCheck className="h-3.5 w-3.5" /> DEMO MODE
               </span>
-              <h2 className="font-heading text-xl font-bold text-foreground mt-4 tracking-tight">Demo Credentials</h2>
-              <p className="text-muted-foreground text-sm mt-1">Use these to log in and explore</p>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Company Code</span>
-                  <button onClick={() => copyToClipboard(COMPANY.code, "Company code")} className="text-primary hover:text-primary/80">
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="font-mono text-xl font-bold text-slate-900 tracking-wider">{COMPANY.code}</div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-red-50 rounded-xl p-3 text-center">
-                  <span className="text-[10px] font-semibold text-red-600 uppercase tracking-wide block mb-1">Driver PIN</span>
-                  <span className="font-mono text-lg font-bold text-red-900">{COMPANY.driverPin}</span>
-                </div>
-                <div className="bg-slate-100 rounded-xl p-3 text-center">
-                  <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide block mb-1">Manager PIN</span>
-                  <span className="font-mono text-lg font-bold text-slate-900">{COMPANY.managerPin}</span>
-                </div>
-              </div>
+              <h2 className="font-heading text-xl font-bold text-foreground mt-4 tracking-tight">Explore the Platform</h2>
+              <p className="text-muted-foreground text-sm mt-1">Choose how you'd like to experience the demo</p>
             </div>
 
             <div className="space-y-3">
               <button
-                onClick={() => handleGoToLogin("driver")}
+                onClick={() => handleLogin("driver")}
+                disabled={isLoading}
                 className="w-full p-4 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-left group motion-fast"
                 data-testid="button-demo-driver"
               >
@@ -119,15 +136,16 @@ export default function TruckerTimDemo() {
                     <Truck className="h-6 w-6" style={{ color: COMPANY.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">Driver App Login</h3>
-                    <p className="text-muted-foreground text-sm">Use code {COMPANY.code} + PIN {COMPANY.driverPin}</p>
+                    <h3 className="font-semibold text-foreground">Driver Experience</h3>
+                    <p className="text-muted-foreground text-sm">Mobile-first vehicle checks & fuel logs</p>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-primary transition-colors flex-shrink-0" />
                 </div>
               </button>
 
               <button
-                onClick={() => handleGoToLogin("manager")}
+                onClick={() => handleLogin("manager")}
+                disabled={isLoading}
                 className="w-full p-4 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-left group motion-fast"
                 data-testid="button-demo-manager"
               >
@@ -136,12 +154,18 @@ export default function TruckerTimDemo() {
                     <ShieldCheck className="h-6 w-6 text-secondary-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">Manager Dashboard Login</h3>
-                    <p className="text-muted-foreground text-sm">Use code {COMPANY.code} + PIN {COMPANY.managerPin}</p>
+                    <h3 className="font-semibold text-foreground">Manager Dashboard</h3>
+                    <p className="text-muted-foreground text-sm">Fleet overview, reports & team management</p>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-primary transition-colors flex-shrink-0" />
                 </div>
               </button>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-border">
+              <p className="text-center text-muted-foreground text-xs">
+                This is a live demo with sample data. Feel free to explore all features.
+              </p>
             </div>
           </TitanCard>
 
