@@ -79,13 +79,14 @@ router.post('/unsubscribe', async (req, res) => {
  */
 router.post('/send', async (req, res) => {
   try {
-    const { userId, title, body, icon, image, data, clickAction, priority } = req.body;
+    const { userId, companyId, title, body, icon, image, data, clickAction, priority } = req.body;
 
-    if (!userId || !title || !body) {
+    if (!userId || !companyId || !title || !body) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const success = await pushNotificationService.sendToUser(userId, {
+      companyId,
       title,
       body,
       icon,
@@ -166,7 +167,7 @@ router.get('/history/:userId', async (req, res) => {
     const userNotifications = await db
       .select()
       .from(notifications)
-      .where(eq(notifications.userId, userId))
+      .where(eq(notifications.recipientId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(limit)
       .offset(offset);
@@ -217,7 +218,7 @@ router.post('/read-all/:userId', async (req, res) => {
       })
       .where(
         and(
-          eq(notifications.userId, userId),
+          eq(notifications.recipientId, userId),
           eq(notifications.isRead, false)
         )
       );
@@ -242,7 +243,7 @@ router.get('/unread-count/:userId', async (req, res) => {
       .from(notifications)
       .where(
         and(
-          eq(notifications.userId, userId),
+          eq(notifications.recipientId, userId),
           eq(notifications.isRead, false)
         )
       );

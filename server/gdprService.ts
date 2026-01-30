@@ -26,10 +26,10 @@ export async function exportUserData(userId: number): Promise<any> {
       name: user.name,
       email: user.email,
       role: user.role,
-      loginMethod: user.loginMethod,
+      companyId: user.companyId,
+      active: user.active,
+      totpEnabled: user.totpEnabled,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      lastSignedIn: user.lastSignedIn,
     },
     inspections: inspections.map((i: any) => ({
       id: i.id,
@@ -104,7 +104,7 @@ export async function anonymizeUser(userId: number): Promise<void> {
   await storage.updateUser(userId, {
     name: `Deleted User ${userId}`,
     email: `deleted.user.${userId}@anonymized.local`,
-    loginMethod: 'ANONYMIZED',
+    active: false,
   });
 
   // Note: We keep operational records (inspections, defects, timesheets)

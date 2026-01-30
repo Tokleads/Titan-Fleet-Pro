@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema } from "@shared/schema";
@@ -2094,7 +2094,7 @@ export async function registerRoutes(
   });
   
   // Mark notification as read
-  app.patch("/api/notifications/:id/read", async (req, res) => {
+  app.patch("/api/notifications/:id/read", async (req: Request, res: Response) => {
     try {
       const notification = await storage.markNotificationRead(Number(req.params.id));
       res.json(notification);

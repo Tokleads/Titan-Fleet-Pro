@@ -138,7 +138,7 @@ export interface IStorage {
   
   // Shift check operations (End-of-shift vehicle checks)
   createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number): Promise<any>;
-  addShiftCheckItem(shiftCheckId: number, itemId: string, label: string, itemType: string, status: string, value?: string, notes?: string, photoStorageFileId?: number): Promise<any>;
+  addShiftCheckItem(shiftCheckId: number, itemId: string, label: string, itemType: string, status: string, value?: string, notes?: string, photoUrl?: string): Promise<any>;
   completeShiftCheck(shiftCheckId: number, latitude: string, longitude: string): Promise<any>;
   getShiftChecksByCompany(companyId: number): Promise<any[]>;
   getShiftChecksByDriver(driverId: number): Promise<any[]>;
@@ -1046,17 +1046,17 @@ export class DatabaseStorage implements IStorage {
       ));
     
     // Create notification for each driver
-    const notifications = [];
+    const createdNotifications = [];
     for (const driver of drivers) {
       const [notif] = await db.insert(notifications).values({
         ...notification,
         recipientId: driver.id,
         isBroadcast: true
       }).returning();
-      notifications.push(notif);
+      createdNotifications.push(notif);
     }
     
-    return notifications[0]; // Return first one as representative
+    return createdNotifications[0]; // Return first one as representative
   }
   
   async createNotification(notification: InsertNotification): Promise<Notification> {
@@ -1102,7 +1102,7 @@ export class DatabaseStorage implements IStorage {
     status: string,
     value?: string,
     notes?: string,
-    photoStorageFileId?: number
+    photoUrl?: string
   ): Promise<any> {
     const { shiftCheckItems } = await import('@shared/schema');
     
@@ -1114,7 +1114,7 @@ export class DatabaseStorage implements IStorage {
       status,
       value,
       notes,
-      photoStorageFileId,
+      photoUrl,
       completedAt: new Date()
     }).returning();
     

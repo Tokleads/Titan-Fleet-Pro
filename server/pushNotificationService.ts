@@ -40,6 +40,7 @@ export function initializeFirebaseAdmin() {
 }
 
 export interface SendNotificationOptions {
+  companyId: number;
   title: string;
   body: string;
   icon?: string;
@@ -53,7 +54,6 @@ export interface SendNotificationOptions {
 }
 
 export interface BroadcastOptions extends SendNotificationOptions {
-  companyId: number;
   targetRole?: 'driver' | 'manager' | 'all';
   targetUserIds?: number[];
 }
@@ -123,27 +123,26 @@ class PushNotificationService {
   async broadcast(options: BroadcastOptions): Promise<number> {
     try {
       // Get all active tokens for the company
-      let query = db
-        .select()
-        .from(notificationTokens)
-        .where(
-          and(
-            eq(notificationTokens.companyId, options.companyId),
-            eq(notificationTokens.isActive, true)
-          )
-        );
+      // Build conditions array
+      const conditions = [
+        eq(notificationTokens.companyId, options.companyId),
+        eq(notificationTokens.isActive, true)
+      ];
 
       // Filter by role if specified
       if (options.targetRole && options.targetRole !== 'all') {
-        query = query.where(eq(notificationTokens.userRole, options.targetRole));
+        conditions.push(eq(notificationTokens.userRole, options.targetRole));
       }
 
       // Filter by specific users if specified
       if (options.targetUserIds && options.targetUserIds.length > 0) {
-        query = query.where(inArray(notificationTokens.userId, options.targetUserIds));
+        conditions.push(inArray(notificationTokens.userId, options.targetUserIds));
       }
 
-      const tokens = await query;
+      const tokens = await db
+        .select()
+        .from(notificationTokens)
+        .where(and(...conditions));
 
       if (tokens.length === 0) {
         console.log('No active tokens found for broadcast');
@@ -249,15 +248,14 @@ class PushNotificationService {
   ): Promise<void> {
     try {
       await db.insert(notifications).values({
-        userId,
+        companyId: options.companyId,
+        senderId: 0, // System notification
+        recipientId: userId,
+        isBroadcast: false,
         title: options.title,
-        body: options.body,
-        icon: options.icon,
-        image: options.image,
-        data: options.data ? JSON.stringify(options.data) : null,
-        clickAction: options.clickAction,
-        isRead: false,
-        createdAt: new Date()
+        message: options.body,
+        priority: 'NORMAL',
+        isRead: false
       });
     } catch (error) {
       console.error('Failed to save notification to database:', error);
@@ -308,7 +306,7 @@ class PushNotificationService {
             platform,
             userAgent,
             isActive: true,
-            updatedAt: new Date()
+            lastUsed: new Date()
           })
           .where(eq(notificationTokens.token, token));
       } else {
@@ -320,9 +318,7 @@ class PushNotificationService {
           userRole,
           platform,
           userAgent,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          isActive: true
         });
       }
 

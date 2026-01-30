@@ -205,12 +205,9 @@ class PushNotificationService {
         icon: notification.icon || '/icons/icon-192x192.png',
         badge: notification.badge || '/icons/badge-72x72.png',
         data: notification.data,
-        actions: notification.actions,
         requireInteraction: notification.requireInteraction || false,
         silent: notification.silent || false,
         tag: notification.tag,
-        renotify: notification.renotify || false,
-        vibrate: notification.vibrate || [200, 100, 200],
         timestamp: notification.timestamp || Date.now()
       });
     } catch (error) {
