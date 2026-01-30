@@ -800,3 +800,94 @@ export const departments = pgTable("departments", {
 export const insertDepartmentSchema = createInsertSchema(departments).omit({ id: true, createdAt: true, updatedAt: true });
 export type Department = typeof departments.$inferSelect;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+
+// Fleet Documents - Vehicle and Driver Compliance Documents
+export const fleetDocuments = pgTable("fleet_documents", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  originalFilename: varchar("original_filename", { length: 255 }).notNull(),
+  fileUrl: text("file_url").notNull(), // S3 URL
+  fileKey: text("file_key").notNull(), // S3 key for deletion
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: integer("file_size").notNull(), // in bytes
+  category: varchar("category", { length: 50 }).notNull(), 
+  // Categories: VEHICLE_INSURANCE, VEHICLE_MOT, VEHICLE_V5C, VEHICLE_ROAD_TAX, VEHICLE_SERVICE_RECORD, 
+  //             VEHICLE_TACHOGRAPH_CALIBRATION, VEHICLE_OPERATOR_LICENSE, VEHICLE_OTHER,
+  //             DRIVER_LICENSE, DRIVER_CPC, DRIVER_TACHO_CARD, DRIVER_MEDICAL, DRIVER_INSURANCE,
+  //             DRIVER_EMPLOYMENT_CONTRACT, DRIVER_TRAINING_CERT, DRIVER_OTHER
+  entityType: varchar("entity_type", { length: 20 }).notNull(), // 'vehicle' | 'driver'
+  entityId: integer("entity_id").notNull(), // ID of vehicle or user (driver)
+  description: text("description"),
+  expiryDate: timestamp("expiry_date"), // Optional expiry date for time-sensitive documents
+  status: varchar("status", { length: 20 }).default("active"), // 'active' | 'expiring_soon' | 'expired'
+  uploadedBy: integer("uploaded_by").references(() => users.id).notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertFleetDocumentSchema = createInsertSchema(fleetDocuments).omit({ id: true, uploadedAt: true, updatedAt: true });
+export type FleetDocument = typeof fleetDocuments.$inferSelect;
+export type InsertFleetDocument = z.infer<typeof insertFleetDocumentSchema>;
+
+// Notification System Tables (imported from notificationSchema.ts)
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
+  
+  // Notification channels
+  emailEnabled: boolean("email_enabled").default(true),
+  smsEnabled: boolean("sms_enabled").default(false),
+  inAppEnabled: boolean("in_app_enabled").default(true),
+  
+  // Notification types
+  motExpiryEnabled: boolean("mot_expiry_enabled").default(true),
+  taxExpiryEnabled: boolean("tax_expiry_enabled").default(true),
+  serviceDueEnabled: boolean("service_due_enabled").default(true),
+  licenseExpiryEnabled: boolean("license_expiry_enabled").default(true),
+  vorStatusEnabled: boolean("vor_status_enabled").default(true),
+  defectReportedEnabled: boolean("defect_reported_enabled").default(true),
+  inspectionFailedEnabled: boolean("inspection_failed_enabled").default(true),
+  
+  // Timing preferences
+  motExpiryDays: integer("mot_expiry_days").default(30),
+  taxExpiryDays: integer("tax_expiry_days").default(30),
+  serviceDueDays: integer("service_due_days").default(14),
+  licenseExpiryDays: integer("license_expiry_days").default(30),
+  
+  // Email preferences
+  email: text("email"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({ id: true, createdAt: true, updatedAt: true });
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
+
+export const notificationHistory = pgTable("notification_history", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  
+  type: varchar("type", { length: 50 }).notNull(),
+  channel: varchar("channel", { length: 20 }).notNull(),
+  recipient: text("recipient").notNull(),
+  subject: text("subject"),
+  message: text("message").notNull(),
+  
+  status: varchar("status", { length: 20 }).notNull().default("PENDING"),
+  sentAt: timestamp("sent_at"),
+  failureReason: text("failure_reason"),
+  
+  metadata: jsonb("metadata"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({ id: true, createdAt: true });
+export type NotificationHistory = typeof notificationHistory.$inferSelect;
+export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;

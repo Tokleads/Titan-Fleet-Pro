@@ -2688,5 +2688,21 @@ export async function registerRoutes(
     }
   });
   
+  // Fleet Documents Routes
+  const fleetDocumentsRoutes = await import("./fleetDocumentsRoutes.js");
+  app.use("/api/fleet-documents", fleetDocumentsRoutes.default);
+  
+  // Dashboard Routes
+  const dashboardRoutes = await import("./dashboardRoutes.js");
+  app.use("/api/dashboard", dashboardRoutes.default);
+  
+  // Notification Preferences Routes
+  const notificationPreferencesRoutes = await import("./notificationPreferencesRoutes.js");
+  app.use("/api/notification-preferences", notificationPreferencesRoutes.default);
+  
+  // User Roles Routes
+  const userRolesRoutes = await import("./userRolesRoutes.js");
+  app.use("/api/user-roles", userRolesRoutes.default);
+  
   return httpServer;
 }

@@ -149,3 +149,47 @@
 - [x] Add recent activity feed
 - [x] Implement dashboard filters (date range, vehicle category)
 - [ ] Test advanced dashboard end-to-end
+
+## Backend API Implementation
+
+### Fleet Documents APIs
+- [x] Create documents table schema in database
+- [x] Build POST /api/documents/upload endpoint with S3 integration
+- [x] Build GET /api/documents endpoint with filters
+- [x] Build GET /api/documents/:id endpoint
+- [x] Build PUT /api/documents/:id endpoint
+- [x] Build DELETE /api/documents/:id endpoint
+- [x] Build GET /api/documents/stats endpoint
+- [x] Build GET /api/documents/:id/download endpoint
+- [ ] Connect FleetDocuments UI to real API
+- [ ] Test document upload and retrieval end-to-end
+
+### Advanced Dashboard APIs
+- [x] Build GET /api/dashboard/kpis endpoint
+- [x] Build GET /api/dashboard/fleet-overview endpoint
+- [x] Build GET /api/dashboard/cost-analysis endpoint
+- [x] Build GET /api/dashboard/compliance endpoint
+- [x] Build GET /api/dashboard/driver-activity endpoint
+- [x] Build GET /api/dashboard/defect-trends endpoint
+- [x] Build GET /api/dashboard/recent-activity endpoint
+- [ ] Connect AdvancedDashboard UI to real API
+- [ ] Test dashboard with real data
+
+### Notification System APIs
+- [x] Build GET /api/notifications/preferences endpoint
+- [x] Build PUT /api/notifications/preferences endpoint
+- [x] Build POST /api/notifications/test endpoint
+- [x] Build GET /api/notifications/history endpoint
+- [x] Build DELETE /api/notifications/history/:id endpoint
+- [ ] Connect NotificationPreferences UI to real API
+- [ ] Connect NotificationHistory UI to real API
+- [ ] Test notification delivery end-to-end
+
+### User Roles APIs
+- [x] Build GET /api/users endpoint with filters
+- [x] Build PUT /api/users/:id/role endpoint
+- [x] Build PUT /api/users/:id/status endpoint
+- [x] Build GET /api/roles endpoint
+- [x] Build GET /api/roles/:role/permissions endpoint
+- [ ] Connect UserRoles UI to real API
+- [ ] Test role assignment and permissions
