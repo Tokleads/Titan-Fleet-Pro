@@ -4,6 +4,7 @@ import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { VORWidget } from "@/components/VORWidget";
 import { ServiceDueWidget } from "@/components/ServiceDueWidget";
+import { ComplianceCountdownWidget } from "@/components/ComplianceCountdownWidget";
 import { 
   ClipboardCheck, 
   AlertTriangle, 
@@ -429,6 +430,9 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             </div>
+
+             {/* Compliance Countdown Widget */}
+            <ComplianceCountdownWidget companyId={companyId!} />
 
             {/* VOR Widget */}
             <VORWidget companyId={companyId!} />

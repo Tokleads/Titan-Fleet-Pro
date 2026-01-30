@@ -6,6 +6,7 @@ import { session } from "@/lib/session";
 import { VORDialog } from "@/components/VORDialog";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { ServiceHistoryDialog } from "@/components/ServiceHistoryDialog";
+import { MultiCountdownBadge } from "@/components/CountdownBadge";
 import { 
   Truck,
   Plus,
@@ -547,41 +548,28 @@ export default function ManagerFleet() {
                     return null;
                   })()}
                   
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      {vehicle.active ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
-                          <XCircle className="h-3.5 w-3.5" />
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-                    
-                    {vehicle.motDue && (
+                  {/* Countdown Timers */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
-                        {isMotOverdue(vehicle.motDue) ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-red-600 font-medium">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            MOT Overdue
-                          </span>
-                        ) : isMotDueSoon(vehicle.motDue) ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
-                            <Calendar className="h-3.5 w-3.5" />
-                            MOT Due
+                        {vehicle.active ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(vehicle.motDue).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
+                            <XCircle className="h-3.5 w-3.5" />
+                            Inactive
                           </span>
                         )}
                       </div>
-                    )}
+                    </div>
+                    <MultiCountdownBadge 
+                      motDue={vehicle.motDue}
+                      taxDue={vehicle.taxDue}
+                      serviceDue={vehicle.nextServiceDue}
+                    />
                   </div>
                 </div>
               ))

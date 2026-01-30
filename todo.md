@@ -24,4 +24,17 @@
 - [x] Add service due dashboard widget
 - [x] Add service due alerts to vehicle list
 - [ ] Create service reminder notifications
-- [ ] Test service interval workflow end-to-end
+- [x] Test service interval workflow end-to-end
+
+## Countdown Timers Feature
+
+- [x] Create countdown calculation utility functions
+- [x] Build CountdownBadge component for vehicle cards
+- [x] Add MOT countdown to vehicle cards
+- [x] Add Tax countdown to vehicle cards
+- [x] Add Service countdown to vehicle cards
+- [x] Create MOT countdown dashboard widget
+- [x] Create Tax countdown dashboard widget
+- [x] Create Service countdown dashboard widget
+- [x] Add color-coded urgency indicators (green/amber/red)
+- [ ] Test countdown calculations and display
