@@ -12,7 +12,7 @@ import {
   Loader2,
   ChevronRight
 } from "lucide-react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 interface LicenseAlertsWidgetProps {
   companyId: number;
@@ -21,7 +21,7 @@ interface LicenseAlertsWidgetProps {
 export function LicenseAlertsWidget({ companyId }: LicenseAlertsWidgetProps) {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, navigate] = useNavigate();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     fetchAlerts();

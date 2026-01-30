@@ -40,22 +40,22 @@ export interface ReportData {
  * Lists all vehicles with key details
  */
 export async function generateVehicleListReport(filter: ReportFilter): Promise<ReportData> {
-  let query = db
-    .select()
-    .from(vehicles)
-    .where(eq(vehicles.companyId, filter.companyId));
+  const whereConditions = [eq(vehicles.companyId, filter.companyId)];
 
   if (filter.vehicleId) {
-    query = query.where(eq(vehicles.id, filter.vehicleId)) as any;
+    whereConditions.push(eq(vehicles.id, filter.vehicleId));
   }
 
-  const data = await query;
+  const data = await db
+    .select()
+    .from(vehicles)
+    .where(and(...whereConditions));
 
   const rows = data.map(v => [
     v.vrm,
     v.make,
     v.model,
-    v.type,
+    v.vehicleCategory || 'N/A',
     v.motDue ? new Date(v.motDue).toLocaleDateString('en-GB') : 'N/A',
     v.taxDue ? new Date(v.taxDue).toLocaleDateString('en-GB') : 'N/A',
     v.currentMileage || 'N/A',
@@ -94,9 +94,7 @@ export async function generateDriverListReport(filter: ReportFilter): Promise<Re
   const rows = data.map(d => [
     d.name,
     d.email,
-    d.phone || 'N/A',
-    d.licenseNumber || 'N/A',
-    d.licenseExpiry ? new Date(d.licenseExpiry).toLocaleDateString('en-GB') : 'N/A',
+    d.role,
     d.active ? 'Active' : 'Inactive'
   ]);
 
@@ -105,7 +103,7 @@ export async function generateDriverListReport(filter: ReportFilter): Promise<Re
     description: 'Complete list of all drivers',
     generatedAt: new Date().toISOString(),
     filters: filter,
-    columns: ['Name', 'Email', 'Phone', 'License Number', 'License Expiry', 'Status'],
+    columns: ['Name', 'Email', 'Role', 'Status'],
     rows,
     summary: {
       totalDrivers: data.length,
@@ -119,32 +117,34 @@ export async function generateDriverListReport(filter: ReportFilter): Promise<Re
  * Lists all fuel purchases with costs and consumption
  */
 export async function generateFuelPurchaseReport(filter: ReportFilter): Promise<ReportData> {
-  let query = db
+  const whereConditions = [eq(fuelEntries.companyId, filter.companyId)];
+  
+  if (filter.startDate) {
+    whereConditions.push(gte(fuelEntries.date, new Date(filter.startDate)));
+  }
+  if (filter.endDate) {
+    whereConditions.push(lte(fuelEntries.date, new Date(filter.endDate)));
+  }
+  if (filter.vehicleId) {
+    whereConditions.push(eq(fuelEntries.vehicleId, filter.vehicleId));
+  }
+
+  const query = db
     .select({
       date: fuelEntries.date,
       vrm: vehicles.vrm,
       driverName: users.name,
-      liters: fuelEntries.liters,
-      costPerLiter: fuelEntries.costPerLiter,
-      totalCost: fuelEntries.totalCost,
-      mileage: fuelEntries.mileage,
+      litres: fuelEntries.litres,
+      costPerLitre: sql<number>`CAST(${fuelEntries.price} AS DECIMAL) / NULLIF(${fuelEntries.litres}, 0)`,
+      totalCost: sql<number>`${fuelEntries.price}`,
+      mileage: fuelEntries.odometer,
       location: fuelEntries.location
     })
     .from(fuelEntries)
     .leftJoin(vehicles, eq(fuelEntries.vehicleId, vehicles.id))
     .leftJoin(users, eq(fuelEntries.driverId, users.id))
-    .where(eq(fuelEntries.companyId, filter.companyId))
+    .where(and(...whereConditions))
     .orderBy(desc(fuelEntries.date));
-
-  if (filter.startDate) {
-    query = query.where(gte(fuelEntries.date, filter.startDate)) as any;
-  }
-  if (filter.endDate) {
-    query = query.where(lte(fuelEntries.date, filter.endDate)) as any;
-  }
-  if (filter.vehicleId) {
-    query = query.where(eq(fuelEntries.vehicleId, filter.vehicleId)) as any;
-  }
 
   const data = await query;
 
@@ -152,14 +152,14 @@ export async function generateFuelPurchaseReport(filter: ReportFilter): Promise<
     new Date(f.date).toLocaleDateString('en-GB'),
     f.vrm || 'N/A',
     f.driverName || 'N/A',
-    f.liters?.toFixed(2) || 'N/A',
-    f.costPerLiter ? `£${f.costPerLiter.toFixed(2)}` : 'N/A',
+    f.litres?.toFixed(2) || 'N/A',
+    f.costPerLitre ? `£${(f.costPerLitre / 100).toFixed(2)}` : 'N/A',
     f.totalCost ? `£${f.totalCost.toFixed(2)}` : 'N/A',
     f.mileage || 'N/A',
     f.location || 'N/A'
   ]);
 
-  const totalLiters = data.reduce((sum, f) => sum + (f.liters || 0), 0);
+  const totalLitres = data.reduce((sum, f) => sum + (f.litres || 0), 0);
   const totalCost = data.reduce((sum, f) => sum + (f.totalCost || 0), 0);
 
   return {
@@ -171,9 +171,9 @@ export async function generateFuelPurchaseReport(filter: ReportFilter): Promise<
     rows,
     summary: {
       totalEntries: data.length,
-      totalLiters: totalLiters.toFixed(2),
-      totalCost: `£${totalCost.toFixed(2)}`,
-      avgCostPerLiter: data.length > 0 ? `£${(totalCost / totalLiters).toFixed(2)}` : 'N/A'
+      totalLitres: totalLitres.toFixed(2),
+      totalCost: `£${(totalCost / 100).toFixed(2)}`,
+      avgCostPerLitre: data.length > 0 ? `£${(totalCost / totalLitres / 100).toFixed(2)}` : 'N/A'
     }
   };
 }
@@ -183,12 +183,24 @@ export async function generateFuelPurchaseReport(filter: ReportFilter): Promise<
  * Lists all reported defects by vehicle
  */
 export async function generateDefectReport(filter: ReportFilter): Promise<ReportData> {
-  let query = db
+  const whereConditions = [eq(defects.companyId, filter.companyId)];
+  
+  if (filter.startDate) {
+    whereConditions.push(gte(defects.createdAt, new Date(filter.startDate)));
+  }
+  if (filter.endDate) {
+    whereConditions.push(lte(defects.createdAt, new Date(filter.endDate)));
+  }
+  if (filter.vehicleId) {
+    whereConditions.push(eq(defects.vehicleId, filter.vehicleId));
+  }
+
+  const query = db
     .select({
-      reportedAt: defects.reportedAt,
+      reportedAt: defects.createdAt,
       vrm: vehicles.vrm,
       driverName: users.name,
-      defectType: defects.defectType,
+      defectType: defects.category,
       severity: defects.severity,
       description: defects.description,
       status: defects.status
@@ -196,18 +208,8 @@ export async function generateDefectReport(filter: ReportFilter): Promise<Report
     .from(defects)
     .leftJoin(vehicles, eq(defects.vehicleId, vehicles.id))
     .leftJoin(users, eq(defects.reportedBy, users.id))
-    .where(eq(defects.companyId, filter.companyId))
-    .orderBy(desc(defects.reportedAt));
-
-  if (filter.startDate) {
-    query = query.where(gte(defects.reportedAt, filter.startDate)) as any;
-  }
-  if (filter.endDate) {
-    query = query.where(lte(defects.reportedAt, filter.endDate)) as any;
-  }
-  if (filter.vehicleId) {
-    query = query.where(eq(defects.vehicleId, filter.vehicleId)) as any;
-  }
+    .where(and(...whereConditions))
+    .orderBy(desc(defects.createdAt));
 
   const data = await query;
 
@@ -249,7 +251,7 @@ export async function generateServiceDueReport(filter: ReportFilter): Promise<Re
     .from(vehicles)
     .where(and(
       eq(vehicles.companyId, filter.companyId),
-      lte(vehicles.nextServiceDue, thirtyDaysFromNow.toISOString())
+      lte(vehicles.nextServiceDue, thirtyDaysFromNow)
     ))
     .orderBy(vehicles.nextServiceDue);
 
@@ -388,30 +390,32 @@ export async function generateVORAnalysisReport(filter: ReportFilter): Promise<R
  * Lists all safety inspections
  */
 export async function generateSafetyInspectionReport(filter: ReportFilter): Promise<ReportData> {
-  let query = db
+  const whereConditions = [eq(inspections.companyId, filter.companyId)];
+  
+  if (filter.startDate) {
+    whereConditions.push(gte(inspections.createdAt, new Date(filter.startDate)));
+  }
+  if (filter.endDate) {
+    whereConditions.push(lte(inspections.createdAt, new Date(filter.endDate)));
+  }
+  if (filter.vehicleId) {
+    whereConditions.push(eq(inspections.vehicleId, filter.vehicleId));
+  }
+
+  const query = db
     .select({
-      inspectionDate: inspections.inspectionDate,
+      inspectionDate: inspections.createdAt,
       vrm: vehicles.vrm,
       driverName: users.name,
-      passed: inspections.passed,
-      faultsFound: inspections.faultsFound,
-      notes: inspections.notes
+      passed: sql<boolean>`${inspections.status} = 'PASS'`.as('passed'),
+      faultsFound: sql<number>`jsonb_array_length(COALESCE(${inspections.defects}, '[]'::jsonb))`.as('faultsFound'),
+      notes: inspections.defects
     })
     .from(inspections)
     .leftJoin(vehicles, eq(inspections.vehicleId, vehicles.id))
     .leftJoin(users, eq(inspections.driverId, users.id))
-    .where(eq(inspections.companyId, filter.companyId))
-    .orderBy(desc(inspections.inspectionDate));
-
-  if (filter.startDate) {
-    query = query.where(gte(inspections.inspectionDate, filter.startDate)) as any;
-  }
-  if (filter.endDate) {
-    query = query.where(lte(inspections.inspectionDate, filter.endDate)) as any;
-  }
-  if (filter.vehicleId) {
-    query = query.where(eq(inspections.vehicleId, filter.vehicleId)) as any;
-  }
+    .where(and(...whereConditions))
+    .orderBy(desc(inspections.createdAt));
 
   const data = await query;
 
@@ -493,7 +497,7 @@ export async function generateCostAnalysisReport(filter: ReportFilter): Promise<
   const fuelCosts = await db
     .select({
       vehicleId: fuelEntries.vehicleId,
-      totalCost: sql<number>`SUM(${fuelEntries.totalCost})`.as('totalCost')
+      totalCost: sql<number>`SUM(${fuelEntries.price})`.as('totalCost')
     })
     .from(fuelEntries)
     .where(eq(fuelEntries.companyId, filter.companyId))
@@ -513,7 +517,7 @@ export async function generateCostAnalysisReport(filter: ReportFilter): Promise<
   const serviceCostMap = new Map(serviceCosts.map(s => [s.vehicleId, s.totalCost || 0]));
 
   const rows = vehicleData.map(v => {
-    const fuelCost = fuelCostMap.get(v.id) || 0;
+    const fuelCost = (fuelCostMap.get(v.id) || 0) / 100; // Convert pence to pounds
     const serviceCost = serviceCostMap.get(v.id) || 0;
     const totalCost = fuelCost + serviceCost;
     

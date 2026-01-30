@@ -87,3 +87,13 @@
 - [x] Add hierarchy filtering to reports
 - [x] Add hierarchy grouping views
 - [x] Test fleet hierarchy end-to-end
+
+## CI/CD Test Failures (GitHub Actions)
+
+- [x] Fix TypeScript error: Property 'costPerLiter' does not exist on fuelEntries (should be 'costPerLitre')
+- [x] Fix TypeScript error: Property 'liters' does not exist on fuelEntries (should be 'litres')
+- [x] Fix TypeScript error: Properties 'licenseExpiry', 'licenseNumber', 'phone' do not exist on drivers table
+- [x] Fix TypeScript error: Property 'type' does not exist on vehicles table
+- [x] Fix TypeScript error: Property 'where' does not exist in reports.ts
+- [x] Fix TypeScript error: Property 'get' does not exist on storage in Reports.tsx
+- [x] Fix TypeScript error: Module 'wouter' has no exported member 'useNavigate' in LicenseAlertsWidget.tsx

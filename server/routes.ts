@@ -708,10 +708,15 @@ export async function registerRoutes(
         await logAudit({
           userId: performedBy,
           companyId: vehicle.companyId,
-          action: "SERVICE_LOGGED",
-          entityType: "vehicle",
+          action: "CREATE",
+          entity: "VEHICLE",
           entityId: vehicleId,
-          details: `Service logged for ${vehicle.vrm}: ${serviceType} at ${serviceMileage} miles`
+          details: {
+            action: "service_logged",
+            vrm: vehicle.vrm,
+            serviceType,
+            serviceMileage
+          }
         });
       }
       

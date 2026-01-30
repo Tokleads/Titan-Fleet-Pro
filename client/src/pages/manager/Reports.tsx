@@ -141,7 +141,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState<string>('');
   const [reportData, setReportData] = useState<any>(null);
 
-  const companyId = session.get("companyId");
+  const companyId = session.getCompany()?.id;
 
   // New report system
   const generateMutation = useMutation({
