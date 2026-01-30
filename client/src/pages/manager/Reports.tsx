@@ -1,19 +1,245 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FileText, Download, Calendar, TrendingUp, Users, Shield } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { session } from "@/lib/session";
+import { 
+  FileText, 
+  Download, 
+  FileSpreadsheet, 
+  Calendar,
+  Filter,
+  Loader2,
+  TrendingUp,
+  Users,
+  Shield
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+
+interface ReportType {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  endpoint?: string; // For legacy reports
+}
+
+const REPORT_TYPES: ReportType[] = [
+  // Fleet Reports
+  {
+    id: 'vehicle-list',
+    name: 'Vehicle List',
+    description: 'Complete list of all vehicles with key details',
+    icon: '🚛',
+    category: 'Fleet'
+  },
+  {
+    id: 'vor-analysis',
+    name: 'VOR Analysis',
+    description: 'Vehicle off-road statistics',
+    icon: '🚫',
+    category: 'Fleet'
+  },
+  {
+    id: 'mileage',
+    name: 'Mileage Report',
+    description: 'Current mileage for all vehicles',
+    icon: '📊',
+    category: 'Fleet'
+  },
+  
+  // Driver Reports
+  {
+    id: 'driver-list',
+    name: 'Driver List',
+    description: 'All drivers with license information',
+    icon: '👤',
+    category: 'Drivers'
+  },
+  
+  // Cost Reports
+  {
+    id: 'fuel-purchase',
+    name: 'Fuel Purchases',
+    description: 'Fuel costs and consumption analysis',
+    icon: '⛽',
+    category: 'Costs'
+  },
+  {
+    id: 'cost-analysis',
+    name: 'Cost Analysis',
+    description: 'Total costs by vehicle (fuel + service)',
+    icon: '💰',
+    category: 'Costs'
+  },
+  
+  // Maintenance Reports
+  {
+    id: 'defect',
+    name: 'Defect Report',
+    description: 'All reported defects by vehicle',
+    icon: '⚠️',
+    category: 'Maintenance'
+  },
+  {
+    id: 'service-due',
+    name: 'Service Due',
+    description: 'Vehicles due for service',
+    icon: '🔧',
+    category: 'Maintenance'
+  },
+  
+  // Compliance Reports
+  {
+    id: 'mot-expiry',
+    name: 'MOT Expiry',
+    description: 'MOT due dates for all vehicles',
+    icon: '📅',
+    category: 'Compliance'
+  },
+  {
+    id: 'safety-inspection',
+    name: 'Safety Inspections',
+    description: 'Inspection history with pass/fail status',
+    icon: '✓',
+    category: 'Compliance'
+  },
+  
+  // Legacy DVSA Reports (keep existing functionality)
+  {
+    id: 'dvsa-compliance',
+    name: 'DVSA Compliance Report',
+    description: 'Complete compliance report for DVSA audits',
+    icon: '🛡️',
+    category: 'Compliance',
+    endpoint: '/api/reports/dvsa-compliance'
+  },
+  {
+    id: 'fleet-utilization',
+    name: 'Fleet Utilization Report',
+    description: 'Analyze vehicle usage and efficiency metrics',
+    icon: '📈',
+    category: 'Fleet',
+    endpoint: '/api/reports/fleet-utilization'
+  },
+  {
+    id: 'driver-performance',
+    name: 'Driver Performance Report',
+    description: 'Comprehensive driver statistics',
+    icon: '👥',
+    category: 'Drivers',
+    endpoint: '/api/reports/driver-performance'
+  }
+];
 
 export default function Reports() {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [reportData, setReportData] = useState<any>(null);
+
+  const companyId = session.get("companyId");
+
+  // New report system
+  const generateMutation = useMutation({
+    mutationFn: async (reportType: string) => {
+      const res = await fetch('/api/manager/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportType,
+          filters: {
+            companyId,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to generate report');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setReportData(data);
+      toast.success('Report generated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to generate report');
+    }
+  });
+
+  const exportCSVMutation = useMutation({
+    mutationFn: async (reportType: string) => {
+      const res = await fetch('/api/manager/reports/export/csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportType,
+          filters: {
+            companyId,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to export CSV');
+      return res.blob();
+    },
+    onSuccess: (blob, reportType) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('CSV exported successfully');
+    },
+    onError: () => {
+      toast.error('Failed to export CSV');
+    }
+  });
+
+  const exportPDFMutation = useMutation({
+    mutationFn: async (reportType: string) => {
+      const res = await fetch('/api/manager/reports/export/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportType,
+          filters: {
+            companyId,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to export PDF');
+      return res.blob();
+    },
+    onSuccess: (blob, reportType) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('PDF exported successfully');
+    },
+    onError: () => {
+      toast.error('Failed to export PDF');
+    }
+  });
+
+  // Legacy report system
   const [generating, setGenerating] = useState<string | null>(null);
 
-  const companyId = 1; // TODO: Get from auth context
-
-  const generateReport = async (reportType: string, endpoint: string) => {
+  const generateLegacyReport = async (reportType: string, endpoint: string) => {
     if (!startDate || !endDate) {
       toast.error('Please select both start and end dates');
       return;
@@ -46,7 +272,6 @@ export default function Reports() {
         throw new Error('Failed to generate report');
       }
 
-      // Download the PDF
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -57,7 +282,7 @@ export default function Reports() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success(`${reportType} generated successfully`);
+      toast.success(`Report generated successfully`);
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error('Failed to generate report');
@@ -66,59 +291,68 @@ export default function Reports() {
     }
   };
 
-  const reports = [
-    {
-      id: 'dvsa-compliance',
-      title: 'DVSA Compliance Report',
-      description: 'Complete compliance report for DVSA audits including all inspections, defects, and vehicle summaries',
-      icon: Shield,
-      endpoint: '/api/reports/dvsa-compliance',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      id: 'fleet-utilization',
-      title: 'Fleet Utilization Report',
-      description: 'Analyze vehicle usage, hours worked, and fleet efficiency metrics',
-      icon: TrendingUp,
-      endpoint: '/api/reports/fleet-utilization',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      id: 'driver-performance',
-      title: 'Driver Performance Report',
-      description: 'Comprehensive driver statistics including inspections, defects reported, and hours worked',
-      icon: Users,
-      endpoint: '/api/reports/driver-performance',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    },
-  ];
+  const handleGenerateReport = () => {
+    if (!selectedReport) return;
+    
+    const report = REPORT_TYPES.find(r => r.id === selectedReport);
+    if (report?.endpoint) {
+      // Legacy report
+      generateLegacyReport(selectedReport, report.endpoint);
+    } else {
+      // New report system
+      generateMutation.mutate(selectedReport);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (selectedReport) {
+      exportCSVMutation.mutate(selectedReport);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (selectedReport) {
+      exportPDFMutation.mutate(selectedReport);
+    }
+  };
+
+  const setQuickDateRange = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  };
+
+  const categories = Array.from(new Set(REPORT_TYPES.map(r => r.category)));
+  const selectedReportData = REPORT_TYPES.find(r => r.id === selectedReport);
+  const isLegacyReport = selectedReportData?.endpoint;
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-600 mt-1">Generate compliance and performance reports</p>
+        <h1 className="text-3xl font-bold text-slate-900">Reports</h1>
+        <p className="text-slate-600 mt-2">
+          Generate comprehensive fleet management reports
+        </p>
       </div>
 
       {/* Date Range Selector */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Calendar className="h-5 w-5" />
             Report Period
           </CardTitle>
           <CardDescription>Select the date range for your reports</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="start-date">Start Date</Label>
               <Input
-                id="startDate"
+                id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -126,9 +360,9 @@ export default function Reports() {
               />
             </div>
             <div>
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="end-date">End Date</Label>
               <Input
-                id="endDate"
+                id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -138,172 +372,228 @@ export default function Reports() {
           </div>
 
           {/* Quick Date Ranges */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 7);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(end.toISOString().split('T')[0]);
-              }}
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setQuickDateRange(7)}>
               Last 7 Days
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 30);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(end.toISOString().split('T')[0]);
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => setQuickDateRange(30)}>
               Last 30 Days
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setMonth(start.getMonth() - 3);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(end.toISOString().split('T')[0]);
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => setQuickDateRange(90)}>
               Last 3 Months
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setMonth(start.getMonth() - 6);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(end.toISOString().split('T')[0]);
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => setQuickDateRange(180)}>
               Last 6 Months
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setFullYear(start.getFullYear() - 1);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(end.toISOString().split('T')[0]);
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => setQuickDateRange(365)}>
               Last Year
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Available Reports */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((report) => {
-          const Icon = report.icon;
-          const isGenerating = generating === report.id;
-
-          return (
-            <Card key={report.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className={`w-12 h-12 rounded-lg ${report.bgColor} flex items-center justify-center mb-4`}>
-                  <Icon className={`w-6 h-6 ${report.color}`} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Report Selection */}
+        <div className="lg:col-span-2 space-y-6">
+          {categories.map(category => {
+            const categoryReports = REPORT_TYPES.filter(r => r.category === category);
+            
+            return (
+              <div key={category}>
+                <h2 className="text-lg font-semibold text-slate-900 mb-3">{category}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {categoryReports.map(report => (
+                    <Card
+                      key={report.id}
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedReport === report.id
+                          ? 'ring-2 ring-blue-500 bg-blue-50'
+                          : 'hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedReport(report.id);
+                        setReportData(null); // Clear previous report data
+                      }}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl">{report.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base">{report.name}</CardTitle>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm">
+                          {report.description}
+                        </CardDescription>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                <CardTitle className="text-lg">{report.title}</CardTitle>
-                <CardDescription className="text-sm">{report.description}</CardDescription>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right: Actions */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                onClick={handleGenerateReport}
+                disabled={!selectedReport || generateMutation.isPending || generating !== null}
+                className="w-full"
+              >
+                {(generateMutation.isPending || generating) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </>
+                )}
+              </Button>
+
+              {!isLegacyReport && (
+                <>
+                  <Button
+                    onClick={handleExportCSV}
+                    disabled={!selectedReport || exportCSVMutation.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {exportCSVMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Export CSV
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={handleExportPDF}
+                    disabled={!selectedReport || exportPDFMutation.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {exportPDFMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export PDF
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {selectedReport && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-sm">Selected Report</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button
-                  className="w-full"
-                  onClick={() => generateReport(report.id, report.endpoint)}
-                  disabled={isGenerating || !startDate || !endDate}
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Generate PDF
-                    </>
-                  )}
-                </Button>
+                <p className="font-semibold text-blue-900">
+                  {selectedReportData?.name}
+                </p>
+                <p className="text-sm text-blue-700 mt-1">
+                  {selectedReportData?.description}
+                </p>
+                {isLegacyReport && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    ℹ️ This report uses the legacy PDF format
+                  </p>
+                )}
               </CardContent>
             </Card>
-          );
-        })}
+          )}
+        </div>
       </div>
 
-      {/* Report Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Report Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-semibold text-sm text-gray-900 mb-2">DVSA Compliance Report</h3>
-            <p className="text-sm text-gray-600">
-              Comprehensive report for DVSA audits including:
+      {/* Report Preview (for new reports only) */}
+      {reportData && !isLegacyReport && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{reportData.title}</CardTitle>
+            <CardDescription>{reportData.description}</CardDescription>
+            <p className="text-sm text-slate-500">
+              Generated: {new Date(reportData.generatedAt).toLocaleString('en-GB')}
             </p>
-            <ul className="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
-              <li>Total inspections and vehicles</li>
-              <li>Defect breakdown by severity and status</li>
-              <li>Vehicle-by-vehicle inspection summary</li>
-              <li>Compliance metrics and inspection rates</li>
-              <li>15-month retention confirmation</li>
-            </ul>
-          </div>
+          </CardHeader>
+          <CardContent>
+            {/* Summary */}
+            {reportData.summary && (
+              <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                <h3 className="font-semibold text-slate-900 mb-3">Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.entries(reportData.summary).map(([key, value]) => {
+                    const label = key.replace(/([A-Z])/g, ' $1').trim();
+                    const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                    return (
+                      <div key={key}>
+                        <p className="text-sm text-slate-600">{capitalizedLabel}</p>
+                        <p className="text-lg font-semibold text-slate-900">{String(value)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-          <div>
-            <h3 className="font-semibold text-sm text-gray-900 mb-2">Fleet Utilization Report</h3>
-            <p className="text-sm text-gray-600">
-              Analyze fleet efficiency with:
-            </p>
-            <ul className="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
-              <li>Total hours worked per vehicle</li>
-              <li>Number of shifts per vehicle</li>
-              <li>Average utilization rates</li>
-              <li>Idle vehicle identification</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-sm text-gray-900 mb-2">Driver Performance Report</h3>
-            <p className="text-sm text-gray-600">
-              Track driver performance including:
-            </p>
-            <ul className="list-disc list-inside text-sm text-gray-600 mt-1 space-y-1">
-              <li>Inspections completed per driver</li>
-              <li>Defects reported per driver</li>
-              <li>Total hours worked and shifts</li>
-              <li>Performance comparison across drivers</li>
-            </ul>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>Note:</strong> All reports are generated in PDF format and include your company branding. 
-              Reports are suitable for DVSA audits and internal performance reviews.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    {reportData.columns.map((col: string, i: number) => (
+                      <th key={i} className="px-4 py-3 text-left font-semibold text-slate-900">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.rows.slice(0, 50).map((row: any[], i: number) => (
+                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                      {row.map((cell: any, j: number) => (
+                        <td key={j} className="px-4 py-3 text-slate-700">
+                          {String(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {reportData.rows.length > 50 && (
+                <p className="text-sm text-slate-500 mt-4 text-center">
+                  Showing first 50 of {reportData.rows.length} rows. Export to see all data.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

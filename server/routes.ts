@@ -2243,6 +2243,99 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== REPORT ENDPOINTS ====================
+  
+  /**
+   * Generate Report
+   * POST /api/manager/reports/generate
+   */
+  app.post("/api/manager/reports/generate", async (req, res) => {
+    try {
+      const { reportType, filters } = req.body;
+      
+      if (!reportType || !filters || !filters.companyId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const { reportGenerators } = await import("./reports");
+      
+      if (!reportGenerators[reportType as keyof typeof reportGenerators]) {
+        return res.status(400).json({ error: "Invalid report type" });
+      }
+
+      const generator = reportGenerators[reportType as keyof typeof reportGenerators];
+      const reportData = await generator(filters);
+
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  /**
+   * Export Report as CSV
+   * POST /api/manager/reports/export/csv
+   */
+  app.post("/api/manager/reports/export/csv", async (req, res) => {
+    try {
+      const { reportType, filters } = req.body;
+      
+      if (!reportType || !filters || !filters.companyId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const { reportGenerators } = await import("./reports");
+      const { generateCSV } = await import("./reportExport");
+      
+      if (!reportGenerators[reportType as keyof typeof reportGenerators]) {
+        return res.status(400).json({ error: "Invalid report type" });
+      }
+
+      const generator = reportGenerators[reportType as keyof typeof reportGenerators];
+      const reportData = await generator(filters);
+      const csv = generateCSV(reportData);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${reportType}-${Date.now()}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      res.status(500).json({ error: "Failed to export CSV" });
+    }
+  });
+
+  /**
+   * Export Report as PDF
+   * POST /api/manager/reports/export/pdf
+   */
+  app.post("/api/manager/reports/export/pdf", async (req, res) => {
+    try {
+      const { reportType, filters } = req.body;
+      
+      if (!reportType || !filters || !filters.companyId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const { reportGenerators } = await import("./reports");
+      const { generatePDF } = await import("./reportExport");
+      
+      if (!reportGenerators[reportType as keyof typeof reportGenerators]) {
+        return res.status(400).json({ error: "Invalid report type" });
+      }
+
+      const generator = reportGenerators[reportType as keyof typeof reportGenerators];
+      const reportData = await generator(filters);
+      const pdfBuffer = await generatePDF(reportData);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${reportType}-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      res.status(500).json({ error: "Failed to export PDF" });
+    }
+  });
   
   return httpServer;
 }

@@ -37,4 +37,24 @@
 - [x] Create Tax countdown dashboard widget
 - [x] Create Service countdown dashboard widget
 - [x] Add color-coded urgency indicators (green/amber/red)
-- [ ] Test countdown calculations and display
+- [x] Test countdown calculations and display
+
+## Report System
+
+- [x] Create report generation backend infrastructure
+- [x] Build Vehicle List Report
+- [x] Build Driver List Report
+- [x] Build Fuel Purchase Report
+- [x] Build Defect Report
+- [x] Build Service Due Report
+- [x] Build MOT Expiry Report
+- [x] Build VOR Analysis Report
+- [x] Build Safety Inspection Report
+- [x] Build Mileage Report
+- [x] Build Cost Analysis Report
+- [x] Create report UI components
+- [x] Build Reports page with report list
+- [x] Implement CSV export functionality
+- [x] Implement PDF export functionality
+- [x] Add report filtering and date ranges
+- [ ] Test all reports end-to-end
