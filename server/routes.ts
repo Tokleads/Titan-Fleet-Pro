@@ -447,7 +447,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid company code" });
       }
 
-      const manager = await storage.getUserByCompanyAndPin(company.id, pin, "MANAGER");
+      const manager = await storage.getUserByCompanyAndPin(company.id, pin, "manager");
       if (!manager) {
         return res.status(401).json({ error: "Invalid PIN" });
       }
