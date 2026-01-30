@@ -4,7 +4,7 @@
  * Allows managers to configure notification settings for their company.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bell, Mail, MessageSquare, Smartphone, Save, CheckCircle2 } from 'lucide-react';
+import { Bell, Mail, MessageSquare, Smartphone, Save, CheckCircle2, Loader2 } from 'lucide-react';
+import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NotificationPreferences() {
@@ -25,6 +26,8 @@ export default function NotificationPreferences() {
 
 function NotificationPreferencesContent() {
   const { toast } = useToast();
+  const companyId = session.getCompany()?.id || 1;
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   // Notification channels
@@ -50,12 +53,72 @@ function NotificationPreferencesContent() {
   // Email override
   const [email, setEmail] = useState('');
   
+  // Load preferences on mount
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        const response = await fetch(`/api/notification-preferences?companyId=${companyId}`);
+        if (!response.ok) throw new Error('Failed to fetch preferences');
+        
+        const data = await response.json();
+        
+        // Set channel preferences
+        setEmailEnabled(data.emailEnabled);
+        setSmsEnabled(data.smsEnabled);
+        setInAppEnabled(data.inAppEnabled);
+        setEmail(data.emailOverride || '');
+        
+        // Set notification type preferences
+        setMotExpiryEnabled(data.notificationTypes.MOT_EXPIRY.enabled);
+        setMotExpiryDays(data.notificationTypes.MOT_EXPIRY.daysBeforeExpiry);
+        setTaxExpiryEnabled(data.notificationTypes.TAX_EXPIRY.enabled);
+        setTaxExpiryDays(data.notificationTypes.TAX_EXPIRY.daysBeforeExpiry);
+        setServiceDueEnabled(data.notificationTypes.SERVICE_DUE.enabled);
+        setServiceDueDays(data.notificationTypes.SERVICE_DUE.daysBeforeExpiry);
+        setLicenseExpiryEnabled(data.notificationTypes.LICENSE_EXPIRY.enabled);
+        setLicenseExpiryDays(data.notificationTypes.LICENSE_EXPIRY.daysBeforeExpiry);
+        setVorStatusEnabled(data.notificationTypes.VOR_STATUS.enabled);
+        setDefectReportedEnabled(data.notificationTypes.DEFECT_REPORTED.enabled);
+        setInspectionFailedEnabled(data.notificationTypes.INSPECTION_FAILED.enabled);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load preferences',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPreferences();
+  }, [companyId]);
+  
   const handleSave = async () => {
     setSaving(true);
     
     try {
-      // TODO: Call API to save preferences
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+      const response = await fetch(`/api/notification-preferences?companyId=${companyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailEnabled,
+          smsEnabled,
+          inAppEnabled,
+          emailOverride: email || null,
+          notificationTypes: {
+            MOT_EXPIRY: { enabled: motExpiryEnabled, daysBeforeExpiry: motExpiryDays },
+            TAX_EXPIRY: { enabled: taxExpiryEnabled, daysBeforeExpiry: taxExpiryDays },
+            SERVICE_DUE: { enabled: serviceDueEnabled, daysBeforeExpiry: serviceDueDays },
+            LICENSE_EXPIRY: { enabled: licenseExpiryEnabled, daysBeforeExpiry: licenseExpiryDays },
+            VOR_STATUS: { enabled: vorStatusEnabled },
+            DEFECT_REPORTED: { enabled: defectReportedEnabled },
+            INSPECTION_FAILED: { enabled: inspectionFailedEnabled }
+          }
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to save preferences');
       
       toast({
         title: 'Preferences saved',
@@ -73,6 +136,14 @@ function NotificationPreferencesContent() {
       setSaving(false);
     }
   };
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-4xl py-8">

@@ -4,7 +4,7 @@
  * Manage user roles and permissions for the fleet management system.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,11 @@ import {
   CheckCircle2, 
   XCircle,
   Lock,
-  Unlock
+  Unlock,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { session } from '@/lib/session';
 
 // Role definitions
 const ROLES = [
@@ -133,15 +135,14 @@ const PERMISSION_CATEGORIES = [
   }
 ];
 
-// Mock user data
-const mockUsers = [
-  { id: 1, name: 'John Smith', email: 'john@company.com', role: 'ADMIN', active: true, lastLogin: '2026-01-30T10:00:00Z' },
-  { id: 2, name: 'Sarah Johnson', email: 'sarah@company.com', role: 'TRANSPORT_MANAGER', active: true, lastLogin: '2026-01-30T09:30:00Z' },
-  { id: 3, name: 'Mike Wilson', email: 'mike@company.com', role: 'DRIVER', active: true, lastLogin: '2026-01-30T08:00:00Z' },
-  { id: 4, name: 'Emma Davis', email: 'emma@company.com', role: 'DRIVER', active: true, lastLogin: '2026-01-29T16:00:00Z' },
-  { id: 5, name: 'Tom Brown', email: 'tom@company.com', role: 'MECHANIC', active: true, lastLogin: '2026-01-30T07:00:00Z' },
-  { id: 6, name: 'Lisa White', email: 'lisa@company.com', role: 'AUDITOR', active: false, lastLogin: '2026-01-25T14:00:00Z' }
-];
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+}
 
 export default function UserRoles() {
   return (
@@ -153,11 +154,45 @@ export default function UserRoles() {
 
 function UserRolesContent() {
   const { toast } = useToast();
+  const companyId = session.getCompany()?.id || 1;
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  
+  // Fetch users
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        companyId: companyId.toString(),
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(searchQuery && { search: searchQuery })
+      });
+      
+      const response = await fetch(`/api/user-roles?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      
+      const data = await response.json();
+      setUsers(data.users);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load users',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Load users on mount and when filters change
+  useEffect(() => {
+    fetchUsers();
+  }, [roleFilter, searchQuery]);
   
   const getRoleBadge = (role: string) => {
     const roleInfo = ROLES.find(r => r.value === role);
@@ -189,57 +224,61 @@ function UserRolesContent() {
     setSaving(true);
     
     try {
-      // TODO: Implement actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/user-roles/${selectedUser.id}/role?companyId=${companyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: selectedUser.role })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update user');
       
       toast({
         title: 'User updated',
         description: `${selectedUser.name}'s role has been updated successfully.`,
-        duration: 3000
-      });
+        duration: 3      });
       
       setEditDialogOpen(false);
       setSelectedUser(null);
+      fetchUsers(); // Refresh list
     } catch (error) {
       toast({
-        title: 'Update failed',
+        title: 'Error',
         description: 'Failed to update user. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000
       });
     } finally {
       setSaving(false);
     }
   };
   
-  const handleToggleActive = async (userId: number, currentStatus: boolean) => {
+  const handleToggleActive = async (userId: number, active: boolean) => {
     try {
-      // TODO: Implement actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`/api/user-roles/${userId}/status?companyId=${companyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update status');
       
       toast({
-        title: currentStatus ? 'User deactivated' : 'User activated',
-        description: `User has been ${currentStatus ? 'deactivated' : 'activated'} successfully.`,
-        duration: 3000
+        title: 'Status updated',
+        description: `User ${active ? 'activated' : 'deactivated'} successfully.`
       });
+      
+      fetchUsers();
     } catch (error) {
       toast({
-        title: 'Action failed',
-        description: 'Failed to update user status. Please try again.',
+        title: 'Error',
+        description: 'Failed to update status',
         variant: 'destructive'
       });
     }
   };
   
-  // Filter users
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    
-    return matchesSearch && matchesRole;
-  });
+  // Filter users (API already filters)
+  const filteredUsers = users;
   
   return (
     <div className="container py-8">
@@ -303,10 +342,20 @@ function UserRolesContent() {
           {/* Users Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Users ({filteredUsers.length})</CardTitle>
+              <CardTitle>Users ({loading ? '...' : filteredUsers.length})</CardTitle>
               <CardDescription>Manage user roles and access</CardDescription>
             </CardHeader>
             <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No users found</p>
+                </div>
+              ) : (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -344,7 +393,7 @@ function UserRolesContent() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(user.lastLogin)}
+                          {user.createdAt ? formatDate(user.createdAt) : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -358,7 +407,7 @@ function UserRolesContent() {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => handleToggleActive(user.id, user.active)}
+                              onClick={() => handleToggleActive(user.id, !user.active)}
                             >
                               {user.active ? (
                                 <Lock className="h-4 w-4 text-orange-500" />
@@ -373,6 +422,7 @@ function UserRolesContent() {
                   </TableBody>
                 </Table>
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

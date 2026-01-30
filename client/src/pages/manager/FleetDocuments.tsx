@@ -5,7 +5,7 @@
  * Separate from the existing Documents page which handles driver training materials.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Upload, Search, Filter, Download, Trash2, AlertCircle, CheckCircle2, Calendar, Eye } from 'lucide-react';
+import { FileText, Upload, Search, Filter, Download, Trash2, AlertCircle, CheckCircle2, Calendar, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { session } from '@/lib/session';
 
 // Document categories
 const VEHICLE_CATEGORIES = [
@@ -42,218 +43,244 @@ const DRIVER_CATEGORIES = [
   { value: 'DRIVER_OTHER', label: 'Other Driver Document' }
 ];
 
-// Mock data
-const mockDocuments = [
-  {
-    id: 1,
-    category: 'VEHICLE_INSURANCE',
-    name: 'Fleet Insurance Certificate 2026',
-    fileName: 'insurance-cert-2026.pdf',
-    fileSize: 245000,
-    vehicleVRM: 'AB12 CDE',
-    expiryDate: '2026-12-31',
-    status: 'ACTIVE',
-    uploadedAt: '2026-01-15T10:00:00Z',
-    uploadedBy: 'John Smith'
-  },
-  {
-    id: 2,
-    category: 'VEHICLE_MOT_CERTIFICATE',
-    name: 'MOT Certificate - AB12 CDE',
-    fileName: 'mot-ab12cde-2026.pdf',
-    fileSize: 180000,
-    vehicleVRM: 'AB12 CDE',
-    expiryDate: '2026-02-15',
-    status: 'EXPIRING_SOON',
-    uploadedAt: '2025-02-15T14:30:00Z',
-    uploadedBy: 'Sarah Johnson'
-  },
-  {
-    id: 3,
-    category: 'DRIVER_CPC',
-    name: 'Driver CPC Card - Mike Wilson',
-    fileName: 'cpc-mike-wilson.pdf',
-    fileSize: 120000,
-    driverName: 'Mike Wilson',
-    expiryDate: '2028-06-30',
-    status: 'ACTIVE',
-    uploadedAt: '2026-01-10T09:00:00Z',
-    uploadedBy: 'Admin'
-  },
-  {
-    id: 4,
-    category: 'VEHICLE_V5C',
-    name: 'V5C Registration - XY34 FGH',
-    fileName: 'v5c-xy34fgh.pdf',
-    fileSize: 340000,
-    vehicleVRM: 'XY34 FGH',
-    expiryDate: null,
-    status: 'ACTIVE',
-    uploadedAt: '2025-11-20T11:15:00Z',
-    uploadedBy: 'John Smith'
-  },
-  {
-    id: 5,
-    category: 'DRIVER_LICENSE',
-    name: 'Driving License - Emma Davis',
-    fileName: 'license-emma-davis.pdf',
-    fileSize: 95000,
-    driverName: 'Emma Davis',
-    expiryDate: '2025-12-31',
-    status: 'EXPIRED',
-    uploadedAt: '2023-01-05T16:45:00Z',
-    uploadedBy: 'Admin'
-  }
-];
+const ALL_CATEGORIES = [...VEHICLE_CATEGORIES, ...DRIVER_CATEGORIES];
 
-export default function FleetDocuments() {
-  return (
-    <ManagerLayout>
-      <FleetDocumentsContent />
-    </ManagerLayout>
-  );
+interface Document {
+  id: number;
+  category: string;
+  fileName: string;
+  fileSize: number;
+  fileUrl: string;
+  entityType: 'VEHICLE' | 'DRIVER';
+  entityId: number;
+  entityName: string;
+  expiryDate: string | null;
+  description: string | null;
+  status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+  uploadedAt: string;
+  uploadedBy: string;
 }
 
-function FleetDocumentsContent() {
+interface Stats {
+  total: number;
+  active: number;
+  expiringSoon: number;
+  expired: number;
+}
+
+export default function FleetDocuments() {
   const { toast } = useToast();
+  const companyId = session.getCompany()?.id || 1;
+  
+  // State
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, active: 0, expiringSoon: 0, expired: 0 });
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
   
   // Upload form state
-  const [uploadCategory, setUploadCategory] = useState('');
-  const [uploadName, setUploadName] = useState('');
-  const [uploadDescription, setUploadDescription] = useState('');
-  const [uploadExpiryDate, setUploadExpiryDate] = useState('');
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  
-  const getStatusBadge = (status: string, expiryDate: string | null) => {
-    if (!expiryDate) {
-      return <Badge variant="outline">No Expiry</Badge>;
-    }
-    
-    const daysUntilExpiry = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilExpiry < 0) {
-      return <Badge variant="destructive">Expired</Badge>;
-    } else if (daysUntilExpiry <= 30) {
-      return <Badge variant="default" className="bg-orange-500">Expiring Soon</Badge>;
-    } else {
-      return <Badge variant="default" className="bg-green-500">Active</Badge>;
-    }
-  };
-  
-  const getCategoryLabel = (category: string) => {
-    const allCategories = [...VEHICLE_CATEGORIES, ...DRIVER_CATEGORIES];
-    const found = allCategories.find(c => c.value === category);
-    return found ? found.label : category;
-  };
-  
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-  
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).format(new Date(dateString));
-  };
-  
-  const handleUpload = async () => {
-    if (!uploadFile || !uploadCategory || !uploadName) {
+  const [uploadForm, setUploadForm] = useState({
+    category: '',
+    entityType: 'VEHICLE' as 'VEHICLE' | 'DRIVER',
+    entityId: '',
+    expiryDate: '',
+    description: '',
+    file: null as File | null
+  });
+
+  // Fetch documents
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        companyId: companyId.toString(),
+        ...(categoryFilter !== 'all' && { category: categoryFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(searchQuery && { search: searchQuery })
+      });
+      
+      const response = await fetch(`/api/fleet-documents?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      
+      const data = await response.json();
+      setDocuments(data.documents);
+    } catch (error) {
       toast({
-        title: 'Validation Error',
+        title: 'Error',
+        description: 'Failed to load documents',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch stats
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`/api/fleet-documents/stats?companyId=${companyId}`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  // Load data on mount and when filters change
+  useEffect(() => {
+    fetchDocuments();
+    fetchStats();
+  }, [categoryFilter, statusFilter, searchQuery]);
+
+  // Handle file upload
+  const handleUpload = async () => {
+    if (!uploadForm.file || !uploadForm.category || !uploadForm.entityId) {
+      toast({
+        title: 'Missing fields',
         description: 'Please fill in all required fields',
         variant: 'destructive'
       });
       return;
     }
-    
-    setUploading(true);
-    
+
     try {
-      // TODO: Implement actual file upload to S3
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay
+      setUploading(true);
       
-      toast({
-        title: 'Document uploaded',
-        description: `${uploadName} has been uploaded successfully.`,
-        duration: 3000
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('category', uploadForm.category);
+      formData.append('entityType', uploadForm.entityType);
+      formData.append('entityId', uploadForm.entityId);
+      formData.append('companyId', companyId.toString());
+      if (uploadForm.expiryDate) formData.append('expiryDate', uploadForm.expiryDate);
+      if (uploadForm.description) formData.append('description', uploadForm.description);
+      
+      const response = await fetch('/api/fleet-documents/upload', {
+        method: 'POST',
+        body: formData
       });
       
-      // Reset form
-      setUploadCategory('');
-      setUploadName('');
-      setUploadDescription('');
-      setUploadExpiryDate('');
-      setUploadFile(null);
+      if (!response.ok) throw new Error('Upload failed');
+      
+      toast({
+        title: 'Success',
+        description: 'Document uploaded successfully'
+      });
+      
+      // Reset form and close dialog
+      setUploadForm({
+        category: '',
+        entityType: 'VEHICLE',
+        entityId: '',
+        expiryDate: '',
+        description: '',
+        file: null
+      });
       setUploadDialogOpen(false);
+      
+      // Refresh data
+      fetchDocuments();
+      fetchStats();
     } catch (error) {
       toast({
-        title: 'Upload failed',
-        description: 'Failed to upload document. Please try again.',
+        title: 'Error',
+        description: 'Failed to upload document',
         variant: 'destructive'
       });
     } finally {
       setUploading(false);
     }
   };
-  
-  const handleDelete = async (documentId: number, documentName: string) => {
-    if (!confirm(`Are you sure you want to delete "${documentName}"?`)) {
-      return;
-    }
+
+  // Handle delete
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
     
     try {
-      // TODO: Implement actual delete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`/api/fleet-documents/${id}?companyId=${companyId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error('Delete failed');
       
       toast({
-        title: 'Document deleted',
-        description: `${documentName} has been deleted.`,
-        duration: 3000
+        title: 'Success',
+        description: 'Document deleted successfully'
       });
+      
+      fetchDocuments();
+      fetchStats();
     } catch (error) {
       toast({
-        title: 'Delete failed',
-        description: 'Failed to delete document. Please try again.',
+        title: 'Error',
+        description: 'Failed to delete document',
         variant: 'destructive'
       });
     }
   };
-  
-  // Filter documents
-  const filteredDocuments = mockDocuments.filter(doc => {
-    const matchesSearch = 
-      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (doc.vehicleVRM && doc.vehicleVRM.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (doc.driverName && doc.driverName.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = categoryFilter === 'all' || doc.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-  
-  // Count documents by status
-  const activeCount = mockDocuments.filter(d => d.status === 'ACTIVE').length;
-  const expiringSoonCount = mockDocuments.filter(d => d.status === 'EXPIRING_SOON').length;
-  const expiredCount = mockDocuments.filter(d => d.status === 'EXPIRED').length;
-  
+
+  // Handle download
+  const handleDownload = async (id: number, fileName: string) => {
+    try {
+      const response = await fetch(`/api/fleet-documents/${id}/download?companyId=${companyId}`);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const data = await response.json();
+      window.open(data.downloadUrl, '_blank');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to download document',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-GB');
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <Badge className="bg-green-500"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge>;
+      case 'EXPIRING_SOON':
+        return <Badge className="bg-amber-500"><AlertCircle className="w-3 h-3 mr-1" />Expiring Soon</Badge>;
+      case 'EXPIRED':
+        return <Badge variant="destructive"><AlertCircle className="w-3 h-3 mr-1" />Expired</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Get category label
+  const getCategoryLabel = (value: string) => {
+    return ALL_CATEGORIES.find(c => c.value === value)?.label || value;
+  };
+
   return (
-    <div className="container py-8">
-      <div className="mb-8">
+    <ManagerLayout>
+      <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Fleet Documents</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold">Fleet Documents</h1>
+            <p className="text-muted-foreground mt-1">
               Manage vehicle and driver compliance documents
             </p>
           </div>
@@ -261,303 +288,295 @@ function FleetDocumentsContent() {
           <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="w-4 h-4 mr-2" />
                 Upload Document
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Upload Compliance Document</DialogTitle>
+                <DialogTitle>Upload Document</DialogTitle>
                 <DialogDescription>
                   Upload a vehicle or driver compliance document
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
+              <div className="space-y-4">
+                {/* Entity Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="category">Document Category *</Label>
-                  <Select value={uploadCategory} onValueChange={setUploadCategory}>
-                    <SelectTrigger id="category">
+                  <Label>Document Type</Label>
+                  <Select
+                    value={uploadForm.entityType}
+                    onValueChange={(value: 'VEHICLE' | 'DRIVER') => setUploadForm({ ...uploadForm, entityType: value, category: '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VEHICLE">Vehicle Document</SelectItem>
+                      <SelectItem value="DRIVER">Driver Document</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label>Category *</Label>
+                  <Select
+                    value={uploadForm.category}
+                    onValueChange={(value) => setUploadForm({ ...uploadForm, category: value })}
+                  >
+                    <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <div className="px-2 py-1.5 text-sm font-semibold">Vehicle Documents</div>
-                      {VEHICLE_CATEGORIES.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1.5 text-sm font-semibold mt-2">Driver Documents</div>
-                      {DRIVER_CATEGORIES.map(cat => (
+                      {(uploadForm.entityType === 'VEHICLE' ? VEHICLE_CATEGORIES : DRIVER_CATEGORIES).map(cat => (
                         <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
+                {/* Entity ID */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Document Name *</Label>
+                  <Label>{uploadForm.entityType === 'VEHICLE' ? 'Vehicle ID' : 'Driver ID'} *</Label>
                   <Input
-                    id="name"
-                    placeholder="e.g., Insurance Certificate 2026"
-                    value={uploadName}
-                    onChange={(e) => setUploadName(e.target.value)}
+                    type="number"
+                    value={uploadForm.entityId}
+                    onChange={(e) => setUploadForm({ ...uploadForm, entityId: e.target.value })}
+                    placeholder={uploadForm.entityType === 'VEHICLE' ? 'Enter vehicle ID' : 'Enter driver ID'}
                   />
                 </div>
-                
+
+                {/* Expiry Date */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label>Expiry Date</Label>
+                  <Input
+                    type="date"
+                    value={uploadForm.expiryDate}
+                    onChange={(e) => setUploadForm({ ...uploadForm, expiryDate: e.target.value })}
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label>Description</Label>
                   <Textarea
-                    id="description"
-                    placeholder="Optional description or notes"
-                    value={uploadDescription}
-                    onChange={(e) => setUploadDescription(e.target.value)}
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                    placeholder="Optional notes about this document"
                     rows={3}
                   />
                 </div>
-                
+
+                {/* File Upload */}
                 <div className="space-y-2">
-                  <Label htmlFor="expiry">Expiry Date (Optional)</Label>
+                  <Label>File * (PDF, JPG, PNG - Max 10MB)</Label>
                   <Input
-                    id="expiry"
-                    type="date"
-                    value={uploadExpiryDate}
-                    onChange={(e) => setUploadExpiryDate(e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Leave blank if document doesn't expire
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="file">File *</Label>
-                  <Input
-                    id="file"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files?.[0] || null })}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Accepted formats: PDF, JPG, PNG (Max 10MB)
-                  </p>
-                  {uploadFile && (
-                    <div className="text-sm text-green-600 flex items-center gap-2 mt-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {uploadFile.name} ({formatFileSize(uploadFile.size)})
-                    </div>
+                  {uploadForm.file && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {uploadForm.file.name} ({formatFileSize(uploadForm.file.size)})
+                    </p>
                   )}
                 </div>
-              </div>
-              
-              <div className="flex justify-end gap-4">
-                <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={uploading}>
-                  Cancel
-                </Button>
-                <Button onClick={handleUpload} disabled={uploading}>
-                  {uploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload
-                    </>
-                  )}
-                </Button>
+
+                {/* Actions */}
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={uploading}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpload} disabled={uploading}>
+                    {uploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Upload
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
         </div>
-      </div>
-      
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Soon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Expired</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.expired}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Documents</CardTitle>
+          <CardHeader>
+            <CardTitle>Documents</CardTitle>
+            <CardDescription>Search and filter compliance documents</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <span className="text-2xl font-bold">{activeCount}</span>
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search by filename, entity name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              {/* Category Filter */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {ALL_CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
+                  <SelectItem value="EXPIRED">Expired</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Soon</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              <span className="text-2xl font-bold">{expiringSoonCount}</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Expired</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <span className="text-2xl font-bold">{expiredCount}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <div className="px-2 py-1.5 text-sm font-semibold">Vehicle Documents</div>
-                {VEHICLE_CATEGORIES.map(cat => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                ))}
-                <div className="px-2 py-1.5 text-sm font-semibold mt-2">Driver Documents</div>
-                {DRIVER_CATEGORIES.map(cat => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
-                <SelectItem value="EXPIRED">Expired</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Documents Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Documents ({filteredDocuments.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredDocuments.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2">No documents found</p>
-              <p className="text-muted-foreground mb-4">
-                Upload your first compliance document to get started
-              </p>
-              <Button onClick={() => setUploadDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Document
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Document</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Vehicle/Driver</TableHead>
-                    <TableHead>Expiry Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDocuments.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium">{doc.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {doc.fileName} ({formatFileSize(doc.fileSize)})
+
+            {/* Table */}
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : documents.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No documents found</p>
+              </div>
+            ) : (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Category</TableHead>
+                      <TableHead>File Name</TableHead>
+                      <TableHead>Entity</TableHead>
+                      <TableHead>Expiry Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Uploaded</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">
+                          {getCategoryLabel(doc.category)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{doc.fileName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatFileSize(doc.fileSize)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getCategoryLabel(doc.category)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {doc.vehicleVRM && <Badge variant="secondary">{doc.vehicleVRM}</Badge>}
-                        {doc.driverName && <span className="text-sm">{doc.driverName}</span>}
-                      </TableCell>
-                      <TableCell>
-                        {doc.expiryDate ? (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{formatDate(doc.expiryDate)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{doc.entityName}</div>
+                            <div className="text-xs text-muted-foreground">{doc.entityType}</div>
                           </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No expiry</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(doc.status, doc.expiryDate)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(doc.uploadedAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDelete(doc.id, doc.name)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                        </TableCell>
+                        <TableCell>
+                          {doc.expiryDate ? (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-muted-foreground" />
+                              {formatDate(doc.expiryDate)}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="text-sm">{formatDate(doc.uploadedAt)}</div>
+                            <div className="text-xs text-muted-foreground">by {doc.uploadedBy}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(doc.id, doc.fileName)}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(doc.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ManagerLayout>
   );
 }

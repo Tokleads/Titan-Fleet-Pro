@@ -161,7 +161,7 @@
 - [x] Build DELETE /api/documents/:id endpoint
 - [x] Build GET /api/documents/stats endpoint
 - [x] Build GET /api/documents/:id/download endpoint
-- [ ] Connect FleetDocuments UI to real API
+- [x] Connect FleetDocuments UI to real API
 - [ ] Test document upload and retrieval end-to-end
 
 ### Advanced Dashboard APIs
@@ -172,7 +172,7 @@
 - [x] Build GET /api/dashboard/driver-activity endpoint
 - [x] Build GET /api/dashboard/defect-trends endpoint
 - [x] Build GET /api/dashboard/recent-activity endpoint
-- [ ] Connect AdvancedDashboard UI to real API
+- [x] Connect AdvancedDashboard UI to real API
 - [ ] Test dashboard with real data
 
 ### Notification System APIs
@@ -181,8 +181,8 @@
 - [x] Build POST /api/notifications/test endpoint
 - [x] Build GET /api/notifications/history endpoint
 - [x] Build DELETE /api/notifications/history/:id endpoint
-- [ ] Connect NotificationPreferences UI to real API
-- [ ] Connect NotificationHistory UI to real API
+- [x] Connect NotificationPreferences UI to real API
+- [x] Connect NotificationHistory UI to real API
 - [ ] Test notification delivery end-to-end
 
 ### User Roles APIs
@@ -191,5 +191,5 @@
 - [x] Build PUT /api/users/:id/status endpoint
 - [x] Build GET /api/roles endpoint
 - [x] Build GET /api/roles/:role/permissions endpoint
-- [ ] Connect UserRoles UI to real API
+- [x] Connect UserRoles UI to real API
 - [ ] Test role assignment and permissions
