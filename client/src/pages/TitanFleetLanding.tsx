@@ -129,38 +129,13 @@ export default function TitanFleetLandingPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="relative flex justify-center lg:justify-end"
             >
-              <div className="relative w-full max-w-md">
-                <div className="absolute -left-8 top-8 w-48 h-80 bg-slate-100 rounded-3xl transform rotate-[-8deg] shadow-lg"></div>
-                <div className="absolute left-4 top-4 w-48 h-80 bg-slate-200 rounded-3xl transform rotate-[-4deg] shadow-lg"></div>
-                <div className="relative w-56 h-96 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden mx-auto">
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-6 bg-slate-900 rounded-b-xl"></div>
-                  <div className="p-4 pt-8">
-                    <div className="bg-slate-100 rounded-xl p-3 mb-3">
-                      <div className="text-xs font-medium text-slate-900 mb-1">Safety Check</div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full">
-                        <div className="w-3/4 h-2 bg-green-500 rounded-full"></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-slate-700">Lights & Signals</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-slate-700">Tyres & Wheels</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-slate-700">Exterior</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-                        <div className="h-4 w-4 border-2 border-slate-300 rounded"></div>
-                        <span className="text-xs text-slate-500">Cab Interior</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="relative w-full max-w-lg">
+                <img
+                  src="/images/phone-mockup.png"
+                  alt="Titan Fleet app on mobile devices"
+                  className="w-full h-auto drop-shadow-2xl"
+                  data-testid="hero-phone-mockup"
+                />
                 <div className="absolute -right-4 bottom-8 bg-white rounded-xl shadow-lg p-3 border border-slate-200">
                   <p className="text-xs text-slate-600">Your branding. Your app.</p>
                 </div>
