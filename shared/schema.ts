@@ -615,3 +615,129 @@ export const serviceHistory = pgTable("service_history", {
 export const insertServiceHistorySchema = createInsertSchema(serviceHistory).omit({ id: true, createdAt: true });
 export type ServiceHistory = typeof serviceHistory.$inferSelect;
 export type InsertServiceHistory = z.infer<typeof insertServiceHistorySchema>;
+
+// ==================== DVLA LICENSE INTEGRATION ====================
+
+// Driver License Data - Stores DVLA license information
+export const driverLicenses = pgTable("driver_licenses", {
+  id: serial("id").primaryKey(),
+  driverId: integer("driver_id").references(() => users.id).notNull().unique(), // One license per driver
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  
+  // License identification
+  licenseNumber: varchar("license_number", { length: 20 }).notNull(),
+  
+  // Driver information (from DVLA)
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  dateOfBirth: timestamp("date_of_birth"),
+  
+  // License details
+  licenseType: varchar("license_type", { length: 20 }), // Full | Provisional
+  licenseStatus: varchar("license_status", { length: 20 }), // Valid | Expired | Suspended | Revoked
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date"),
+  
+  // Entitlements (categories) - stored as JSON array
+  entitlements: jsonb("entitlements"), // [{ categoryCode: "C", expiryDate: "2037-10-25" }, ...]
+  
+  // Endorsements (penalty points) - stored as JSON array
+  endorsements: jsonb("endorsements"), // [{ offenceCode: "SP30", offenceDate: "2018-04-28", penaltyPoints: 3, ... }, ...]
+  totalPenaltyPoints: integer("total_penalty_points").default(0),
+  
+  // Disqualifications
+  isDisqualified: boolean("is_disqualified").default(false),
+  disqualificationDetails: jsonb("disqualification_details"), // { startDate, endDate, reason }
+  
+  // CPC (Certificate of Professional Competency) for HGV/PSV drivers
+  cpcNumber: varchar("cpc_number", { length: 50 }),
+  cpcExpiryDate: timestamp("cpc_expiry_date"),
+  
+  // Tachograph card
+  tachographCardNumber: varchar("tachograph_card_number", { length: 50 }),
+  tachographExpiryDate: timestamp("tachograph_expiry_date"),
+  
+  // Verification tracking
+  lastVerifiedAt: timestamp("last_verified_at"),
+  lastVerificationStatus: varchar("last_verification_status", { length: 20 }), // success | failed | pending
+  nextVerificationDue: timestamp("next_verification_due"), // Auto-check monthly
+  
+  // Raw DVLA response (for audit trail)
+  rawDvlaResponse: jsonb("raw_dvla_response"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertDriverLicenseSchema = createInsertSchema(driverLicenses).omit({ id: true, createdAt: true, updatedAt: true });
+export type DriverLicense = typeof driverLicenses.$inferSelect;
+export type InsertDriverLicense = z.infer<typeof insertDriverLicenseSchema>;
+
+// License Verification History - Audit trail of all DVLA checks
+export const licenseVerifications = pgTable("license_verifications", {
+  id: serial("id").primaryKey(),
+  driverId: integer("driver_id").references(() => users.id).notNull(),
+  licenseId: integer("license_id").references(() => driverLicenses.id),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  
+  // Verification details
+  verificationDate: timestamp("verification_date").defaultNow().notNull(),
+  verificationType: varchar("verification_type", { length: 20 }).notNull(), // manual | automatic | scheduled
+  verificationStatus: varchar("verification_status", { length: 20 }).notNull(), // success | failed | error
+  
+  // Results
+  licenseValid: boolean("license_valid"),
+  licenseStatus: varchar("license_status", { length: 20 }), // Valid | Expired | Suspended | Revoked
+  penaltyPoints: integer("penalty_points"),
+  isDisqualified: boolean("is_disqualified"),
+  
+  // Changes detected
+  changesDetected: boolean("changes_detected").default(false),
+  changesSummary: text("changes_summary"), // Human-readable summary of changes
+  
+  // API response
+  dvlaResponse: jsonb("dvla_response"), // Full DVLA API response
+  errorMessage: text("error_message"), // If verification failed
+  
+  // Who initiated the check
+  initiatedBy: integer("initiated_by").references(() => users.id), // Manager who requested check
+  
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertLicenseVerificationSchema = createInsertSchema(licenseVerifications).omit({ id: true, createdAt: true });
+export type LicenseVerification = typeof licenseVerifications.$inferSelect;
+export type InsertLicenseVerification = z.infer<typeof insertLicenseVerificationSchema>;
+
+// License Alerts - Automated alerts for license issues
+export const licenseAlerts = pgTable("license_alerts", {
+  id: serial("id").primaryKey(),
+  driverId: integer("driver_id").references(() => users.id).notNull(),
+  licenseId: integer("license_id").references(() => driverLicenses.id),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  
+  // Alert details
+  alertType: varchar("alert_type", { length: 50 }).notNull(), // expiry_warning | penalty_points | disqualification | verification_failed | invalid_license
+  severity: varchar("severity", { length: 20 }).notNull(), // info | warning | critical
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  
+  // Alert status
+  status: varchar("status", { length: 20 }).notNull().default("active"), // active | acknowledged | resolved
+  acknowledgedBy: integer("acknowledged_by").references(() => users.id),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  
+  // Related data
+  relatedVerificationId: integer("related_verification_id").references(() => licenseVerifications.id),
+  expiryDate: timestamp("expiry_date"), // For expiry warnings
+  penaltyPoints: integer("penalty_points"), // For penalty point alerts
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertLicenseAlertSchema = createInsertSchema(licenseAlerts).omit({ id: true, createdAt: true, updatedAt: true });
+export type LicenseAlert = typeof licenseAlerts.$inferSelect;
+export type InsertLicenseAlert = z.infer<typeof insertLicenseAlertSchema>;

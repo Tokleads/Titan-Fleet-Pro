@@ -2336,6 +2336,166 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to export PDF" });
     }
   });
+
+  // ==================== DVLA LICENSE VERIFICATION ====================
+
+  /**
+   * Get DVLA integration status
+   */
+  app.get("/api/manager/dvla/status", async (req, res) => {
+    try {
+      const { getDVLAStatus } = await import("./dvlaService");
+      const status = getDVLAStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting DVLA status:", error);
+      res.status(500).json({ error: "Failed to get DVLA status" });
+    }
+  });
+
+  /**
+   * Verify a driver's license
+   */
+  app.post("/api/manager/drivers/:driverId/verify-license", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const { licenseNumber } = req.body;
+      const companyId = req.body.companyId;
+      const initiatedBy = req.body.initiatedBy || null;
+
+      if (!licenseNumber) {
+        return res.status(400).json({ error: "License number is required" });
+      }
+
+      const { performLicenseVerification } = await import("./dvlaService");
+      const result = await performLicenseVerification(
+        driverId,
+        companyId,
+        licenseNumber,
+        initiatedBy,
+        'manual'
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error verifying license:", error);
+      res.status(500).json({ error: "Failed to verify license" });
+    }
+  });
+
+  /**
+   * Get driver's license data
+   */
+  app.get("/api/manager/drivers/:driverId/license", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const { getDriverLicense } = await import("./dvlaService");
+      const license = await getDriverLicense(driverId);
+      
+      if (!license) {
+        return res.status(404).json({ error: "License not found" });
+      }
+
+      res.json(license);
+    } catch (error) {
+      console.error("Error getting license:", error);
+      res.status(500).json({ error: "Failed to get license" });
+    }
+  });
+
+  /**
+   * Get driver's license verification history
+   */
+  app.get("/api/manager/drivers/:driverId/license/history", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { getVerificationHistory } = await import("./dvlaService");
+      const history = await getVerificationHistory(driverId, limit);
+      
+      res.json(history);
+    } catch (error) {
+      console.error("Error getting verification history:", error);
+      res.status(500).json({ error: "Failed to get verification history" });
+    }
+  });
+
+  /**
+   * Get active license alerts for a driver
+   */
+  app.get("/api/manager/drivers/:driverId/license/alerts", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const { getActiveLicenseAlerts } = await import("./dvlaService");
+      const alerts = await getActiveLicenseAlerts(driverId);
+      
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error getting license alerts:", error);
+      res.status(500).json({ error: "Failed to get license alerts" });
+    }
+  });
+
+  /**
+   * Get all active license alerts for a company
+   */
+  app.get("/api/manager/license/alerts", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      const { getCompanyLicenseAlerts } = await import("./dvlaService");
+      const alerts = await getCompanyLicenseAlerts(companyId);
+      
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error getting company license alerts:", error);
+      res.status(500).json({ error: "Failed to get company license alerts" });
+    }
+  });
+
+  /**
+   * Acknowledge a license alert
+   */
+  app.post("/api/manager/license/alerts/:alertId/acknowledge", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.alertId);
+      const { acknowledgedBy } = req.body;
+
+      if (!acknowledgedBy) {
+        return res.status(400).json({ error: "acknowledgedBy is required" });
+      }
+
+      const { acknowledgeLicenseAlert } = await import("./dvlaService");
+      await acknowledgeLicenseAlert(alertId, acknowledgedBy);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error acknowledging alert:", error);
+      res.status(500).json({ error: "Failed to acknowledge alert" });
+    }
+  });
+
+  /**
+   * Resolve a license alert
+   */
+  app.post("/api/manager/license/alerts/:alertId/resolve", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.alertId);
+      const { resolutionNotes } = req.body;
+
+      if (!resolutionNotes) {
+        return res.status(400).json({ error: "resolutionNotes is required" });
+      }
+
+      const { resolveLicenseAlert } = await import("./dvlaService");
+      await resolveLicenseAlert(alertId, resolutionNotes);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resolving alert:", error);
+      res.status(500).json({ error: "Failed to resolve alert" });
+    }
+  });
   
   return httpServer;
 }
