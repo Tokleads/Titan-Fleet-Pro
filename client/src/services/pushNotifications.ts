@@ -207,8 +207,7 @@ class PushNotificationService {
         data: notification.data,
         requireInteraction: notification.requireInteraction || false,
         silent: notification.silent || false,
-        tag: notification.tag,
-        timestamp: notification.timestamp || Date.now()
+        tag: notification.tag
       });
     } catch (error) {
       console.error('Failed to show notification:', error);

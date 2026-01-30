@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import type { UploadedFile } from "express-fileupload";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema } from "@shared/schema";
@@ -1298,42 +1299,27 @@ export async function registerRoutes(
   });
   
   // Add check item with photo
-  app.post("/api/shift-checks/:id/item", async (req, res) => {
+  app.post("/api/shift-checks/:id/item", async (req: Request & { files?: { [key: string]: UploadedFile | UploadedFile[] } }, res) => {
     try {
       const shiftCheckId = Number(req.params.id);
       const { itemId, label, itemType, status, value, notes } = req.body;
       
-      let photoStorageFileId: number | undefined;
+      let photoUrl: string | undefined;
       
       // Handle photo upload if present
       if (req.files && 'photo' in req.files) {
         const photoFile = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
         
-        // Upload to object storage
-        const { uploadToObjectStorage } = await import('./objectStorage');
-        const uploadResult = await uploadToObjectStorage(
+        // Upload to S3 storage
+        const { storagePut } = await import('./storage');
+        const fileKey = `shift-checks/${shiftCheckId}/${itemId}-${Date.now()}.jpg`;
+        const uploadResult = await storagePut(
+          fileKey,
           photoFile.data,
-          `shift-checks/${shiftCheckId}/${itemId}-${Date.now()}.jpg`,
           photoFile.mimetype
         );
         
-        // Create storage file record
-        const { storageFiles } = await import('@shared/schema');
-        const { db } = await import('./db');
-        
-        const [storageFile] = await db.insert(storageFiles).values({
-          companyId: req.body.companyId,
-          uploadedBy: req.body.driverId,
-          filename: photoFile.name,
-          storagePath: uploadResult.key,
-          fileSize: photoFile.size,
-          mimeType: photoFile.mimetype,
-          entityType: 'SHIFT_CHECK',
-          entityId: shiftCheckId,
-          retentionUntil: new Date(Date.now() + 15 * 30 * 24 * 60 * 60 * 1000) // 15 months
-        }).returning();
-        
-        photoStorageFileId = storageFile.id;
+        photoUrl = uploadResult.url;
       }
       
       const item = await storage.addShiftCheckItem(
@@ -1344,7 +1330,7 @@ export async function registerRoutes(
         status,
         value,
         notes,
-        photoStorageFileId
+        photoUrl
       );
       
       res.json(item);
@@ -1559,7 +1545,7 @@ export async function registerRoutes(
       
       const company = await storage.getCompanyById(companyId);
       const vehicles = await storage.getVehiclesByCompany(companyId);
-      const timesheets = await storage.getTimesheetsByCompany(companyId);
+      const timesheets = await storage.getTimesheets(companyId);
       
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -1613,7 +1599,7 @@ export async function registerRoutes(
       const drivers = users.filter((u: any) => u.role === 'DRIVER');
       const inspections = await storage.getInspectionsByCompany(companyId);
       const defects = await storage.getDefectsByCompany(companyId);
-      const timesheets = await storage.getTimesheetsByCompany(companyId);
+      const timesheets = await storage.getTimesheets(companyId);
       
       const start = new Date(startDate);
       const end = new Date(endDate);
