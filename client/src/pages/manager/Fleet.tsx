@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { VORDialog } from "@/components/VORDialog";
 import { 
   Truck,
   Plus,
@@ -39,6 +40,7 @@ export default function ManagerFleet() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
   const [deletingVehicle, setDeletingVehicle] = useState<any | null>(null);
+  const [vorVehicle, setVorVehicle] = useState<any | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
   const [addError, setAddError] = useState<string | null>(null);
@@ -422,6 +424,17 @@ export default function ManagerFleet() {
                             Edit vehicle
                           </button>
                           <button
+                            onClick={() => {
+                              setVorVehicle(vehicle);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            data-testid={`button-vor-vehicle-${vehicle.id}`}
+                          >
+                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            {vehicle.vorStatus ? 'Return to Service' : 'Set Off Road'}
+                          </button>
+                          <button
                             onClick={() => toggleActiveMutation.mutate({ id: vehicle.id, active: !vehicle.active })}
                             className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             data-testid={`button-toggle-vehicle-${vehicle.id}`}
@@ -447,6 +460,19 @@ export default function ManagerFleet() {
                   </div>
                   
                   <p className="text-sm text-slate-600 mb-4">{vehicle.make} {vehicle.model}</p>
+                  
+                  {/* VOR Badge */}
+                  {vehicle.vorStatus && (
+                    <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-amber-900">Vehicle Off Road</p>
+                          <p className="text-xs text-amber-700">{vehicle.vorReason}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-1.5">
@@ -533,6 +559,14 @@ export default function ManagerFleet() {
             vehicle={deletingVehicle}
             companyId={companyId}
             onClose={() => setDeletingVehicle(null)}
+          />
+        )}
+
+        {/* VOR Management Dialog */}
+        {vorVehicle && (
+          <VORDialog
+            vehicle={vorVehicle}
+            onClose={() => setVorVehicle(null)}
           />
         )}
       </div>

@@ -586,6 +586,78 @@ export async function registerRoutes(
     }
   });
 
+  // VOR Management - Set vehicle as off road
+  app.post("/api/manager/vehicles/:id/vor", async (req, res) => {
+    try {
+      const vehicleId = Number(req.params.id);
+      const { reason, notes } = req.body;
+      
+      const updated = await storage.setVehicleVOR(vehicleId, reason, notes);
+      if (!updated) {
+        return res.status(404).json({ error: "Vehicle not found" });
+      }
+      
+      // Audit log: Vehicle set to VOR
+      const { logAudit } = await import("./auditService");
+      await logAudit({
+        companyId: updated.companyId,
+        userId: req.body.managerId || null,
+        action: 'UPDATE',
+        entity: 'VEHICLE',
+        entityId: vehicleId,
+        details: { vrm: updated.vrm, action: 'SET_VOR', reason, notes },
+        req,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // VOR Management - Return vehicle to service
+  app.post("/api/manager/vehicles/:id/vor/resolve", async (req, res) => {
+    try {
+      const vehicleId = Number(req.params.id);
+      
+      const updated = await storage.resolveVehicleVOR(vehicleId);
+      if (!updated) {
+        return res.status(404).json({ error: "Vehicle not found" });
+      }
+      
+      // Audit log: Vehicle returned to service
+      const { logAudit } = await import("./auditService");
+      await logAudit({
+        companyId: updated.companyId,
+        userId: req.body.managerId || null,
+        action: 'UPDATE',
+        entity: 'VEHICLE',
+        entityId: vehicleId,
+        details: { vrm: updated.vrm, action: 'RESOLVE_VOR' },
+        req,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get VOR vehicles for company
+  app.get("/api/manager/vehicles/vor", async (req, res) => {
+    try {
+      const { companyId } = req.query;
+      if (!companyId) {
+        return res.status(400).json({ error: "Missing companyId" });
+      }
+      
+      const vorVehicles = await storage.getVORVehicles(Number(companyId));
+      res.json(vorVehicles);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.delete("/api/manager/vehicles/:id", async (req, res) => {
     try {
       const vehicleId = Number(req.params.id);

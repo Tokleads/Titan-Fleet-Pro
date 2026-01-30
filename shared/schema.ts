@@ -81,6 +81,14 @@ export const vehicles = pgTable("vehicles", {
   motDue: timestamp("mot_due"),
   taxDue: timestamp("tax_due"),
   active: boolean("active").default(true),
+  
+  // VOR (Vehicle Off Road) Management
+  vorStatus: boolean("vor_status").default(false), // true = vehicle is off road
+  vorReason: varchar("vor_reason", { length: 100 }), // Reason for VOR
+  vorStartDate: timestamp("vor_start_date"), // When vehicle went off road
+  vorNotes: text("vor_notes"), // Additional notes
+  vorResolvedDate: timestamp("vor_resolved_date"), // When vehicle returned to service
+  
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 

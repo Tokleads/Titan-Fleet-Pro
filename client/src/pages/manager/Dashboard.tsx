@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { VORWidget } from "@/components/VORWidget";
 import { 
   ClipboardCheck, 
   AlertTriangle, 
@@ -426,6 +428,9 @@ export default function ManagerDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* VOR Widget */}
+            <VORWidget companyId={companyId!} />
 
             {/* Live Activity Feed */}
             <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">

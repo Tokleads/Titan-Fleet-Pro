@@ -77,6 +77,11 @@ export interface IStorage {
   updateVehicle(id: number, updates: Partial<Vehicle>): Promise<Vehicle | undefined>;
   deleteVehicle(id: number): Promise<void>;
   
+  // VOR Management
+  setVehicleVOR(id: number, reason: string, notes?: string): Promise<Vehicle | undefined>;
+  resolveVehicleVOR(id: number): Promise<Vehicle | undefined>;
+  getVORVehicles(companyId: number): Promise<Vehicle[]>;
+  
   // Fuel for company
   getFuelEntriesByCompany(companyId: number, days?: number): Promise<FuelEntry[]>;
   
@@ -442,6 +447,43 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVehicle(id: number): Promise<void> {
     await db.update(vehicles).set({ active: false }).where(eq(vehicles.id, id));
+  }
+
+  // VOR Management
+  async setVehicleVOR(id: number, reason: string, notes?: string): Promise<Vehicle | undefined> {
+    const [updated] = await db.update(vehicles)
+      .set({
+        vorStatus: true,
+        vorReason: reason,
+        vorStartDate: new Date(),
+        vorNotes: notes || null,
+        vorResolvedDate: null // Clear any previous resolved date
+      })
+      .where(eq(vehicles.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async resolveVehicleVOR(id: number): Promise<Vehicle | undefined> {
+    const [updated] = await db.update(vehicles)
+      .set({
+        vorStatus: false,
+        vorResolvedDate: new Date()
+      })
+      .where(eq(vehicles.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getVORVehicles(companyId: number): Promise<Vehicle[]> {
+    return await db.select()
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.vorStatus, true),
+        eq(vehicles.active, true)
+      ))
+      .orderBy(desc(vehicles.vorStartDate));
   }
 
   // Fuel for company
