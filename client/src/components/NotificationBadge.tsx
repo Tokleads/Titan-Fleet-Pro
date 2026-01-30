@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 interface NotificationBadgeProps {
   userId: number;
@@ -13,7 +13,7 @@ interface NotificationBadgeProps {
 }
 
 export function NotificationBadge({ userId, className }: NotificationBadgeProps) {
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function NotificationBadge({ userId, className }: NotificationBadgeProps)
   };
 
   const handleClick = () => {
-    navigate('/driver/notifications');
+    setLocation('/driver/notifications');
   };
 
   return (

@@ -204,7 +204,6 @@ class PushNotificationService {
         body: notification.body,
         icon: notification.icon || '/icons/icon-192x192.png',
         badge: notification.badge || '/icons/badge-72x72.png',
-        image: notification.image,
         data: notification.data,
         actions: notification.actions,
         requireInteraction: notification.requireInteraction || false,
@@ -326,6 +325,3 @@ class PushNotificationService {
 
 // Export singleton instance
 export const pushNotificationService = new PushNotificationService();
-
-// Export types
-export type { NotificationPermission };

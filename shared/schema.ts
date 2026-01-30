@@ -469,7 +469,7 @@ export const shiftCheckItems = pgTable("shift_check_items", {
   notes: text("notes"),
   
   // Photo evidence
-  photoStorageFileId: integer("photo_storage_file_id").references(() => storageFiles.id),
+  photoUrl: text("photo_url"), // URL to photo in S3 storage
   
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

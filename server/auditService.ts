@@ -57,7 +57,8 @@ function createHashString(log: InsertAuditLog, previousHash: string | null, time
 export async function logAudit(params: AuditLogParams): Promise<void> {
   try {
     // Get the last audit log entry for this company to chain hashes
-    const lastLog = await storage.getLastAuditLog(params.companyId);
+    const logs = await storage.getAuditLogs(params.companyId, { limit: 1 });
+    const lastLog = logs[0] || null;
     const previousHash = lastLog?.currentHash || null;
     
     // Prepare log entry

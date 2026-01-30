@@ -378,7 +378,7 @@ export default function EndOfShiftCheck({
                   {item.requiresPhoto && (
                     <div className="mb-3">
                       <input
-                        ref={(el) => (fileInputRefs.current[item.id] = el)}
+                        ref={(el) => { fileInputRefs.current[item.id] = el; }}
                         type="file"
                         accept="image/*"
                         capture="environment"

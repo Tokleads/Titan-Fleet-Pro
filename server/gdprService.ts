@@ -12,10 +12,10 @@ export async function exportUserData(userId: number): Promise<any> {
   }
 
   // Gather all user-related data
-  const inspections = await storage.getInspectionsByDriver(userId);
-  const defects = await storage.getDefectsByReporter(userId);
-  const timesheets = await storage.getTimesheetsByDriver(userId);
-  const notifications = await storage.getNotificationsByUser(userId);
+  const inspections = await storage.getInspectionsByDriver(user.companyId, userId, 365);
+  const defects = await storage.getDefectsByCompany(user.companyId);
+  const timesheets = await storage.getTimesheets(user.companyId);
+  const notifications = await storage.getDriverNotifications(userId);
   const shiftChecks = await storage.getShiftChecksByDriver(userId);
   
   // Prepare comprehensive data export
@@ -112,7 +112,7 @@ export async function anonymizeUser(userId: number): Promise<void> {
   // Photos and documents are kept for 15 months as required by law.
   
   // Anonymize notifications (personal messages)
-  const notifications = await storage.getNotificationsByUser(userId);
+  const notifications = await storage.getDriverNotifications(userId);
   for (const notification of notifications) {
     await storage.markNotificationRead(notification.id);
     // Optionally delete notification content if it contains personal data
