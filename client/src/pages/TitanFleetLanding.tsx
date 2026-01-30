@@ -60,7 +60,7 @@ export default function TitanFleetLandingPage() {
                   Login
                 </span>
               </Link>
-              <Link href="/demo/dc-european">
+              <Link href="/demo">
                 <span
                   className="bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors cursor-pointer inline-block"
                   data-testid="button-view-demo"
@@ -424,7 +424,7 @@ export default function TitanFleetLandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/demo/dc-european">
+              <Link href="/demo">
                 <span
                   className="w-full h-12 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                   data-testid="button-starter-subscribe"
@@ -470,7 +470,7 @@ export default function TitanFleetLandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/demo/dc-european">
+              <Link href="/demo">
                 <span
                   className="w-full h-12 bg-white text-[#5B6CFF] font-semibold rounded-xl hover:bg-blue-50 transition-colors flex items-center justify-center cursor-pointer"
                   data-testid="button-professional-subscribe"
@@ -513,7 +513,7 @@ export default function TitanFleetLandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/demo/dc-european">
+              <Link href="/demo">
                 <span
                   className="w-full h-12 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors flex items-center justify-center cursor-pointer"
                   data-testid="button-enterprise-subscribe"
