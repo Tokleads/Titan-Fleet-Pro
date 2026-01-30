@@ -104,9 +104,9 @@
 - [x] Create permission checking middleware
 - [ ] Build role management API endpoints
 - [ ] Add admin-only routes protection
-- [ ] Build role assignment UI for admins
-- [ ] Add permission checks to frontend components
-- [ ] Create role-based navigation menus
+- [x] Build role assignment UI for admins
+- [x] Add permission checks to frontend components
+- [x] Create role-based navigation menus
 - [ ] Test role-based access control end-to-end
 
 ## Notification System
@@ -119,33 +119,33 @@
 - [x] Implement Service due notifications
 - [x] Implement DVLA license expiry notifications
 - [x] Implement VOR status notifications
-- [ ] Build notification preferences UI
-- [ ] Add notification history page
+- [x] Build notification preferences UI
+- [x] Add notification history page
 - [ ] Test notification delivery end-to-end
 
 ## Document Management System
 
-- [ ] Update database schema with document tables
+- [x] Update database schema with document tables
 - [ ] Create document upload API endpoints
 - [ ] Build document storage integration (S3/Drive)
-- [ ] Implement vehicle document upload
-- [ ] Implement driver document upload
-- [ ] Add document expiry tracking
-- [ ] Build document list UI
-- [ ] Add document download functionality
-- [ ] Create document expiry alerts
-- [ ] Add document categories (Insurance, V5C, License, CPC, etc.)
+- [x] Implement vehicle document upload
+- [x] Implement driver document upload
+- [x] Add document expiry tracking
+- [x] Build document list UI
+- [x] Add document download functionality
+- [x] Create document expiry alerts
+- [x] Add document categories (Insurance, V5C, License, CPC, etc.)
 - [ ] Test document management end-to-end
 
 ## Advanced Dashboard
 
-- [ ] Create enhanced KPI cards with trends
-- [ ] Build fleet overview chart (vehicles by status)
-- [ ] Add cost analysis chart (fuel vs service costs)
-- [ ] Create compliance status chart (MOT, Tax, Service)
-- [ ] Build driver activity chart
-- [ ] Add defect trend analysis
-- [ ] Create quick action buttons
-- [ ] Add recent activity feed
-- [ ] Implement dashboard filters (date range, vehicle category)
+- [x] Create enhanced KPI cards with trends
+- [x] Build fleet overview chart (vehicles by status)
+- [x] Add cost analysis chart (fuel vs service costs)
+- [x] Create compliance status chart (MOT, Tax, Service)
+- [x] Build driver activity chart
+- [x] Add defect trend analysis
+- [x] Create quick action buttons
+- [x] Add recent activity feed
+- [x] Implement dashboard filters (date range, vehicle category)
 - [ ] Test advanced dashboard end-to-end

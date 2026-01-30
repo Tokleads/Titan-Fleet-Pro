@@ -19,7 +19,10 @@ import {
   MapPin,
   Clock,
   Radio,
-  Navigation
+  Navigation,
+  BarChart3,
+  Users,
+  FolderOpen
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -27,6 +30,7 @@ import { TitanIntelligenceSidebar } from "@/components/TitanIntelligenceSidebar"
 
 const navItems = [
   { path: "/manager", icon: LayoutDashboard, label: "Dashboard" },
+  { path: "/manager/advanced-dashboard", icon: BarChart3, label: "Analytics" },
   { path: "/manager/live-tracking", icon: Navigation, label: "Live Tracking" },
   { path: "/manager/timesheets", icon: Clock, label: "Timesheets" },
   { path: "/manager/titan-command", icon: Radio, label: "Titan Command" },
@@ -36,6 +40,9 @@ const navItems = [
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log" },
   { path: "/manager/fleet", icon: Truck, label: "Fleet" },
   { path: "/manager/documents", icon: FileText, label: "Documents" },
+  { path: "/manager/fleet-documents", icon: FolderOpen, label: "Fleet Docs" },
+  { path: "/manager/user-roles", icon: Users, label: "User Roles" },
+  { path: "/manager/notifications", icon: Bell, label: "Notifications" },
   { path: "/manager/license", icon: Shield, label: "License" },
   { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log" },
   { path: "/manager/settings", icon: Settings, label: "Settings" },

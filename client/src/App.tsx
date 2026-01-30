@@ -23,6 +23,11 @@ import LiveTracking from "@/pages/manager/LiveTracking";
 import Timesheets from "@/pages/manager/Timesheets";
 import TitanCommand from "@/pages/manager/TitanCommand";
 import Geofences from "@/pages/manager/Geofences";
+import AdvancedDashboard from "@/pages/manager/AdvancedDashboard";
+import FleetDocuments from "@/pages/manager/FleetDocuments";
+import UserRoles from "@/pages/manager/UserRoles";
+import NotificationPreferences from "@/pages/manager/NotificationPreferences";
+import NotificationHistory from "@/pages/manager/NotificationHistory";
 import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import NotFound from "@/pages/not-found";
@@ -51,6 +56,11 @@ function Router() {
       <Route path="/manager/timesheets" component={Timesheets} />
       <Route path="/manager/titan-command" component={TitanCommand} />
       <Route path="/manager/geofences" component={Geofences} />
+      <Route path="/manager/advanced-dashboard" component={AdvancedDashboard} />
+      <Route path="/manager/fleet-documents" component={FleetDocuments} />
+      <Route path="/manager/user-roles" component={UserRoles} />
+      <Route path="/manager/notifications" component={NotificationPreferences} />
+      <Route path="/manager/notification-history" component={NotificationHistory} />
       <Route path="/demo/dc-european" component={DCEuropeanDemo} />
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route component={NotFound} />
