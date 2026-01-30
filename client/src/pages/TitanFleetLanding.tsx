@@ -76,13 +76,22 @@ export default function TitanFleetLandingPage() {
               animate="visible"
               variants={staggerContainer}
             >
-              <motion.h1
+              <motion.p
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
+                className="text-sm font-medium text-[#5B6CFF] mb-4"
+              >
+                One Subscription. Total Control. Zero Complexity.
+              </motion.p>
+
+              <motion.h1
+                variants={fadeUp}
+                transition={{ duration: 0.5, delay: 0.05 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6"
               >
-                Stop renting compliance.
-                <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">Own it.</span>
+                The Ultimate{" "}
+                <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">Command Center</span>
+                {" "}for Modern Fleets
               </motion.h1>
 
               <motion.p
@@ -90,7 +99,7 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="text-lg text-slate-600 mb-8 max-w-lg"
               >
-                Compliance your drivers actually complete. Paid monthly. Cancel anytime.
+                Why pay for three separate subscriptions? Titan Fleet consolidates compliance, GPS tracking, and automated timesheets into one powerful platform.
               </motion.p>
 
               <motion.div
@@ -262,8 +271,84 @@ export default function TitanFleetLandingPage() {
         </div>
       </section>
 
-      {/* Sleep at night compliance */}
+      {/* 4 Pillars Section */}
       <section className="py-20 lg:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="text-center mb-16"
+          >
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4"
+            >
+              Everything You Need in One Platform
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-lg text-slate-600 max-w-2xl mx-auto"
+            >
+              Replace your compliance software, tracking provider, and HR tool with one powerful subscription.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="grid md:grid-cols-2 gap-8"
+          >
+            {[
+              {
+                title: "Intelligence Hub",
+                subtitle: "Live GPS & Risk Monitoring",
+                description: "Real-time coordinates, speed, and heading data with 5-minute telemetry updates. Our 30-minute stagnation alert flags stationary vehicles for driver safety checks.",
+                icon: "📡",
+              },
+              {
+                title: "Automated Payroll",
+                subtitle: "Depot Geofencing",
+                description: "High-precision geofencing at your sites for automatic clock-in/out. Generate payroll-ready CSV exports for instant invoicing and receipting.",
+                icon: "⏱️",
+              },
+              {
+                title: "Titan Command",
+                subtitle: "Two-Way Dispatch",
+                description: "Push urgent traffic or site updates to the entire fleet simultaneously. Send 1-to-1 encrypted instructions with instant delivery confirmation.",
+                icon: "📲",
+              },
+              {
+                title: "Professional Compliance",
+                subtitle: "DVSA-Ready Framework",
+                description: "Digital walk-around checks, automated MOT/service alerts, and centralized management for vehicles, drivers, assets, and fuel cards.",
+                icon: "✅",
+              },
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={fadeUp}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-slate-50 rounded-2xl p-8 hover:shadow-lg transition-shadow"
+                data-testid={`feature-card-${index}`}
+              >
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-bold text-slate-900 mb-1">{feature.title}</h3>
+                <p className="text-sm font-medium text-[#5B6CFF] mb-3">{feature.subtitle}</p>
+                <p className="text-slate-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Sleep at night compliance */}
+      <section className="py-16 lg:py-20 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial="hidden"
