@@ -709,6 +709,7 @@ export default function TitanFleetLandingPage() {
                 <li><a href="#" className="text-sm hover:text-white transition-colors">Our Principles</a></li>
                 <li><a href="#" className="text-sm hover:text-white transition-colors">No Lock-In</a></li>
                 <li><a href="#" className="text-sm hover:text-white transition-colors">Why Not Us</a></li>
+                <li><a href="#" className="text-sm hover:text-white transition-colors">Sales Presentation</a></li>
                 <li><a href="#" className="text-sm hover:text-white transition-colors">Affiliate</a></li>
                 <li><a href="#" className="text-sm hover:text-white transition-colors">Contact</a></li>
               </ul>
@@ -723,8 +724,8 @@ export default function TitanFleetLandingPage() {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row justify-center items-center gap-6">
-            <div className="flex gap-6 text-sm">
+          <div className="pt-8 border-t border-slate-800 text-center space-y-4">
+            <div className="flex justify-center gap-6 text-sm">
               <Link href="/privacy">
                 <span className="hover:text-white transition-colors cursor-pointer">Privacy Policy</span>
               </Link>
@@ -733,6 +734,15 @@ export default function TitanFleetLandingPage() {
               </Link>
               <a href="#" className="hover:text-white transition-colors">Refund Policy</a>
             </div>
+            <p className="text-sm text-slate-400">
+              &copy; 2026 <span className="text-white font-medium">Titan</span> Fleet. All rights reserved.
+            </p>
+            <p className="text-xs text-slate-500">
+              Built in line with DVSA Guide to Maintaining Roadworthiness (2024)
+            </p>
+            <p className="text-xs text-slate-600">
+              CLOVER 44 LTD t/a Titan Fleet · Company Number 15940100 · Unit 12, North Storage, Bankwood Lane, Doncaster, South Yorkshire, DN11 0PS
+            </p>
           </div>
         </div>
       </footer>
