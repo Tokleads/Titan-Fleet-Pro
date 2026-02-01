@@ -221,3 +221,52 @@
 - [ ] Add search debouncing to NotificationHistory
 - [ ] Add search debouncing to vehicle search
 - [ ] Test API call reduction with debouncing
+
+## Polish for Scale (Enterprise-Grade Improvements)
+
+### Frontend Pagination UI
+- [x] Add pagination controls to FleetDocuments page
+- [ ] Add pagination controls to NotificationHistory page
+- [ ] Add pagination controls to UserRoles page
+- [ ] Add pagination controls to Vehicles list
+- [ ] Add pagination controls to Drivers list
+- [ ] Add "Load More" button option for mobile
+- [ ] Test pagination with 1000+ records
+
+### React Query Caching
+- [x] Install @tanstack/react-query
+- [x] Set up QueryClientProvider in App.tsx
+- [ ] Convert FleetDocuments to useQuery
+- [ ] Convert AdvancedDashboard to useQuery
+- [ ] Convert NotificationHistory to useQuery
+- [ ] Convert UserRoles to useQuery
+- [ ] Add optimistic updates for mutations
+- [x] Configure cache invalidation strategies
+- [ ] Test cache performance improvements
+
+### Error Boundaries
+- [x] Create ErrorBoundary component
+- [x] Add ErrorBoundary to App.tsx root
+- [ ] Add ErrorBoundary to each major route
+- [x] Create fallback error UI
+- [ ] Add error logging to external service
+- [ ] Test error boundary with intentional errors
+
+### Unit Tests
+- [x] Set up Vitest test environment
+- [ ] Write tests for fleetDocumentsRoutes
+- [ ] Write tests for dashboardRoutes
+- [ ] Write tests for notificationPreferencesRoutes
+- [ ] Write tests for userRolesRoutes
+- [x] Write tests for permissionsService
+- [ ] Add test coverage reporting
+- [ ] Achieve 70%+ code coverage
+
+### Monitoring & Observability
+- [ ] Set up Sentry for error tracking
+- [ ] Add performance monitoring
+- [ ] Set up analytics tracking
+- [x] Add health check endpoint
+- [ ] Create status page
+- [ ] Set up uptime monitoring
+- [ ] Configure alerting for critical errors

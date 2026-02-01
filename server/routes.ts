@@ -6,11 +6,17 @@ import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, ins
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
+import { healthCheck, livenessProbe, readinessProbe } from "./healthCheck";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check endpoints
+  app.get("/health", healthCheck);
+  app.get("/health/live", livenessProbe);
+  app.get("/health/ready", readinessProbe);
+
   // Company lookup
   app.get("/api/company/:code", async (req, res) => {
     try {

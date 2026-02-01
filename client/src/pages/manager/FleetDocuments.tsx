@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Pagination } from '@/components/Pagination';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,11 @@ export default function FleetDocuments() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  
   // Upload form state
   const [uploadForm, setUploadForm] = useState({
     category: '',
@@ -141,8 +147,11 @@ export default function FleetDocuments() {
     const loadData = async () => {
       try {
         setLoading(true);
+        const offset = (currentPage - 1) * itemsPerPage;
         const params = new URLSearchParams({
           companyId: companyId.toString(),
+          limit: itemsPerPage.toString(),
+          offset: offset.toString(),
           ...(categoryFilter !== 'all' && { category: categoryFilter }),
           ...(statusFilter !== 'all' && { status: statusFilter }),
           ...(debouncedSearchQuery && { search: debouncedSearchQuery })
@@ -163,6 +172,7 @@ export default function FleetDocuments() {
         ]);
         
         setDocuments(docsData.documents);
+        setTotalItems(docsData.total || docsData.documents.length);
         setStats(statsData);
       } catch (error: any) {
         if (error.name !== 'AbortError') {
@@ -180,7 +190,7 @@ export default function FleetDocuments() {
     loadData();
     
     return () => controller.abort();
-  }, [categoryFilter, statusFilter, debouncedSearchQuery]);
+  }, [categoryFilter, statusFilter, debouncedSearchQuery, currentPage, itemsPerPage]);
 
   // Handle file upload
   const handleUpload = async () => {
@@ -617,6 +627,20 @@ export default function FleetDocuments() {
                   </TableBody>
                 </Table>
               </div>
+            )}
+            
+            {!loading && documents.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(totalItems / itemsPerPage)}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page)}
+                onItemsPerPageChange={(size) => {
+                  setItemsPerPage(size);
+                  setCurrentPage(1); // Reset to first page
+                }}
+              />
             )}
           </CardContent>
         </Card>

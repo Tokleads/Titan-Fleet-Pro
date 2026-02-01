@@ -32,6 +32,7 @@ import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import NotFound from "@/pages/not-found";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function Router() {
   return (
@@ -70,13 +71,15 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrandProvider>
-        <Router />
-        <Toaster />
-        <PWAInstallPrompt />
-      </BrandProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrandProvider>
+          <Router />
+          <Toaster />
+          <PWAInstallPrompt />
+        </BrandProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
