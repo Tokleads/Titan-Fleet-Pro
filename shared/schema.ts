@@ -986,6 +986,7 @@ export const purchaseRequests = pgTable("purchase_requests", {
   ip: text("ip"),
   contactName: text("contact_name"),
   phone: text("phone"),
+  status: text("status"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
