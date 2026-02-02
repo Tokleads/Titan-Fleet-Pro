@@ -974,23 +974,19 @@ export const insertWageCalculationSchema = createInsertSchema(wageCalculations).
 export type WageCalculation = typeof wageCalculations.$inferSelect;
 export type InsertWageCalculation = z.infer<typeof insertWageCalculationSchema>;
 
-// Purchase Requests - Admin panel purchase request management
+// Purchase Requests - Company signup/registration requests (legacy table)
 export const purchaseRequests = pgTable("purchase_requests", {
   id: serial("id").primaryKey(),
-  companyId: integer("company_id").references(() => companies.id).notNull(),
-  requesterId: integer("requester_id").references(() => users.id).notNull(),
-  itemName: text("item_name").notNull(),
-  description: text("description"),
-  quantity: integer("quantity").notNull().default(1),
-  estimatedCost: varchar("estimated_cost", { length: 20 }),
-  urgency: varchar("urgency", { length: 20 }).notNull().default("normal"), // low | normal | high | urgent
-  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | approved | rejected | ordered | completed
-  approvedBy: integer("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  rejectionReason: text("rejection_reason"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  email: text("email").notNull(),
+  companyName: text("company_name"),
+  fleetSize: text("fleet_size"),
+  tier: text("tier"),
+  paymentUrl: text("payment_url"),
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  contactName: text("contact_name"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const insertPurchaseRequestSchema = createInsertSchema(purchaseRequests).omit({ id: true, createdAt: true, updatedAt: true });
