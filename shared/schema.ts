@@ -56,6 +56,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   role: varchar("role", { length: 20 }).notNull(), // ADMIN | TRANSPORT_MANAGER | DRIVER | MECHANIC | AUDITOR
   pin: varchar("pin", { length: 4 }), // Optional driver PIN
+  password: text("password"), // Hashed password for local auth (optional)
   active: boolean("active").default(true),
   
   // Two-Factor Authentication (TOTP) for managers
@@ -972,3 +973,26 @@ export const wageCalculations = pgTable("wage_calculations", {
 export const insertWageCalculationSchema = createInsertSchema(wageCalculations).omit({ id: true, createdAt: true, updatedAt: true });
 export type WageCalculation = typeof wageCalculations.$inferSelect;
 export type InsertWageCalculation = z.infer<typeof insertWageCalculationSchema>;
+
+// Purchase Requests - Admin panel purchase request management
+export const purchaseRequests = pgTable("purchase_requests", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  requesterId: integer("requester_id").references(() => users.id).notNull(),
+  itemName: text("item_name").notNull(),
+  description: text("description"),
+  quantity: integer("quantity").notNull().default(1),
+  estimatedCost: varchar("estimated_cost", { length: 20 }),
+  urgency: varchar("urgency", { length: 20 }).notNull().default("normal"), // low | normal | high | urgent
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | approved | rejected | ordered | completed
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertPurchaseRequestSchema = createInsertSchema(purchaseRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export type PurchaseRequest = typeof purchaseRequests.$inferSelect;
+export type InsertPurchaseRequest = z.infer<typeof insertPurchaseRequestSchema>;
