@@ -22,7 +22,8 @@ import {
   Navigation,
   BarChart3,
   Users,
-  FolderOpen
+  FolderOpen,
+  Activity
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -45,6 +46,7 @@ const navItems = [
   { path: "/manager/notifications", icon: Bell, label: "Notifications" },
   { path: "/manager/license", icon: Shield, label: "License" },
   { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log" },
+  { path: "/admin/performance", icon: Activity, label: "Performance" },
   { path: "/manager/settings", icon: Settings, label: "Settings" },
 ];
 

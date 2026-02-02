@@ -28,6 +28,7 @@ import FleetDocuments from "@/pages/manager/FleetDocuments";
 import UserRoles from "@/pages/manager/UserRoles";
 import NotificationPreferences from "@/pages/manager/NotificationPreferences";
 import NotificationHistory from "@/pages/manager/NotificationHistory";
+import Performance from "@/pages/admin/Performance";
 import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import NotFound from "@/pages/not-found";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/manager/user-roles" component={UserRoles} />
       <Route path="/manager/notifications" component={NotificationPreferences} />
       <Route path="/manager/notification-history" component={NotificationHistory} />
+      <Route path="/admin/performance" component={Performance} />
       <Route path="/demo/dc-european" component={DCEuropeanDemo} />
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route component={NotFound} />

@@ -1,0 +1,156 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Phase 1: Warm up (10 users/sec for 30 seconds)
+    - duration: 30
+      arrivalRate: 10
+      name: "Warm up"
+    
+    # Phase 2: Ramp up (increase to 50 users/sec over 60 seconds)
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp up"
+    
+    # Phase 3: Sustained load (50 users/sec for 120 seconds)
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    
+    # Phase 4: Peak load (100 users/sec for 60 seconds)
+    - duration: 60
+      arrivalRate: 100
+      name: "Peak load"
+    
+    # Phase 5: Cool down (decrease to 10 users/sec over 30 seconds)
+    - duration: 30
+      arrivalRate: 100
+      rampTo: 10
+      name: "Cool down"
+  
+  # Performance thresholds
+  ensure:
+    maxErrorRate: 1 # Max 1% error rate
+    p95: 1000 # 95th percentile response time < 1000ms
+    p99: 2000 # 99th percentile response time < 2000ms
+  
+  # Load testing plugins
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+
+scenarios:
+  # Scenario 1: Health check (lightweight)
+  - name: "Health Check"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+
+  # Scenario 2: Performance stats (admin monitoring)
+  - name: "Performance Stats"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/performance/stats"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  # Scenario 3: Fleet browsing (heavy read)
+  - name: "Browse Fleet"
+    weight: 30
+    flow:
+      # First page
+      - get:
+          url: "/api/manager/vehicles/1?limit=50&offset=0"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      # Think time (user reads the page)
+      - think: 2
+      
+      # Second page
+      - get:
+          url: "/api/manager/vehicles/1?limit=50&offset=50"
+          expect:
+            - statusCode: 200
+      
+      # Think time
+      - think: 3
+      
+      # Third page
+      - get:
+          url: "/api/manager/vehicles/1?limit=50&offset=100"
+          expect:
+            - statusCode: 200
+
+  # Scenario 4: Vehicle search (database query)
+  - name: "Vehicle Search"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/vehicles/search?companyId=1&query=truck"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 1
+      
+      - get:
+          url: "/api/vehicles/search?companyId=1&query=van"
+          expect:
+            - statusCode: 200
+
+  # Scenario 5: Dashboard stats (multiple queries)
+  - name: "Dashboard Stats"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/manager/dashboard/1"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - think: 5
+      
+      # Refresh dashboard
+      - get:
+          url: "/api/manager/dashboard/1"
+          expect:
+            - statusCode: 200
+
+  # Scenario 6: Inspection list (paginated)
+  - name: "Inspection List"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/manager/inspections/1?limit=20&offset=0"
+          expect:
+            - statusCode: 200
+      
+      - think: 3
+      
+      - get:
+          url: "/api/manager/inspections/1?limit=20&offset=20"
+          expect:
+            - statusCode: 200
+
+  # Scenario 7: Defects list
+  - name: "Defects List"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/manager/defects/1?status=open"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+      
+      - get:
+          url: "/api/manager/defects/1?status=in_progress"
+          expect:
+            - statusCode: 200

@@ -324,3 +324,40 @@
 - [ ] Add frontend performance metrics (optional)
 - [ ] Set up performance alerts (optional - via Sentry)
 - [ ] Test under load (100+ concurrent users) (staging environment)
+
+## Phase 3: Final Polish (10/10 Quality)
+
+### Sentry DSN Setup
+- [x] Create Sentry setup script (scripts/setup-sentry.sh)
+- [x] Add Sentry test endpoint (/api/test-sentry)
+- [x] Create step-by-step setup guide
+- [ ] Run setup script and create Sentry projects (user action)
+- [ ] Add SENTRY_DSN to environment variables (user action)
+- [ ] Add VITE_SENTRY_DSN to environment variables (user action)
+- [ ] Test error tracking with sample errors (after DSN setup)
+- [ ] Verify errors appear in Sentry dashboard (after DSN setup)
+
+### Load Testing
+- [x] Create load testing configuration (load-test.yml)
+- [x] Create comprehensive load testing guide (LOAD_TESTING.md)
+- [x] Create automated test script (scripts/run-load-test.sh)
+- [x] Define performance thresholds (P95 <1000ms, P99 <2000ms)
+- [x] Configure 7 realistic test scenarios
+- [ ] Run load test with 50 concurrent users (user action)
+- [ ] Run load test with 100 concurrent users (user action)
+- [ ] Analyze results and identify bottlenecks (after testing)
+
+### Performance Dashboard UI
+- [x] Create Performance page component (client/src/pages/admin/Performance.tsx)
+- [x] Add route to App.tsx (/admin/performance)
+- [x] Add navigation link to ManagerLayout
+- [x] Build performance stats cards (4 KPI cards)
+- [x] Build endpoint performance chart (Recharts bar chart)
+- [x] Build recent requests chart (Recharts area chart)
+- [x] Build endpoint statistics table
+- [x] Build slow queries table
+- [x] Add real-time auto-refresh (5-second interval)
+- [x] Add manual refresh button
+- [x] Add export/download functionality (JSON export)
+- [x] Style with Titan Fleet design system (shadcn/ui + Tailwind)
+- [x] Add performance grading (A+ to F scale)

@@ -27,6 +27,30 @@ export async function registerRoutes(
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
     res.json(getSlowQueries(limit));
   });
+  
+  // Sentry test endpoint
+  app.get("/api/test-sentry", (req, res) => {
+    try {
+      // Trigger a test error
+      throw new Error("Sentry test error - Backend is working! Check your Sentry dashboard.");
+    } catch (error) {
+      // Import captureException if Sentry is configured
+      try {
+        const { captureException } = require('./sentry');
+        captureException(error as Error, {
+          tags: { test: true },
+          extra: { endpoint: '/api/test-sentry' }
+        });
+      } catch (e) {
+        // Sentry not configured, that's okay
+      }
+      res.status(500).json({ 
+        error: "Test error triggered",
+        message: "Check your Sentry dashboard for this error",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // Company lookup
   app.get("/api/company/:code", async (req, res) => {
