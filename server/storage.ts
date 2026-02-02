@@ -34,7 +34,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   // Vehicle operations
-  getVehiclesByCompany(companyId: number, limit?: number, offset?: number): Promise<Vehicle[]>;
+  getVehiclesByCompany(companyId: number, limit?: number, offset?: number): Promise<{ vehicles: Vehicle[], total: number }>;
   searchVehicles(companyId: number, query: string): Promise<Vehicle[]>;
   getVehicleById(id: number): Promise<Vehicle | undefined>;
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
@@ -197,8 +197,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Vehicle
-  async getVehiclesByCompany(companyId: number, limit: number = 50, offset: number = 0): Promise<Vehicle[]> {
-    return await db.select().from(vehicles)
+  async getVehiclesByCompany(companyId: number, limit: number = 50, offset: number = 0): Promise<{ vehicles: Vehicle[], total: number }> {
+    const vehicleList = await db.select().from(vehicles)
       .where(and(
         eq(vehicles.companyId, companyId),
         eq(vehicles.active, true)
@@ -206,6 +206,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(vehicles.vrm)
       .limit(limit)
       .offset(offset);
+    
+    const [{ count: totalCount }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.active, true)
+      ));
+    
+    return { vehicles: vehicleList, total: totalCount };
   }
 
   async searchVehicles(companyId: number, query: string): Promise<Vehicle[]> {

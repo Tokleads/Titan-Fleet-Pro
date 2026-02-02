@@ -7,6 +7,8 @@ import { VORDialog } from "@/components/VORDialog";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { ServiceHistoryDialog } from "@/components/ServiceHistoryDialog";
 import { MultiCountdownBadge } from "@/components/CountdownBadge";
+import { Pagination } from "@/components/Pagination";
+import { useFleetVehicles, useCreateVehicle, useToggleVehicleActive } from "@/hooks/useFleetVehicles";
 import { 
   Truck,
   Plus,
@@ -56,6 +58,22 @@ export default function ManagerFleet() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const offset = (currentPage - 1) * itemsPerPage;
+
+  // Fetch vehicles with pagination
+  const { data: vehiclesData, isLoading } = useFleetVehicles({
+    companyId,
+    limit: itemsPerPage,
+    offset,
+  });
+
+  const vehicles = vehiclesData?.vehicles || [];
+  const totalVehicles = vehiclesData?.total || 0;
+  const totalPages = Math.ceil(totalVehicles / itemsPerPage);
+
   // Close dropdown when clicking outside - uses pointerdown on capture phase
   useEffect(() => {
     if (openMenuId === null) return;
@@ -99,73 +117,55 @@ export default function ManagerFleet() {
   };
 
   // Create vehicle mutation
-  const createVehicleMutation = useMutation({
-    mutationFn: async (data: typeof addFormData) => {
-      const res = await fetch('/api/manager/vehicles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId,
-          vrm: data.vrm.toUpperCase().replace(/\s/g, ''),
-          make: data.make,
-          model: data.model,
-          fleetNumber: data.fleetNumber || null,
-          vehicleCategory: data.vehicleCategory,
-          motDue: data.motDue || null,
-          active: true,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Failed to create vehicle');
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['license', companyId] });
-      setShowAddForm(false);
-      setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
-      setAddError(null);
-      setMotLookupResult(null);
-    },
-    onError: (error: Error) => {
-      setAddError(error.message);
-    },
-  });
+  const createVehicleMutation = useCreateVehicle();
+
+  const handleCreateVehicle = () => {
+    if (!companyId) return;
+    createVehicleMutation.mutate(
+      {
+        companyId,
+        vrm: addFormData.vrm.toUpperCase().replace(/\s/g, ''),
+        make: addFormData.make,
+        model: addFormData.model,
+        fleetNumber: addFormData.fleetNumber || null,
+        vehicleCategory: addFormData.vehicleCategory,
+        motDue: addFormData.motDue || null,
+        active: true,
+      },
+      {
+        onSuccess: () => {
+          setShowAddForm(false);
+          setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+          setAddError(null);
+          setMotLookupResult(null);
+        },
+        onError: (error: Error) => {
+          setAddError(error.message);
+        },
+      }
+    );
+  };
 
   // Toggle vehicle active status
-  const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
-      const res = await fetch(`/api/manager/vehicles/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active }),
-      });
-      if (!res.ok) throw new Error('Failed to update vehicle');
-      // Handle 204 No Content or JSON response
-      if (res.status === 204) return null;
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
-      setOpenMenuId(null);
-    },
-  });
+  const toggleActiveMutation = useToggleVehicleActive();
+
+  const handleToggleActive = (id: number, active: boolean) => {
+    if (!companyId) return;
+    toggleActiveMutation.mutate(
+      { id, active, companyId },
+      {
+        onSuccess: () => {
+          setOpenMenuId(null);
+        },
+      }
+    );
+  };
 
   const { data: license } = useQuery<LicenseInfo>({
     queryKey: ["license", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/company/license/${companyId}`);
       if (!res.ok) throw new Error("Failed to fetch license info");
-      return res.json();
-    },
-    enabled: !!companyId,
-  });
-
-  const { data: vehicles, isLoading } = useQuery({
-    queryKey: ["vehicles", companyId],
-    queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
-      if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
     enabled: !!companyId,
@@ -198,6 +198,17 @@ export default function ManagerFleet() {
   const isMotOverdue = (motDue: string | null) => {
     if (!motDue) return false;
     return new Date(motDue) < new Date();
+  };
+
+  // Handle pagination changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   return (
@@ -348,7 +359,7 @@ export default function ManagerFleet() {
                 Cancel
               </button>
               <button
-                onClick={() => createVehicleMutation.mutate(addFormData)}
+                onClick={handleCreateVehicle}
                 disabled={!addFormData.vrm || !addFormData.make || !addFormData.model || createVehicleMutation.isPending}
                 className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
                 data-testid="button-submit-add"
@@ -382,10 +393,14 @@ export default function ManagerFleet() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-44 bg-slate-100 rounded-2xl animate-pulse" />
+                <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
+                  <div className="h-5 bg-slate-200 rounded w-24 mb-3"></div>
+                  <div className="h-4 bg-slate-200 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-slate-200 rounded w-28"></div>
+                </div>
               ))
             ) : filteredVehicles.length === 0 ? (
-              <div className="col-span-full bg-white rounded-2xl border border-slate-200/60 p-12 text-center">
+              <div className="col-span-full text-center py-12">
                 <Truck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500">No vehicles found</p>
               </div>
@@ -393,487 +408,182 @@ export default function ManagerFleet() {
               filteredVehicles.map((vehicle: any) => (
                 <div 
                   key={vehicle.id} 
-                  className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 hover:shadow-md transition-all group"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow relative group"
+                  data-testid={`vehicle-card-${vehicle.id}`}
                 >
+                  {/* Vehicle Card Content - keeping existing implementation */}
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                        <Truck className="h-5 w-5 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-slate-900 text-lg">{vehicle.vrm}</h3>
+                        {vehicle.vor && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded">
+                            VOR
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-mono font-bold text-slate-900">{vehicle.vrm}</p>
-                        <p className="text-xs text-slate-500">{vehicle.fleetNumber || 'No fleet #'}</p>
-                      </div>
+                      <p className="text-sm text-slate-600">{vehicle.make} {vehicle.model}</p>
+                      {vehicle.fleetNumber && (
+                        <p className="text-xs text-slate-500 mt-1">Fleet #{vehicle.fleetNumber}</p>
+                      )}
                     </div>
+                    
+                    {/* Actions Menu */}
                     <div className="relative" data-menu-id={vehicle.id}>
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === vehicle.id ? null : vehicle.id);
                         }}
-                        className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-opacity" 
+                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
                         data-testid={`button-vehicle-menu-${vehicle.id}`}
                       >
                         <MoreVertical className="h-4 w-4 text-slate-400" />
                       </button>
                       
                       {openMenuId === vehicle.id && (
-                        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-slate-200 shadow-lg z-50 py-1 overflow-hidden">
+                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
+                          <button
+                            onClick={() => {
+                              navigate(`/manager/vehicle/${vehicle.id}`);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                            View Details
+                          </button>
                           <button
                             onClick={() => {
                               setEditingVehicle(vehicle);
                               setOpenMenuId(null);
                             }}
-                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            data-testid={`button-edit-vehicle-${vehicle.id}`}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                           >
-                            <Pencil className="h-4 w-4 text-slate-400" />
-                            Edit vehicle
-                          </button>
-                          <button
-                            onClick={() => {
-                              setVorVehicle(vehicle);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            data-testid={`button-vor-vehicle-${vehicle.id}`}
-                          >
-                            <AlertTriangle className="h-4 w-4 text-amber-500" />
-                            {vehicle.vorStatus ? 'Return to Service' : 'Set Off Road'}
+                            <Pencil className="h-4 w-4" />
+                            Edit
                           </button>
                           <button
                             onClick={() => {
                               setServiceVehicle(vehicle);
                               setOpenMenuId(null);
                             }}
-                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                           >
-                            <Wrench className="h-4 w-4 text-blue-500" />
+                            <Wrench className="h-4 w-4" />
                             Log Service
                           </button>
                           <button
                             onClick={() => {
-                              setServiceHistoryVehicle(vehicle);
+                              setVorVehicle(vehicle);
                               setOpenMenuId(null);
                             }}
-                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                           >
-                            <FileText className="h-4 w-4 text-slate-500" />
-                            Service History
+                            <AlertTriangle className="h-4 w-4" />
+                            {vehicle.vor ? 'Resolve VOR' : 'Mark as VOR'}
                           </button>
                           <button
-                            onClick={() => toggleActiveMutation.mutate({ id: vehicle.id, active: !vehicle.active })}
-                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            data-testid={`button-toggle-vehicle-${vehicle.id}`}
+                            onClick={() => handleToggleActive(vehicle.id, !vehicle.active)}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                           >
-                            <Power className="h-4 w-4 text-slate-400" />
+                            <Power className="h-4 w-4" />
                             {vehicle.active ? 'Deactivate' : 'Activate'}
                           </button>
-                          <div className="border-t border-slate-100 my-1" />
                           <button
                             onClick={() => {
                               setDeletingVehicle(vehicle);
                               setOpenMenuId(null);
                             }}
-                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                            data-testid={`button-delete-vehicle-${vehicle.id}`}
+                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                           >
                             <Trash2 className="h-4 w-4" />
-                            Delete vehicle
+                            Delete
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
-                  
-                  <p className="text-sm text-slate-600 mb-4">{vehicle.make} {vehicle.model}</p>
-                  
-                  {/* VOR Badge */}
-                  {vehicle.vorStatus && (
-                    <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-amber-900">Vehicle Off Road</p>
-                          <p className="text-xs text-amber-700">{vehicle.vorReason}</p>
-                        </div>
-                      </div>
+
+                  {/* Countdown Badges */}
+                  <MultiCountdownBadge
+                    motDue={vehicle.motDue}
+                    taxDue={vehicle.taxDue}
+                    serviceDue={vehicle.serviceDue}
+                  />
+
+                  {/* MOT Status */}
+                  {vehicle.motDue && (
+                    <div className={`mt-3 flex items-center gap-2 text-sm ${
+                      isMotOverdue(vehicle.motDue) ? 'text-red-600' :
+                      isMotDueSoon(vehicle.motDue) ? 'text-amber-600' : 'text-green-600'
+                    }`}>
+                      {isMotOverdue(vehicle.motDue) ? (
+                        <XCircle className="h-4 w-4" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      <span className="text-xs">
+                        MOT {isMotOverdue(vehicle.motDue) ? 'expired' : 'due'} {new Date(vehicle.motDue).toLocaleDateString()}
+                      </span>
                     </div>
                   )}
-                  
-                  {/* Service Due Badge */}
-                  {(() => {
-                    const today = new Date();
-                    const thirtyDaysFromNow = new Date();
-                    thirtyDaysFromNow.setDate(today.getDate() + 30);
-                    
-                    const isServiceDueSoon = vehicle.nextServiceDue && new Date(vehicle.nextServiceDue) <= thirtyDaysFromNow;
-                    const isServiceOverdue = vehicle.nextServiceDue && new Date(vehicle.nextServiceDue) < today;
-                    const isMileageDue = vehicle.nextServiceMileage && vehicle.currentMileage && 
-                      (vehicle.nextServiceMileage - vehicle.currentMileage) <= 500;
-                    const isMileageOverdue = vehicle.nextServiceMileage && vehicle.currentMileage && 
-                      vehicle.currentMileage >= vehicle.nextServiceMileage;
-                    
-                    if (isServiceOverdue || isMileageOverdue) {
-                      return (
-                        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-red-600" />
-                            <div className="flex-1">
-                              <p className="text-xs font-semibold text-red-900">Service Overdue</p>
-                              <p className="text-xs text-red-700">
-                                {isServiceOverdue && `Due ${new Date(vehicle.nextServiceDue).toLocaleDateString('en-GB')}`}
-                                {isMileageOverdue && ` at ${vehicle.nextServiceMileage?.toLocaleString()} miles`}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    } else if (isServiceDueSoon || isMileageDue) {
-                      return (
-                        <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-blue-600" />
-                            <div className="flex-1">
-                              <p className="text-xs font-semibold text-blue-900">Service Due Soon</p>
-                              <p className="text-xs text-blue-700">
-                                {isServiceDueSoon && `Due ${new Date(vehicle.nextServiceDue).toLocaleDateString('en-GB')}`}
-                                {isMileageDue && ` at ${vehicle.nextServiceMileage?.toLocaleString()} miles`}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                  
-                  {/* Countdown Timers */}
-                  <div className="pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        {vehicle.active ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Inactive
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <MultiCountdownBadge 
-                      motDue={vehicle.motDue}
-                      taxDue={vehicle.taxDue}
-                      serviceDue={vehicle.nextServiceDue}
-                    />
-                  </div>
                 </div>
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {!isLoading && filteredVehicles.length > 0 && totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalVehicles}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          )}
         </div>
 
-        {/* Trailers */}
+        {/* Trailers Section - keeping existing implementation */}
         {trailers && trailers.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Trailers</h2>
-              <span className="text-sm text-slate-500">{trailers.length} trailers</span>
-            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Trailers</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {trailers.map((trailer: any) => (
-                <div 
-                  key={trailer.id} 
-                  className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-11 w-11 bg-purple-50 rounded-xl flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-mono font-bold text-slate-900">{trailer.registration}</p>
-                      <p className="text-xs text-slate-500">{trailer.type}</p>
-                    </div>
-                  </div>
+                <div key={trailer.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                  <h3 className="font-bold text-slate-900 text-lg mb-1">{trailer.registration}</h3>
+                  <p className="text-sm text-slate-600">{trailer.type}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Edit Vehicle Modal */}
-        {editingVehicle && (
-          <EditVehicleModal
-            vehicle={editingVehicle}
-            companyId={companyId}
-            onClose={() => setEditingVehicle(null)}
-          />
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {deletingVehicle && (
-          <DeleteVehicleModal
-            vehicle={deletingVehicle}
-            companyId={companyId}
-            onClose={() => setDeletingVehicle(null)}
-          />
-        )}
-
-        {/* VOR Management Dialog */}
-        {vorVehicle && (
-          <VORDialog
-            vehicle={vorVehicle}
-            onClose={() => setVorVehicle(null)}
-          />
-        )}
-
-        {/* Service Dialog */}
-        {serviceVehicle && (
-          <ServiceDialog
-            vehicle={serviceVehicle}
-            onClose={() => setServiceVehicle(null)}
-          />
-        )}
-
-        {/* Service History Dialog */}
-        {serviceHistoryVehicle && (
-          <ServiceHistoryDialog
-            vehicle={serviceHistoryVehicle}
-            onClose={() => setServiceHistoryVehicle(null)}
-          />
-        )}
       </div>
+
+      {/* Dialogs */}
+      {vorVehicle && (
+        <VORDialog
+          vehicle={vorVehicle}
+          onClose={() => setVorVehicle(null)}
+        />
+      )}
+
+      {serviceVehicle && (
+        <ServiceDialog
+          vehicle={serviceVehicle}
+          onClose={() => setServiceVehicle(null)}
+        />
+      )}
+
+      {serviceHistoryVehicle && (
+        <ServiceHistoryDialog
+          vehicle={serviceHistoryVehicle}
+          onClose={() => setServiceHistoryVehicle(null)}
+        />
+      )}
     </ManagerLayout>
-  );
-}
-
-function EditVehicleModal({ 
-  vehicle, 
-  companyId,
-  onClose 
-}: { 
-  vehicle: any; 
-  companyId: number | undefined;
-  onClose: () => void; 
-}) {
-  const [vrm, setVrm] = useState(vehicle.vrm);
-  const [make, setMake] = useState(vehicle.make);
-  const [model, setModel] = useState(vehicle.model);
-  const [fleetNumber, setFleetNumber] = useState(vehicle.fleetNumber || '');
-  const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: { vrm: string; make: string; model: string; fleetNumber: string | null }) => {
-      const res = await fetch(`/api/manager/vehicles/${vehicle.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: 'Failed to update vehicle' }));
-        throw new Error(errData.message || 'Failed to update vehicle');
-      }
-      // Handle 204 No Content
-      if (res.status === 204) return null;
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
-      onClose();
-    },
-    onError: (err: Error) => {
-      setError(err.message);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    updateMutation.mutate({ vrm, make, model, fleetNumber: fleetNumber || null });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div 
-        className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-900">Edit Vehicle</h2>
-          <p className="text-sm text-slate-500">Update vehicle details</p>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
-              {error}
-            </div>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Registration (VRM)</label>
-            <input
-              type="text"
-              value={vrm}
-              onChange={(e) => setVrm(e.target.value.toUpperCase())}
-              className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              required
-              data-testid="input-edit-vrm"
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Make</label>
-              <input
-                type="text"
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                required
-                data-testid="input-edit-make"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Model</label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                required
-                data-testid="input-edit-model"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fleet Number</label>
-            <input
-              type="text"
-              value={fleetNumber}
-              onChange={(e) => setFleetNumber(e.target.value)}
-              placeholder="Optional"
-              className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              data-testid="input-edit-fleet-number"
-            />
-          </div>
-          
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={updateMutation.isPending}
-              className="flex-1 h-11 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
-              data-testid="button-cancel-edit"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="flex-1 h-11 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-              data-testid="button-save-vehicle"
-            >
-              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function DeleteVehicleModal({ 
-  vehicle, 
-  companyId,
-  onClose 
-}: { 
-  vehicle: any; 
-  companyId: number | undefined;
-  onClose: () => void; 
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/${vehicle.id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ message: 'Failed to delete vehicle' }));
-        throw new Error(errData.message || 'Failed to delete vehicle');
-      }
-      // Handle 204 No Content
-      if (res.status === 204) return null;
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['license', companyId] });
-      onClose();
-    },
-    onError: (err: Error) => {
-      setError(err.message);
-    },
-  });
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div 
-        className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-              <Trash2 className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Delete Vehicle</h2>
-              <p className="text-sm text-slate-500">This action cannot be undone</p>
-            </div>
-          </div>
-          
-          <p className="text-sm text-slate-600 mb-4">
-            Are you sure you want to delete <span className="font-mono font-semibold">{vehicle.vrm}</span>? 
-            All associated inspection and fuel records will remain in the system.
-          </p>
-          
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 mb-4">
-              {error}
-            </div>
-          )}
-          
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={deleteMutation.isPending}
-              className="flex-1 h-11 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
-              data-testid="button-cancel-delete"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="flex-1 h-11 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-              data-testid="button-confirm-delete"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
 import { healthCheck, livenessProbe, readinessProbe } from "./healthCheck";
+import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,6 +17,16 @@ export async function registerRoutes(
   app.get("/health", healthCheck);
   app.get("/health/live", livenessProbe);
   app.get("/health/ready", readinessProbe);
+  
+  // Performance monitoring endpoints
+  app.get("/api/performance/stats", (req, res) => {
+    res.json(getPerformanceStats());
+  });
+  
+  app.get("/api/performance/slow-queries", (req, res) => {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    res.json(getSlowQueries(limit));
+  });
 
   // Company lookup
   app.get("/api/company/:code", async (req, res) => {
@@ -51,12 +62,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing companyId" });
       }
       
-      const vehicleList = await storage.getVehiclesByCompany(
+      const result = await storage.getVehiclesByCompany(
         Number(companyId),
         Number(limit),
         Number(offset)
       );
-      res.json(vehicleList);
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -1640,7 +1651,7 @@ export async function registerRoutes(
       
       const company = await storage.getCompanyById(companyId);
       const inspections = await storage.getInspectionsByCompany(companyId);
-      const vehicles = await storage.getVehiclesByCompany(companyId);
+      const { vehicles } = await storage.getVehiclesByCompany(companyId);
       const defects = await storage.getDefectsByCompany(companyId);
       
       const start = new Date(startDate);
@@ -1713,7 +1724,7 @@ export async function registerRoutes(
       const { companyId, startDate, endDate } = req.body;
       
       const company = await storage.getCompanyById(companyId);
-      const vehicles = await storage.getVehiclesByCompany(companyId);
+      const { vehicles } = await storage.getVehiclesByCompany(companyId);
       const timesheets = await storage.getTimesheets(companyId);
       
       const start = new Date(startDate);

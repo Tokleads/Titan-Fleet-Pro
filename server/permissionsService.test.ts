@@ -6,7 +6,7 @@ describe('permissionsService', () => {
     it('should return true for ADMIN with any permission', () => {
       expect(hasPermission('ADMIN', 'vehicles:view')).toBe(true);
       expect(hasPermission('ADMIN', 'users:delete')).toBe(true);
-      expect(hasPermission('ADMIN', 'company:settings')).toBe(true);
+      expect(hasPermission('ADMIN', 'company:edit')).toBe(true);
     });
 
     it('should return true for TRANSPORT_MANAGER with allowed permissions', () => {
@@ -17,7 +17,7 @@ describe('permissionsService', () => {
 
     it('should return false for TRANSPORT_MANAGER with disallowed permissions', () => {
       expect(hasPermission('TRANSPORT_MANAGER', 'users:delete')).toBe(false);
-      expect(hasPermission('TRANSPORT_MANAGER', 'company:settings')).toBe(false);
+      expect(hasPermission('TRANSPORT_MANAGER', 'company:edit')).toBe(false);
     });
 
     it('should return true for DRIVER with own data permissions', () => {
@@ -67,10 +67,10 @@ describe('permissionsService', () => {
   describe('getRolePermissions', () => {
     it('should return all permissions for ADMIN', () => {
       const permissions = getRolePermissions('ADMIN');
-      expect(permissions.length).toBeGreaterThan(30); // Should have 35 permissions
+      expect(permissions.length).toBeGreaterThan(30); // Should have 41 permissions
       expect(permissions).toContain('vehicles:view');
       expect(permissions).toContain('users:delete');
-      expect(permissions).toContain('company:settings');
+      expect(permissions).toContain('company:edit');
     });
 
     it('should return correct permissions for TRANSPORT_MANAGER', () => {
@@ -78,15 +78,16 @@ describe('permissionsService', () => {
       expect(permissions).toContain('vehicles:view');
       expect(permissions).toContain('drivers:edit');
       expect(permissions).not.toContain('users:delete');
-      expect(permissions).not.toContain('company:settings');
+      expect(permissions).not.toContain('company:edit');
     });
 
     it('should return correct permissions for DRIVER', () => {
       const permissions = getRolePermissions('DRIVER');
       expect(permissions).toContain('vehicles:view');
       expect(permissions).toContain('inspections:create');
+      expect(permissions).toContain('drivers:view'); // Drivers can view driver list
       expect(permissions).not.toContain('vehicles:create');
-      expect(permissions).not.toContain('drivers:view');
+      expect(permissions).not.toContain('drivers:edit');
     });
 
     it('should return correct permissions for MECHANIC', () => {
