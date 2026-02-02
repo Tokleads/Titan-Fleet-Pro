@@ -34,7 +34,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   // Vehicle operations
-  getVehiclesByCompany(companyId: number, limit?: number, offset?: number): Promise<Vehicle[]>;
+  getVehiclesByCompany(companyId: number, limit?: number, offset?: number): Promise<{ vehicles: Vehicle[], total: number }>;
   searchVehicles(companyId: number, query: string): Promise<Vehicle[]>;
   getVehicleById(id: number): Promise<Vehicle | undefined>;
   createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
@@ -197,8 +197,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Vehicle
-  async getVehiclesByCompany(companyId: number, limit: number = 50, offset: number = 0): Promise<Vehicle[]> {
-    return await db.select().from(vehicles)
+  async getVehiclesByCompany(companyId: number, limit: number = 50, offset: number = 0): Promise<{ vehicles: Vehicle[], total: number }> {
+    const vehicleList = await db.select().from(vehicles)
       .where(and(
         eq(vehicles.companyId, companyId),
         eq(vehicles.active, true)
@@ -206,6 +206,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(vehicles.vrm)
       .limit(limit)
       .offset(offset);
+    
+    const [{ count: totalCount }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(vehicles)
+      .where(and(
+        eq(vehicles.companyId, companyId),
+        eq(vehicles.active, true)
+      ));
+    
+    return { vehicles: vehicleList, total: totalCount };
   }
 
   async searchVehicles(companyId: number, query: string): Promise<Vehicle[]> {
@@ -1142,9 +1151,9 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
   
-  async generateTimesheetCSV(timesheets: (Timesheet & { driver?: User })[]): Promise<string> {
-    // Enhanced CSV format for wage invoices
-    const header = 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Break Time (mins),Net Hours,Overtime,Status\n';
+  async generateTimesheetCSV(timesheets: (Timesheet & { driver?: User; wageCalculation?: any })[]): Promise<string> {
+    // Enhanced CSV format for wage invoices with detailed pay breakdown
+    const header = 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Regular Hours,Night Hours,Weekend Hours,Bank Holiday Hours,Overtime Hours,Base Rate,Night Rate,Weekend Rate,Holiday Rate,Overtime Rate,Regular Pay,Night Pay,Weekend Pay,Holiday Pay,Overtime Pay,Total Pay,Status\n';
     
     const rows = timesheets.map(ts => {
       const driverName = ts.driver?.name || 'Unknown';
@@ -1162,11 +1171,26 @@ export class DatabaseStorage implements IStorage {
       const netMinutes = totalMinutes - breakTime;
       const netHours = (netMinutes / 60).toFixed(2);
       
-      // Calculate overtime (>8 hours/day)
-      const overtimeMinutes = Math.max(0, netMinutes - 480);
-      const overtime = (overtimeMinutes / 60).toFixed(2);
+      // Get wage calculation if available
+      const wage = ts.wageCalculation;
       
-      return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName}",${totalHours},${breakTime},${netHours},${overtime},${ts.status}`;
+      if (wage) {
+        // Use calculated wage breakdown
+        const regularHours = (wage.regularMinutes / 60).toFixed(2);
+        const nightHours = (wage.nightMinutes / 60).toFixed(2);
+        const weekendHours = (wage.weekendMinutes / 60).toFixed(2);
+        const holidayHours = (wage.bankHolidayMinutes / 60).toFixed(2);
+        const overtimeHours = (wage.overtimeMinutes / 60).toFixed(2);
+        
+        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName}",${totalHours},${regularHours},${nightHours},${weekendHours},${holidayHours},${overtimeHours},${wage.baseRate || '0.00'},${wage.nightRate || '0.00'},${wage.weekendRate || '0.00'},${wage.holidayRate || '0.00'},${wage.overtimeRate || '0.00'},${wage.regularPay},${wage.nightPay},${wage.weekendPay},${wage.bankHolidayPay},${wage.overtimePay},${wage.totalPay},${ts.status}`;
+      } else {
+        // Fallback to basic calculation
+        const overtimeMinutes = Math.max(0, netMinutes - 480);
+        const overtime = (overtimeMinutes / 60).toFixed(2);
+        const regularHours = ((netMinutes - overtimeMinutes) / 60).toFixed(2);
+        
+        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName}",${totalHours},${regularHours},0.00,0.00,0.00,${overtime},0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,${ts.status}`;
+      }
     }).join('\n');
     
     // Add weekly summary at the bottom

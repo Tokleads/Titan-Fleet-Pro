@@ -119,7 +119,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
  */
 export function hasPermission(userRole: UserRole, permission: Permission): boolean {
   const permissions = rolePermissions[userRole];
-  return permissions.includes(permission);
+  return permissions ? permissions.includes(permission) : false;
 }
 
 /**
@@ -142,6 +142,11 @@ export function hasAllPermissions(userRole: UserRole, permissions: Permission[])
 export function getRolePermissions(userRole: UserRole): Permission[] {
   return rolePermissions[userRole] || [];
 }
+
+/**
+ * Export role permissions for testing
+ */
+export const ROLE_PERMISSIONS = rolePermissions;
 
 /**
  * Middleware: Require authentication

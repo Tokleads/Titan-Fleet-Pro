@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { BrandProvider } from "@/hooks/use-brand";
 import Landing from "@/pages/Landing";
+import TitanFleetLandingPage from "@/pages/TitanFleetLanding";
 import DriverDashboard from "@/pages/driver/DriverDashboard";
 import VehicleDetail from "@/pages/driver/VehicleDetail";
 import VehicleInspection from "@/pages/driver/VehicleInspection";
@@ -27,9 +28,13 @@ import AdvancedDashboard from "@/pages/manager/AdvancedDashboard";
 import FleetDocuments from "@/pages/manager/FleetDocuments";
 import UserRoles from "@/pages/manager/UserRoles";
 import NotificationPreferences from "@/pages/manager/NotificationPreferences";
-import NotificationHistory from "@/pages/manager/NotificationHistory";
+import NotificationHistory from './pages/manager/NotificationHistory';
+import PayRates from './pages/manager/PayRates';
+import Performance from "@/pages/admin/Performance";
 import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
+import TitanFleetDemo from "@/pages/demo/TitanFleetDemo";
+import ProcurementFAQ from "@/pages/ProcurementFAQ";
 import NotFound from "@/pages/not-found";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -37,7 +42,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Landing} />
+      <Route path="/" component={TitanFleetLandingPage} />
+      <Route path="/app" component={Landing} />
       <Route path="/driver" component={DriverDashboard} />
       <Route path="/driver/vehicle/:id" component={VehicleDetail} />
       <Route path="/driver/inspection/:id" component={VehicleInspection} />
@@ -55,6 +61,7 @@ function Router() {
       <Route path="/manager/settings" component={ManagerSettings} />
       <Route path="/manager/live-tracking" component={LiveTracking} />
       <Route path="/manager/timesheets" component={Timesheets} />
+      <Route path="/manager/pay-rates" component={PayRates} />
       <Route path="/manager/titan-command" component={TitanCommand} />
       <Route path="/manager/geofences" component={Geofences} />
       <Route path="/manager/advanced-dashboard" component={AdvancedDashboard} />
@@ -62,8 +69,11 @@ function Router() {
       <Route path="/manager/user-roles" component={UserRoles} />
       <Route path="/manager/notifications" component={NotificationPreferences} />
       <Route path="/manager/notification-history" component={NotificationHistory} />
+      <Route path="/admin/performance" component={Performance} />
       <Route path="/demo/dc-european" component={DCEuropeanDemo} />
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
+      <Route path="/demo" component={TitanFleetDemo} />
+      <Route path="/procurement-faq" component={ProcurementFAQ} />
       <Route component={NotFound} />
     </Switch>
   );

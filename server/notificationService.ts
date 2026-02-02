@@ -10,6 +10,7 @@ import { storage } from "./storage";
 import { notificationHistory, notificationPreferences, notificationTemplates } from "../shared/notificationSchema";
 import { vehicles, users } from "../shared/schema";
 import { eq, and, lte, gte, isNull } from "drizzle-orm";
+import { pushNotificationService } from "./pushNotificationService";
 
 export type NotificationType = 
   | 'MOT_EXPIRY'
@@ -31,6 +32,7 @@ interface NotificationData {
   subject?: string;
   message: string;
   metadata?: Record<string, any>;
+  sendInApp?: boolean; // Whether to send in-app notification (default: true)
 }
 
 /**
@@ -61,6 +63,27 @@ export async function sendNotification(data: NotificationData): Promise<boolean>
       success = await sendEmail(data.recipient, data.subject || 'Titan Fleet Notification', data.message);
     } else if (channel === 'SMS') {
       success = await sendSMS(data.recipient, data.message);
+    }
+    
+    // Also send in-app notification if userId is provided and sendInApp is not false
+    if (data.userId && data.sendInApp !== false) {
+      try {
+        await pushNotificationService.sendToUser(data.userId, {
+          companyId: data.companyId,
+          title: data.subject || getNotificationTitle(data.type),
+          body: data.message,
+          data: {
+            type: data.type,
+            vehicleId: data.vehicleId?.toString() || '',
+            ...data.metadata
+          },
+          priority: getPriorityForType(data.type)
+        });
+        console.log(`[IN-APP] Sent notification to user ${data.userId}`);
+      } catch (error) {
+        console.error('Error sending in-app notification:', error);
+        // Don't fail the whole notification if in-app fails
+      }
     }
     
     // Update notification status
@@ -143,6 +166,14 @@ export async function checkMOTExpiry(): Promise<void> {
           lte(vehicles.motDue, thresholdDate)
         ));
       
+      // Get all managers for this company
+      const managers = await db.select()
+        .from(users)
+        .where(and(
+          eq(users.companyId, company.id),
+          eq(users.role, 'manager')
+        ));
+      
       // Send notifications
       for (const vehicle of vehicleList) {
         if (!vehicle.motDue) continue;
@@ -151,21 +182,25 @@ export async function checkMOTExpiry(): Promise<void> {
         
         const message = `MOT Expiry Alert: Vehicle ${vehicle.vrm} (${vehicle.make} ${vehicle.model}) MOT expires in ${daysUntilExpiry} days on ${vehicle.motDue.toLocaleDateString('en-GB')}.`;
         
-        await sendNotification({
-          companyId: company.id,
-          vehicleId: vehicle.id,
-          type: 'MOT_EXPIRY',
-          recipient: prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
-          subject: `MOT Expiry Alert - ${vehicle.vrm}`,
-          message,
-          metadata: {
-            vehicleVRM: vehicle.vrm,
-            vehicleMake: vehicle.make,
-            vehicleModel: vehicle.model,
-            expiryDate: vehicle.motDue.toISOString(),
-            daysUntilExpiry
-          }
-        });
+        // Send to each manager
+        for (const manager of managers) {
+          await sendNotification({
+            companyId: company.id,
+            userId: manager.id,
+            vehicleId: vehicle.id,
+            type: 'MOT_EXPIRY',
+            recipient: manager.email || prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
+            subject: `MOT Expiry Alert - ${vehicle.vrm}`,
+            message,
+            metadata: {
+              vehicleVRM: vehicle.vrm,
+              vehicleMake: vehicle.make,
+              vehicleModel: vehicle.model,
+              expiryDate: vehicle.motDue.toISOString(),
+              daysUntilExpiry
+            }
+          });
+        }
       }
     }
   } catch (error) {
@@ -202,28 +237,40 @@ export async function checkTaxExpiry(): Promise<void> {
           lte(vehicles.taxDue, thresholdDate)
         ));
       
+      // Get all managers for this company
+      const managers = await db.select()
+        .from(users)
+        .where(and(
+          eq(users.companyId, company.id),
+          eq(users.role, 'manager')
+        ));
+      
       for (const vehicle of vehicleList) {
         if (!vehicle.taxDue) continue;
         
         const daysUntilExpiry = Math.ceil((vehicle.taxDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         
-        const message = `Tax Expiry Alert: Vehicle ${vehicle.vrm} (${vehicle.make} ${vehicle.model}) tax expires in ${daysUntilExpiry} days on ${vehicle.taxDue.toLocaleDateString('en-GB')}.`;
+        const message = `Tax Expiry Alert: Vehicle ${vehicle.vrm} (${vehicle.make} ${vehicle.model}) road tax expires in ${daysUntilExpiry} days on ${vehicle.taxDue.toLocaleDateString('en-GB')}.`;
         
-        await sendNotification({
-          companyId: company.id,
-          vehicleId: vehicle.id,
-          type: 'TAX_EXPIRY',
-          recipient: prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
-          subject: `Tax Expiry Alert - ${vehicle.vrm}`,
-          message,
-          metadata: {
-            vehicleVRM: vehicle.vrm,
-            vehicleMake: vehicle.make,
-            vehicleModel: vehicle.model,
-            expiryDate: vehicle.taxDue.toISOString(),
-            daysUntilExpiry
-          }
-        });
+        // Send to each manager
+        for (const manager of managers) {
+          await sendNotification({
+            companyId: company.id,
+            userId: manager.id,
+            vehicleId: vehicle.id,
+            type: 'TAX_EXPIRY',
+            recipient: manager.email || prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
+            subject: `Tax Expiry Alert - ${vehicle.vrm}`,
+            message,
+            metadata: {
+              vehicleVRM: vehicle.vrm,
+              vehicleMake: vehicle.make,
+              vehicleModel: vehicle.model,
+              expiryDate: vehicle.taxDue.toISOString(),
+              daysUntilExpiry
+            }
+          });
+        }
       }
     }
   } catch (error) {
@@ -260,6 +307,14 @@ export async function checkServiceDue(): Promise<void> {
           lte(vehicles.nextServiceDue, thresholdDate)
         ));
       
+      // Get all managers for this company
+      const managers = await db.select()
+        .from(users)
+        .where(and(
+          eq(users.companyId, company.id),
+          eq(users.role, 'manager')
+        ));
+      
       for (const vehicle of vehicleList) {
         if (!vehicle.nextServiceDue) continue;
         
@@ -267,21 +322,25 @@ export async function checkServiceDue(): Promise<void> {
         
         const message = `Service Due Alert: Vehicle ${vehicle.vrm} (${vehicle.make} ${vehicle.model}) service is due in ${daysUntilDue} days on ${vehicle.nextServiceDue.toLocaleDateString('en-GB')}.`;
         
-        await sendNotification({
-          companyId: company.id,
-          vehicleId: vehicle.id,
-          type: 'SERVICE_DUE',
-          recipient: prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
-          subject: `Service Due Alert - ${vehicle.vrm}`,
-          message,
-          metadata: {
-            vehicleVRM: vehicle.vrm,
-            vehicleMake: vehicle.make,
-            vehicleModel: vehicle.model,
-            dueDate: vehicle.nextServiceDue.toISOString(),
-            daysUntilDue
-          }
-        });
+        // Send to each manager
+        for (const manager of managers) {
+          await sendNotification({
+            companyId: company.id,
+            userId: manager.id,
+            vehicleId: vehicle.id,
+            type: 'SERVICE_DUE',
+            recipient: manager.email || prefs.email || company.contactEmail || 'admin@titanfleet.co.uk',
+            subject: `Service Due Alert - ${vehicle.vrm}`,
+            message,
+            metadata: {
+              vehicleVRM: vehicle.vrm,
+              vehicleMake: vehicle.make,
+              vehicleModel: vehicle.model,
+              dueDate: vehicle.nextServiceDue.toISOString(),
+              daysUntilDue
+            }
+          });
+        }
       }
     }
   } catch (error) {
@@ -328,6 +387,30 @@ export async function sendVORNotification(vehicleId: number, status: boolean, re
   } catch (error) {
     console.error('Error sending VOR notification:', error);
   }
+}
+
+/**
+ * Get notification title based on type
+ */
+function getNotificationTitle(type: NotificationType): string {
+  const titles: Record<NotificationType, string> = {
+    'MOT_EXPIRY': 'MOT Expiry Alert',
+    'TAX_EXPIRY': 'Tax Expiry Alert',
+    'SERVICE_DUE': 'Service Due Alert',
+    'LICENSE_EXPIRY': 'License Expiry Alert',
+    'VOR_STATUS': 'VOR Status Change',
+    'DEFECT_REPORTED': 'Defect Reported',
+    'INSPECTION_FAILED': 'Inspection Failed'
+  };
+  return titles[type] || 'Titan Fleet Notification';
+}
+
+/**
+ * Get notification priority based on type
+ */
+function getPriorityForType(type: NotificationType): 'high' | 'normal' {
+  const highPriority: NotificationType[] = ['VOR_STATUS', 'DEFECT_REPORTED', 'INSPECTION_FAILED'];
+  return highPriority.includes(type) ? 'high' : 'normal';
 }
 
 /**

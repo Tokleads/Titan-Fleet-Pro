@@ -7,6 +7,8 @@ import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
 import { healthCheck, livenessProbe, readinessProbe } from "./healthCheck";
+import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
+import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,6 +18,82 @@ export async function registerRoutes(
   app.get("/health", healthCheck);
   app.get("/health/live", livenessProbe);
   app.get("/health/ready", readinessProbe);
+  
+  // Performance monitoring endpoints
+  app.get("/api/performance/stats", (req, res) => {
+    res.json(getPerformanceStats());
+  });
+  
+  app.get("/api/performance/slow-queries", (req, res) => {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    res.json(getSlowQueries(limit));
+  });
+  
+  // Sentry test endpoint
+  app.get("/api/test-sentry", (req, res) => {
+    try {
+      // Trigger a test error
+      throw new Error("Sentry test error - Backend is working! Check your Sentry dashboard.");
+    } catch (error) {
+      // Import captureException if Sentry is configured
+      try {
+        const { captureException } = require('./sentry');
+        captureException(error as Error, {
+          tags: { test: true },
+          extra: { endpoint: '/api/test-sentry' }
+        });
+      } catch (e) {
+        // Sentry not configured, that's okay
+      }
+      res.status(500).json({ 
+        error: "Test error triggered",
+        message: "Check your Sentry dashboard for this error",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Notification scheduler endpoints
+  app.get("/api/scheduler/status", (req, res) => {
+    res.json(getSchedulerStatus());
+  });
+  
+  app.post("/api/scheduler/run", async (req, res) => {
+    try {
+      const result = await runNotificationChecks();
+      res.json({
+        message: "Notification checks completed",
+        ...result
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to run notification checks",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Cron endpoint (for external cron services like GitHub Actions)
+  app.get("/api/cron/run-notifications", async (req, res) => {
+    try {
+      // Optional: Add authentication here for security
+      // const authHeader = req.headers.authorization;
+      // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      //   return res.status(401).json({ error: "Unauthorized" });
+      // }
+      
+      const result = await runNotificationChecks();
+      res.json({
+        message: "Notification checks completed",
+        ...result
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to run notification checks",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Company lookup
   app.get("/api/company/:code", async (req, res) => {
@@ -51,12 +129,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing companyId" });
       }
       
-      const vehicleList = await storage.getVehiclesByCompany(
+      const result = await storage.getVehiclesByCompany(
         Number(companyId),
         Number(limit),
         Number(offset)
       );
-      res.json(vehicleList);
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -369,7 +447,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid company code" });
       }
 
-      const manager = await storage.getUserByCompanyAndPin(company.id, pin, "MANAGER");
+      const manager = await storage.getUserByCompanyAndPin(company.id, pin, "manager");
       if (!manager) {
         return res.status(401).json({ error: "Invalid PIN" });
       }
@@ -1640,7 +1718,7 @@ export async function registerRoutes(
       
       const company = await storage.getCompanyById(companyId);
       const inspections = await storage.getInspectionsByCompany(companyId);
-      const vehicles = await storage.getVehiclesByCompany(companyId);
+      const { vehicles } = await storage.getVehiclesByCompany(companyId);
       const defects = await storage.getDefectsByCompany(companyId);
       
       const start = new Date(startDate);
@@ -1713,7 +1791,7 @@ export async function registerRoutes(
       const { companyId, startDate, endDate } = req.body;
       
       const company = await storage.getCompanyById(companyId);
-      const vehicles = await storage.getVehiclesByCompany(companyId);
+      const { vehicles } = await storage.getVehiclesByCompany(companyId);
       const timesheets = await storage.getTimesheets(companyId);
       
       const start = new Date(startDate);
@@ -2142,6 +2220,135 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Clock out error:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to clock out" });
+    }
+  });
+  
+  // ==================== PAY RATES & WAGE CALCULATIONS ====================
+  
+  // Get pay rates for company
+  app.get("/api/pay-rates/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const { initializeDefaultPayRates } = await import('./wageCalculationService');
+      const { db } = await import('./db');
+      const { payRates } = await import('../shared/schema');
+      const { eq, and, isNull } = await import('drizzle-orm');
+      
+      // Get all pay rates for company
+      let rates = await db.select()
+        .from(payRates)
+        .where(eq(payRates.companyId, companyId));
+      
+      // If no rates exist, initialize default
+      if (rates.length === 0) {
+        await initializeDefaultPayRates(companyId);
+        rates = await db.select()
+          .from(payRates)
+          .where(eq(payRates.companyId, companyId));
+      }
+      
+      res.json(rates);
+    } catch (error) {
+      console.error("Failed to fetch pay rates:", error);
+      res.status(500).json({ error: "Failed to fetch pay rates" });
+    }
+  });
+  
+  // Create or update pay rate
+  app.post("/api/pay-rates", async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { payRates } = await import('../shared/schema');
+      
+      const [newRate] = await db.insert(payRates).values(req.body).returning();
+      res.json(newRate);
+    } catch (error) {
+      console.error("Failed to create pay rate:", error);
+      res.status(500).json({ error: "Failed to create pay rate" });
+    }
+  });
+  
+  // Update pay rate
+  app.patch("/api/pay-rates/:id", async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { payRates } = await import('../shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      const [updated] = await db.update(payRates)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(payRates.id, Number(req.params.id)))
+        .returning();
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update pay rate:", error);
+      res.status(500).json({ error: "Failed to update pay rate" });
+    }
+  });
+  
+  // Get bank holidays for company
+  app.get("/api/bank-holidays/:companyId", async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { bankHolidays } = await import('../shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      const holidays = await db.select()
+        .from(bankHolidays)
+        .where(eq(bankHolidays.companyId, Number(req.params.companyId)));
+      
+      res.json(holidays);
+    } catch (error) {
+      console.error("Failed to fetch bank holidays:", error);
+      res.status(500).json({ error: "Failed to fetch bank holidays" });
+    }
+  });
+  
+  // Add bank holiday
+  app.post("/api/bank-holidays", async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { bankHolidays } = await import('../shared/schema');
+      
+      const [newHoliday] = await db.insert(bankHolidays).values(req.body).returning();
+      res.json(newHoliday);
+    } catch (error) {
+      console.error("Failed to add bank holiday:", error);
+      res.status(500).json({ error: "Failed to add bank holiday" });
+    }
+  });
+  
+  // Initialize UK bank holidays for year
+  app.post("/api/bank-holidays/init-uk/:companyId/:year", async (req, res) => {
+    try {
+      const { addUKBankHolidays } = await import('./wageCalculationService');
+      await addUKBankHolidays(Number(req.params.companyId), Number(req.params.year));
+      res.json({ success: true, message: "UK bank holidays added" });
+    } catch (error) {
+      console.error("Failed to initialize bank holidays:", error);
+      res.status(500).json({ error: "Failed to initialize bank holidays" });
+    }
+  });
+  
+  // Calculate wages for timesheet
+  app.post("/api/wages/calculate/:timesheetId", async (req, res) => {
+    try {
+      const { calculateWages } = await import('./wageCalculationService');
+      const { companyId, driverId, arrivalTime, departureTime } = req.body;
+      
+      const wages = await calculateWages(
+        Number(req.params.timesheetId),
+        companyId,
+        driverId,
+        new Date(arrivalTime),
+        new Date(departureTime)
+      );
+      
+      res.json(wages);
+    } catch (error) {
+      console.error("Failed to calculate wages:", error);
+      res.status(500).json({ error: "Failed to calculate wages" });
     }
   });
   
