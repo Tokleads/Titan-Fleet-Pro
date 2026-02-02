@@ -47,3 +47,4 @@ integrations = ["javascript_database:1.0.0", "javascript_object_storage:1.0.0"]
 [userenv.shared]
 DVSA_TOKEN_URL = "https://login.microsoftonline.com/a455b827-244f-4c97-b5b4-ce5d13b4d00c/oauth2/v2.0/token"
 DVSA_SCOPE_URL = "https://tapi.dvsa.gov.uk/.default"
+SENTRY_DSN = "https://578ece1d50d0a9ac8ea62f5140300b0b@o4510817437614080.ingest.de.sentry.io/4510817445412944"
