@@ -29,6 +29,7 @@ import {
   Unlock,
   Loader2
 } from 'lucide-react';
+import { Pagination } from '@/components/Pagination';
 import { useToast } from '@/hooks/use-toast';
 import { session } from '@/lib/session';
 
@@ -164,6 +165,10 @@ function UserRolesContent() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   
   // Fetch users
   const fetchUsers = async () => {
@@ -171,6 +176,8 @@ function UserRolesContent() {
       setLoading(true);
       const params = new URLSearchParams({
         companyId: companyId.toString(),
+        limit: itemsPerPage.toString(),
+        offset: ((currentPage - 1) * itemsPerPage).toString(),
         ...(roleFilter !== 'all' && { role: roleFilter }),
         ...(debouncedSearchQuery && { search: debouncedSearchQuery })
       });
@@ -180,6 +187,8 @@ function UserRolesContent() {
       
       const data = await response.json();
       setUsers(data.users);
+      setTotalItems(data.total);
+      setTotalPages(Math.ceil(data.total / itemsPerPage));
     } catch (error) {
       toast({
         title: 'Error',
@@ -194,7 +203,7 @@ function UserRolesContent() {
   // Load users on mount and when filters change
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, debouncedSearchQuery]);
+  }, [roleFilter, debouncedSearchQuery, currentPage]);
   
   const getRoleBadge = (role: string) => {
     const roleInfo = ROLES.find(r => r.value === role);
@@ -424,6 +433,19 @@ function UserRolesContent() {
                   </TableBody>
                 </Table>
               </div>
+              )}
+              
+              {!loading && users.length > 0 && (
+                <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+                </div>
               )}
             </CardContent>
           </Card>

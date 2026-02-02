@@ -226,8 +226,8 @@
 
 ### Frontend Pagination UI
 - [x] Add pagination controls to FleetDocuments page
-- [ ] Add pagination controls to NotificationHistory page
-- [ ] Add pagination controls to UserRoles page
+- [x] Add pagination controls to NotificationHistory page
+- [x] Add pagination controls to UserRoles page
 - [ ] Add pagination controls to Vehicles list
 - [ ] Add pagination controls to Drivers list
 - [ ] Add "Load More" button option for mobile

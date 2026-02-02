@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Bell, Search, Filter, Mail, MessageSquare, Smartphone, CheckCircle2, XCircle, Clock, Loader2, Trash2 } from 'lucide-react';
+import { Pagination } from '@/components/Pagination';
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,6 +47,10 @@ function NotificationHistoryContent() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -53,6 +58,8 @@ function NotificationHistoryContent() {
       setLoading(true);
       const params = new URLSearchParams({
         companyId: companyId.toString(),
+        limit: itemsPerPage.toString(),
+        offset: ((currentPage - 1) * itemsPerPage).toString(),
         ...(typeFilter !== 'all' && { type: typeFilter }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(channelFilter !== 'all' && { channel: channelFilter }),
@@ -63,7 +70,9 @@ function NotificationHistoryContent() {
       if (!response.ok) throw new Error('Failed to fetch notifications');
       
       const data = await response.json();
-      setNotifications(data.notifications);
+      setNotifications(data.history);
+      setTotalItems(data.total);
+      setTotalPages(Math.ceil(data.total / itemsPerPage));
     } catch (error) {
       toast({
         title: 'Error',
@@ -78,7 +87,7 @@ function NotificationHistoryContent() {
   // Load notifications on mount and when filters change
   useEffect(() => {
     fetchNotifications();
-  }, [typeFilter, statusFilter, channelFilter, searchQuery]);
+  }, [typeFilter, statusFilter, channelFilter, searchQuery, currentPage]);
   
   // Handle delete
   const handleDelete = async (id: number) => {
@@ -318,6 +327,19 @@ function NotificationHistoryContent() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          
+          {!loading && notifications.length > 0 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
             </div>
           )}
         </CardContent>
