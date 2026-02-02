@@ -8,6 +8,7 @@ import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
 import { healthCheck, livenessProbe, readinessProbe } from "./healthCheck";
 import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
+import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -48,6 +49,48 @@ export async function registerRoutes(
         error: "Test error triggered",
         message: "Check your Sentry dashboard for this error",
         timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Notification scheduler endpoints
+  app.get("/api/scheduler/status", (req, res) => {
+    res.json(getSchedulerStatus());
+  });
+  
+  app.post("/api/scheduler/run", async (req, res) => {
+    try {
+      const result = await runNotificationChecks();
+      res.json({
+        message: "Notification checks completed",
+        ...result
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to run notification checks",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Cron endpoint (for external cron services like GitHub Actions)
+  app.get("/api/cron/run-notifications", async (req, res) => {
+    try {
+      // Optional: Add authentication here for security
+      // const authHeader = req.headers.authorization;
+      // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      //   return res.status(401).json({ error: "Unauthorized" });
+      // }
+      
+      const result = await runNotificationChecks();
+      res.json({
+        message: "Notification checks completed",
+        ...result
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to run notification checks",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

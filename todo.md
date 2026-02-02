@@ -361,3 +361,16 @@
 - [x] Add export/download functionality (JSON export)
 - [x] Style with Titan Fleet design system (shadcn/ui + Tailwind)
 - [x] Add performance grading (A+ to F scale)
+
+## Automatic Notification Scheduler
+
+- [x] Install node-cron package
+- [x] Create scheduler service (server/scheduler.ts)
+- [x] Implement daily notification checks (MOT, Tax, Service)
+- [x] Integrate scheduler into server startup
+- [x] Add manual trigger endpoint for testing (/api/scheduler/run)
+- [x] Add cron endpoint for external services (/api/cron/run-notifications)
+- [x] Add scheduler status endpoint (/api/scheduler/status)
+- [x] Create comprehensive documentation (NOTIFICATION_SCHEDULER.md)
+- [ ] Test notification scheduler end-to-end (requires real email setup)
+- [ ] Add License expiry check (when implemented in notificationService)
