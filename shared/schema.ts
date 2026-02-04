@@ -222,6 +222,7 @@ export const defects = pgTable("defects", {
   resolutionNotes: text("resolution_notes"),
   resolvedAt: timestamp("resolved_at"),
   resolvedBy: integer("resolved_by").references(() => users.id),
+  photo: text("photo"), // Object storage path for defect photo evidence
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
