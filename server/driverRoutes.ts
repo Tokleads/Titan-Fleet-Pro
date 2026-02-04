@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { users, driverLocations, timesheets, inspections, vehicles } from "@shared/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -14,26 +14,105 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ error: "Company ID is required" });
     }
 
+    const companyIdNum = Number(companyId);
+    
     const drivers = await db
       .select()
       .from(users)
-      .where(eq(users.companyId, Number(companyId)));
+      .where(eq(users.companyId, companyIdNum));
 
-    // TODO: Fetch current location, assigned vehicle, and shift data
-    // For now, return basic driver info
-    const driversWithDetails = drivers.map(driver => ({
-      id: driver.id,
-      name: driver.name,
-      email: driver.email,
-      role: driver.role,
-      active: driver.active,
-      pin: driver.pin,
-      phone: null, // TODO: Add phone field to schema
-      licenseNumber: null, // TODO: Add license field to schema
-      currentLocation: null, // TODO: Fetch from driver_locations table
-      assignedVehicle: null, // TODO: Fetch from vehicle assignments
-      currentShift: null, // TODO: Fetch from timesheets table
-    }));
+    // Fetch additional data for each driver
+    const driversWithDetails = await Promise.all(
+      drivers.map(async (driver) => {
+        // Fetch latest location from driver_locations
+        const [latestLocation] = await db
+          .select()
+          .from(driverLocations)
+          .where(
+            and(
+              eq(driverLocations.driverId, driver.id),
+              eq(driverLocations.companyId, companyIdNum)
+            )
+          )
+          .orderBy(desc(driverLocations.timestamp))
+          .limit(1);
+
+        // Fetch active timesheet (current shift)
+        const [activeTimesheet] = await db
+          .select()
+          .from(timesheets)
+          .where(
+            and(
+              eq(timesheets.driverId, driver.id),
+              eq(timesheets.companyId, companyIdNum),
+              eq(timesheets.status, "ACTIVE")
+            )
+          )
+          .limit(1);
+
+        // Fetch assigned vehicle from most recent inspection
+        const [recentInspection] = await db
+          .select({
+            vehicleId: inspections.vehicleId,
+          })
+          .from(inspections)
+          .where(
+            and(
+              eq(inspections.driverId, driver.id),
+              eq(inspections.companyId, companyIdNum)
+            )
+          )
+          .orderBy(desc(inspections.createdAt))
+          .limit(1);
+
+        let assignedVehicle = null;
+        if (recentInspection?.vehicleId) {
+          const [vehicle] = await db
+            .select()
+            .from(vehicles)
+            .where(eq(vehicles.id, recentInspection.vehicleId))
+            .limit(1);
+          if (vehicle) {
+            assignedVehicle = {
+              id: vehicle.id,
+              vrm: vehicle.vrm,
+              make: vehicle.make,
+              model: vehicle.model,
+              fleetNumber: vehicle.fleetNumber,
+            };
+          }
+        }
+
+        return {
+          id: driver.id,
+          name: driver.name,
+          email: driver.email,
+          role: driver.role,
+          active: driver.active,
+          pin: driver.pin,
+          currentLocation: latestLocation
+            ? {
+                latitude: latestLocation.latitude,
+                longitude: latestLocation.longitude,
+                speed: latestLocation.speed,
+                heading: latestLocation.heading,
+                accuracy: latestLocation.accuracy,
+                isStagnant: latestLocation.isStagnant,
+                timestamp: latestLocation.timestamp,
+              }
+            : null,
+          assignedVehicle,
+          currentShift: activeTimesheet
+            ? {
+                id: activeTimesheet.id,
+                depotName: activeTimesheet.depotName,
+                arrivalTime: activeTimesheet.arrivalTime,
+                status: activeTimesheet.status,
+              }
+            : null,
+        };
+      })
+    );
 
     res.json(driversWithDetails);
   } catch (error) {

@@ -78,11 +78,12 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    const { category, entityType, entityId, description, expiryDate } = req.body;
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
-    const uploadedBy = (req as any).session?.userId || 1; // TODO: Get from session
+    const { category, entityType, entityId, description, expiryDate, companyId, uploadedBy } = req.body;
     
     // Validate required fields
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     if (!category || !entityType || !entityId) {
       return res.status(400).json({ error: 'Missing required fields: category, entityType, entityId' });
     }
@@ -139,11 +140,14 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
-    const { category, status, entityType, search, limit = '50', offset = '0' } = req.query;
+    const { companyId, category, status, entityType, search, limit = '50', offset = '0' } = req.query;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     // Build where conditions
-    const conditions = [eq(fleetDocuments.companyId, companyId)];
+    const conditions = [eq(fleetDocuments.companyId, Number(companyId))];
     
     if (category && category !== 'all') {
       conditions.push(eq(fleetDocuments.category, category as string));
@@ -203,27 +207,31 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
+    const { companyId } = req.query;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     // Get counts by status
     const [activeCount] = await db.select({ count: sql<number>`count(*)` })
       .from(fleetDocuments)
       .where(and(
-        eq(fleetDocuments.companyId, companyId),
+        eq(fleetDocuments.companyId, Number(companyId)),
         eq(fleetDocuments.status, 'active')
       ));
     
     const [expiringSoonCount] = await db.select({ count: sql<number>`count(*)` })
       .from(fleetDocuments)
       .where(and(
-        eq(fleetDocuments.companyId, companyId),
+        eq(fleetDocuments.companyId, Number(companyId)),
         eq(fleetDocuments.status, 'expiring_soon')
       ));
     
     const [expiredCount] = await db.select({ count: sql<number>`count(*)` })
       .from(fleetDocuments)
       .where(and(
-        eq(fleetDocuments.companyId, companyId),
+        eq(fleetDocuments.companyId, Number(companyId)),
         eq(fleetDocuments.status, 'expired')
       ));
     
@@ -244,14 +252,18 @@ router.get('/stats', async (req: Request, res: Response) => {
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
+    const { companyId } = req.query;
     const documentId = parseInt(req.params.id);
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     const [document] = await db.select()
       .from(fleetDocuments)
       .where(and(
         eq(fleetDocuments.id, documentId),
-        eq(fleetDocuments.companyId, companyId)
+        eq(fleetDocuments.companyId, Number(companyId))
       ))
       .limit(1);
     
@@ -277,9 +289,12 @@ router.get('/:id', async (req: Request, res: Response) => {
  */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
     const documentId = parseInt(req.params.id);
-    const { description, expiryDate, category } = req.body;
+    const { description, expiryDate, category, companyId } = req.body;
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     // Calculate new status if expiry date changed
     const expiry = expiryDate ? new Date(expiryDate) : null;
@@ -295,7 +310,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       })
       .where(and(
         eq(fleetDocuments.id, documentId),
-        eq(fleetDocuments.companyId, companyId)
+        eq(fleetDocuments.companyId, Number(companyId))
       ))
       .returning();
     
@@ -316,15 +331,19 @@ router.put('/:id', async (req: Request, res: Response) => {
  */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
+    const { companyId } = req.query;
     const documentId = parseInt(req.params.id);
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     // Get document to delete from S3
     const [document] = await db.select()
       .from(fleetDocuments)
       .where(and(
         eq(fleetDocuments.id, documentId),
-        eq(fleetDocuments.companyId, companyId)
+        eq(fleetDocuments.companyId, Number(companyId))
       ))
       .limit(1);
     
@@ -357,14 +376,18 @@ router.delete('/:id', async (req: Request, res: Response) => {
  */
 router.get('/:id/download', async (req: Request, res: Response) => {
   try {
-    const companyId = (req as any).session?.companyId || 1; // TODO: Get from session
+    const { companyId } = req.query;
     const documentId = parseInt(req.params.id);
+    
+    if (!companyId) {
+      return res.status(400).json({ error: 'Missing required field: companyId' });
+    }
     
     const [document] = await db.select()
       .from(fleetDocuments)
       .where(and(
         eq(fleetDocuments.id, documentId),
-        eq(fleetDocuments.companyId, companyId)
+        eq(fleetDocuments.companyId, Number(companyId))
       ))
       .limit(1);
     

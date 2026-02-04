@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
-  const { setCompanyId } = useBrand();
+  const { refreshCompany } = useBrand();
   const { toast } = useToast();
   const [companyCode, setCompanyCode] = useState("");
   const [pin, setPin] = useState("");
@@ -26,7 +26,7 @@ export default function Landing() {
     try {
       const company = await api.getCompanyByCode(companyCode);
       session.setCompany(company);
-      setCompanyId(String(company.id));
+      refreshCompany();
 
       if (mode === "driver") {
         const mockDriver = {
@@ -36,6 +36,7 @@ export default function Landing() {
           name: "Driver",
           role: "DRIVER" as const,
           pin: pin,
+          password: null,
           active: true,
           createdAt: new Date(),
           totpSecret: null,
