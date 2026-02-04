@@ -17,12 +17,7 @@ router.get("/", async (req, res) => {
     const drivers = await db
       .select()
       .from(users)
-      .where(
-        and(
-          eq(users.companyId, Number(companyId)),
-          eq(users.role, "DRIVER")
-        )
-      );
+      .where(eq(users.companyId, Number(companyId)));
 
     // TODO: Fetch current location, assigned vehicle, and shift data
     // For now, return basic driver info
@@ -50,7 +45,7 @@ router.get("/", async (req, res) => {
 // POST /api/drivers - Create a new driver
 router.post("/", async (req, res) => {
   try {
-    const { companyId, name, email, phone, pin, licenseNumber } = req.body;
+    const { companyId, name, email, phone, pin, licenseNumber, role } = req.body;
 
     if (!companyId || !name || !email || !pin) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -59,6 +54,9 @@ router.post("/", async (req, res) => {
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
       return res.status(400).json({ error: "PIN must be exactly 4 digits" });
     }
+
+    const validRoles = ["DRIVER", "TRANSPORT_MANAGER", "ADMIN"];
+    const userRole = role && validRoles.includes(role) ? role : "DRIVER";
 
     // Check if email already exists for this company
     const existingDriver = await db
@@ -83,7 +81,7 @@ router.post("/", async (req, res) => {
         companyId,
         name,
         email,
-        role: "DRIVER",
+        role: userRole,
         pin,
         active: true,
       })
@@ -107,7 +105,20 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, pin, licenseNumber, active } = req.body;
+    const { companyId, name, email, phone, pin, licenseNumber, active, role } = req.body;
+
+    // Verify the driver belongs to the company
+    if (companyId) {
+      const existingDriver = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, Number(id)), eq(users.companyId, Number(companyId))))
+        .limit(1);
+      
+      if (existingDriver.length === 0) {
+        return res.status(403).json({ error: "Unauthorized: Driver does not belong to this company" });
+      }
+    }
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -119,6 +130,12 @@ router.put("/:id", async (req, res) => {
       updateData.pin = pin;
     }
     if (active !== undefined) updateData.active = active;
+    if (role !== undefined) {
+      const validRoles = ["DRIVER", "TRANSPORT_MANAGER", "ADMIN"];
+      if (validRoles.includes(role)) {
+        updateData.role = role;
+      }
+    }
 
     const [updatedDriver] = await db
       .update(users)
@@ -148,6 +165,20 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const { companyId } = req.query;
+
+    // Verify the driver belongs to the company for authorization
+    if (companyId) {
+      const existingDriver = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, Number(id)), eq(users.companyId, Number(companyId))))
+        .limit(1);
+      
+      if (existingDriver.length === 0) {
+        return res.status(403).json({ error: "Unauthorized: Driver does not belong to this company" });
+      }
+    }
 
     // Soft delete by setting active = false
     const [deletedDriver] = await db

@@ -12,8 +12,20 @@ import {
   ChevronRight,
   Eye,
   ClipboardCheck,
-  Loader2
+  Loader2,
+  Truck,
+  User,
+  Timer,
+  AlertTriangle,
+  Gauge
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ManagerInspections() {
   const company = session.getCompany();
@@ -24,6 +36,8 @@ export default function ManagerInspections() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterVehicle, setFilterVehicle] = useState<string>('all');
   const [filterDriver, setFilterDriver] = useState<string>('all');
+  const [selectedInspection, setSelectedInspection] = useState<any>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const { data: inspections, isLoading } = useQuery({
     queryKey: ["manager-inspections", companyId, page],
@@ -316,7 +330,11 @@ export default function ManagerInspections() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1">
-                          <button className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors" data-testid={`button-view-inspection-${inspection.id}`}>
+                          <button 
+                            onClick={() => { setSelectedInspection(inspection); setShowDetailsModal(true); }}
+                            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors" 
+                            data-testid={`button-view-inspection-${inspection.id}`}
+                          >
                             <Eye className="h-4 w-4 text-slate-400" />
                           </button>
                           <a 
@@ -365,6 +383,183 @@ export default function ManagerInspections() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0" data-testid="modal-inspection-details">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-blue-600" />
+              Inspection Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedInspection && (
+            <ScrollArea className="max-h-[calc(90vh-120px)]">
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Vehicle</p>
+                        <p className="font-mono font-semibold text-slate-900">{getVehicleVrm(selectedInspection.vehicleId)}</p>
+                        <p className="text-sm text-slate-500">{getVehicleName(selectedInspection.vehicleId)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Driver</p>
+                        <p className="font-medium text-slate-900">{getDriverName(selectedInspection.driverId)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                        <Clock className="h-4 w-4 text-slate-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Date & Time</p>
+                        <p className="font-medium text-slate-900">
+                          {new Date(selectedInspection.createdAt).toLocaleDateString('en-GB', { 
+                            day: '2-digit', month: 'short', year: 'numeric' 
+                          })}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {new Date(selectedInspection.createdAt).toLocaleTimeString('en-GB', {
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                        <Gauge className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Odometer</p>
+                        <p className="font-mono font-medium text-slate-900">
+                          {selectedInspection.odometer?.toLocaleString() || '-'} miles
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedInspection.durationSeconds && (
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                    <Timer className="h-4 w-4 text-slate-500" />
+                    <div>
+                      <span className="text-sm font-medium text-slate-700">Duration: </span>
+                      <span className="text-sm text-slate-600">
+                        {Math.floor(selectedInspection.durationSeconds / 60)} min {selectedInspection.durationSeconds % 60} sec
+                      </span>
+                    </div>
+                    {selectedInspection.vehicleCategory && (
+                      <span className="ml-auto text-xs px-2 py-1 bg-white rounded-md border border-slate-200 text-slate-500">
+                        {selectedInspection.vehicleCategory}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-slate-700">Result:</span>
+                  {selectedInspection.status === 'PASS' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Pass
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium">
+                      <XCircle className="h-4 w-4" />
+                      Defects Found
+                    </span>
+                  )}
+                  <span className="ml-auto text-sm text-slate-500 capitalize">
+                    {selectedInspection.type.replace('_', ' ').toLowerCase()}
+                  </span>
+                </div>
+
+                {selectedInspection.checklist && Array.isArray(selectedInspection.checklist) && selectedInspection.checklist.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900 mb-3">Checklist Items</h4>
+                    <div className="space-y-2">
+                      {selectedInspection.checklist.map((item: any, index: number) => (
+                        <div 
+                          key={index}
+                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            item.passed === false 
+                              ? 'bg-red-50 border-red-100' 
+                              : 'bg-white border-slate-100'
+                          }`}
+                          data-testid={`checklist-item-${index}`}
+                        >
+                          {item.passed === false ? (
+                            <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          )}
+                          <span className={`text-sm ${item.passed === false ? 'text-red-700' : 'text-slate-700'}`}>
+                            {item.name || item.label || item.item || `Item ${index + 1}`}
+                          </span>
+                          {item.passed === false ? (
+                            <span className="ml-auto text-xs font-medium text-red-600">FAIL</span>
+                          ) : (
+                            <span className="ml-auto text-xs font-medium text-emerald-600">PASS</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInspection.defects && Array.isArray(selectedInspection.defects) && selectedInspection.defects.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      Defects Reported
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedInspection.defects.map((defect: any, index: number) => (
+                        <div 
+                          key={index}
+                          className="p-3 bg-amber-50 border border-amber-100 rounded-lg"
+                          data-testid={`defect-item-${index}`}
+                        >
+                          <p className="text-sm font-medium text-amber-900">
+                            {defect.category || defect.name || `Defect ${index + 1}`}
+                          </p>
+                          {(defect.notes || defect.description) && (
+                            <p className="text-sm text-amber-700 mt-1">
+                              {defect.notes || defect.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInspection.hasTrailer && (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
+                    <Truck className="h-4 w-4" />
+                    Trailer was attached during this inspection
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </ManagerLayout>
   );
 }

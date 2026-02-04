@@ -10,9 +10,11 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Signal
+  Signal,
+  User,
+  Building2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface Timesheet {
   id: number;
@@ -32,10 +34,25 @@ interface Timesheet {
   };
 }
 
+interface Driver {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface Geofence {
+  id: number;
+  name: string;
+  companyId: number;
+}
+
 export default function Timesheets() {
   const company = session.getCompany();
   const companyId = company?.id;
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [driverFilter, setDriverFilter] = useState<string>("all");
+  const [depotFilter, setDepotFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState({
     start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
@@ -55,6 +72,40 @@ export default function Timesheets() {
     },
     enabled: !!companyId,
   });
+
+  const { data: drivers } = useQuery<Driver[]>({
+    queryKey: ["drivers", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/users/${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch drivers");
+      const users = await res.json();
+      return users.filter((u: Driver) => u.role === "DRIVER");
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: depots } = useQuery<Geofence[]>({
+    queryKey: ["geofences", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/geofences/${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch depots");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const filteredTimesheets = useMemo(() => {
+    if (!timesheets) return [];
+    return timesheets.filter((ts) => {
+      if (driverFilter !== "all" && ts.driverId !== Number(driverFilter)) {
+        return false;
+      }
+      if (depotFilter !== "all" && ts.depotId !== Number(depotFilter)) {
+        return false;
+      }
+      return true;
+    });
+  }, [timesheets, driverFilter, depotFilter]);
 
   const handleExportCSV = async () => {
     try {
@@ -92,9 +143,9 @@ export default function Timesheets() {
     return `${hours}h ${mins}m`;
   };
 
-  const totalHours = timesheets?.reduce((sum, ts) => sum + (ts.totalMinutes || 0), 0) || 0;
-  const completedCount = timesheets?.filter(ts => ts.status === "COMPLETED").length || 0;
-  const activeCount = timesheets?.filter(ts => ts.status === "ACTIVE").length || 0;
+  const totalHours = filteredTimesheets.reduce((sum, ts) => sum + (ts.totalMinutes || 0), 0);
+  const completedCount = filteredTimesheets.filter(ts => ts.status === "COMPLETED").length;
+  const activeCount = filteredTimesheets.filter(ts => ts.status === "ACTIVE").length;
 
   return (
     <ManagerLayout>
@@ -122,7 +173,7 @@ export default function Timesheets() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">Total Entries</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{timesheets?.length || 0}</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{filteredTimesheets.length}</p>
               </div>
               <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center">
                 <Calendar className="h-6 w-6 text-slate-600" />
@@ -179,10 +230,39 @@ export default function Timesheets() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-status"
             >
               <option value="all">All Status</option>
               <option value="ACTIVE">Active</option>
               <option value="COMPLETED">Completed</option>
+            </select>
+
+            <select
+              value={driverFilter}
+              onChange={(e) => setDriverFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-driver"
+            >
+              <option value="all">All Drivers</option>
+              {drivers?.map((driver) => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={depotFilter}
+              onChange={(e) => setDepotFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="filter-depot"
+            >
+              <option value="all">All Depots</option>
+              {depots?.map((depot) => (
+                <option key={depot.id} value={depot.id}>
+                  {depot.name}
+                </option>
+              ))}
             </select>
 
             <input
@@ -239,8 +319,8 @@ export default function Timesheets() {
                       Loading timesheets...
                     </td>
                   </tr>
-                ) : timesheets && timesheets.length > 0 ? (
-                  timesheets.map((timesheet) => (
+                ) : filteredTimesheets.length > 0 ? (
+                  filteredTimesheets.map((timesheet) => (
                     <tr key={timesheet.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
