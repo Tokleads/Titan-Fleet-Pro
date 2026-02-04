@@ -36,20 +36,36 @@ export default function ManagerInspections() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterVehicle, setFilterVehicle] = useState<string>('all');
   const [filterDriver, setFilterDriver] = useState<string>('all');
+  const [dateRange, setDateRange] = useState({
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
   const [selectedInspection, setSelectedInspection] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  const { data: inspections, isLoading } = useQuery({
-    queryKey: ["manager-inspections", companyId, page],
+  const { data: inspectionsData, isLoading } = useQuery<{ inspections: any[]; total: number }>({
+    queryKey: ["manager-inspections", companyId, page, filterStatus, filterVehicle, filterDriver, dateRange],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/inspections/${companyId}?limit=${pageSize}&offset=${page * pageSize}`);
+      const params = new URLSearchParams({
+        limit: String(pageSize),
+        offset: String(page * pageSize),
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        ...(filterStatus !== 'all' && { status: filterStatus }),
+        ...(filterVehicle !== 'all' && { vehicleId: filterVehicle }),
+        ...(filterDriver !== 'all' && { driverId: filterDriver })
+      });
+      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`);
       if (!res.ok) throw new Error("Failed to fetch inspections");
       return res.json();
     },
     enabled: !!companyId,
   });
 
-  const { data: vehicles } = useQuery({
+  const inspections = inspectionsData?.inspections || [];
+  const totalInspections = inspectionsData?.total || 0;
+
+  const { data: vehiclesData } = useQuery<{ vehicles: any[] }>({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/vehicles?companyId=${companyId}`);
@@ -58,6 +74,8 @@ export default function ManagerInspections() {
     },
     enabled: !!companyId,
   });
+
+  const vehicles = vehiclesData?.vehicles || [];
 
   const { data: users } = useQuery({
     queryKey: ["users", companyId],
@@ -91,12 +109,21 @@ export default function ManagerInspections() {
     
     setIsExporting(true);
     try {
-      // Fetch all inspections for export (no pagination)
-      const res = await fetch(`/api/manager/inspections/${companyId}?limit=10000&offset=0`);
+      const params = new URLSearchParams({
+        limit: '10000',
+        offset: '0',
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        ...(filterStatus !== 'all' && { status: filterStatus }),
+        ...(filterVehicle !== 'all' && { vehicleId: filterVehicle }),
+        ...(filterDriver !== 'all' && { driverId: filterDriver })
+      });
+      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`);
       if (!res.ok) throw new Error("Failed to fetch inspections");
-      const allInspections = await res.json();
+      const data = await res.json();
+      const allInspections = data.inspections || [];
       
-      if (!allInspections || allInspections.length === 0) {
+      if (allInspections.length === 0) {
         alert('No inspections to export');
         return;
       }
@@ -222,8 +249,35 @@ export default function ManagerInspections() {
                 ))}
               </select>
             </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-600">Date:</label>
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => { setDateRange({ ...dateRange, start: e.target.value }); setPage(0); }}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
+                data-testid="input-filter-start-date"
+              />
+              <span className="text-slate-400">to</span>
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) => { setDateRange({ ...dateRange, end: e.target.value }); setPage(0); }}
+                className="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white"
+                data-testid="input-filter-end-date"
+              />
+            </div>
             <button 
-              onClick={() => { setFilterStatus('all'); setFilterVehicle('all'); setFilterDriver('all'); setPage(0); }}
+              onClick={() => { 
+                setFilterStatus('all'); 
+                setFilterVehicle('all'); 
+                setFilterDriver('all'); 
+                setDateRange({
+                  start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                  end: new Date().toISOString().split('T')[0]
+                });
+                setPage(0); 
+              }}
               className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
               data-testid="button-reset-filters"
             >
@@ -259,14 +313,7 @@ export default function ManagerInspections() {
                       <td className="px-5 py-4"><div className="h-8 w-8 bg-slate-100 rounded animate-pulse" /></td>
                     </tr>
                   ))
-                ) : (() => {
-                  const filteredInspections = inspections?.filter((inspection: any) => {
-                    if (filterStatus !== 'all' && inspection.status !== filterStatus) return false;
-                    if (filterVehicle !== 'all' && inspection.vehicleId !== Number(filterVehicle)) return false;
-                    if (filterDriver !== 'all' && inspection.driverId !== Number(filterDriver)) return false;
-                    return true;
-                  });
-                  return filteredInspections?.length === 0 ? (
+                ) : inspections.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-5 py-16 text-center">
                         <ClipboardCheck className="h-10 w-10 text-slate-300 mx-auto mb-3" />
@@ -274,7 +321,7 @@ export default function ManagerInspections() {
                       </td>
                     </tr>
                   ) : (
-                    filteredInspections?.map((inspection: any) => (
+                    inspections.map((inspection: any) => (
                     <tr key={inspection.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
@@ -350,8 +397,7 @@ export default function ManagerInspections() {
                       </td>
                     </tr>
                     ))
-                  );
-                })()}
+                  )}
               </tbody>
             </table>
           </div>
@@ -359,7 +405,7 @@ export default function ManagerInspections() {
           {/* Pagination */}
           <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
             <p className="text-sm text-slate-500">
-              Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, inspections?.length || 0)} results
+              Showing {totalInspections === 0 ? 0 : page * pageSize + 1} to {Math.min((page + 1) * pageSize, totalInspections)} of {totalInspections} results
             </p>
             <div className="flex items-center gap-2">
               <button 
@@ -370,10 +416,10 @@ export default function ManagerInspections() {
               >
                 <ChevronLeft className="h-4 w-4 text-slate-600" />
               </button>
-              <span className="text-sm text-slate-600 px-3">Page {page + 1}</span>
+              <span className="text-sm text-slate-600 px-3">Page {page + 1} of {Math.max(1, Math.ceil(totalInspections / pageSize))}</span>
               <button 
                 onClick={() => setPage(p => p + 1)}
-                disabled={(inspections?.length || 0) < pageSize}
+                disabled={(page + 1) * pageSize >= totalInspections}
                 className="h-9 w-9 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 data-testid="button-inspections-next-page"
               >

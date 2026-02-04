@@ -62,7 +62,15 @@ export interface IStorage {
     vehiclesDue: number;
     totalVehicles: number;
   }>;
-  getAllInspections(companyId: number, limit?: number, offset?: number): Promise<Inspection[]>;
+  getAllInspections(companyId: number, options?: { 
+    limit?: number; 
+    offset?: number; 
+    status?: string; 
+    vehicleId?: number; 
+    driverId?: number; 
+    startDate?: string; 
+    endDate?: string; 
+  }): Promise<{ inspections: Inspection[]; total: number }>;
   getInspectionById(id: number): Promise<Inspection | undefined>;
   
   // Defect operations
@@ -403,13 +411,53 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // All inspections for company
-  async getAllInspections(companyId: number, limit = 50, offset = 0): Promise<Inspection[]> {
-    return await db.select().from(inspections)
-      .where(eq(inspections.companyId, companyId))
+  // All inspections for company with server-side filtering
+  async getAllInspections(companyId: number, options?: { 
+    limit?: number; 
+    offset?: number; 
+    status?: string; 
+    vehicleId?: number; 
+    driverId?: number; 
+    startDate?: string; 
+    endDate?: string; 
+  }): Promise<{ inspections: Inspection[]; total: number }> {
+    const { limit = 50, offset = 0, status, vehicleId, driverId, startDate, endDate } = options || {};
+    
+    const conditions: any[] = [eq(inspections.companyId, companyId)];
+    
+    if (status) {
+      conditions.push(eq(inspections.status, status));
+    }
+    if (vehicleId) {
+      conditions.push(eq(inspections.vehicleId, vehicleId));
+    }
+    if (driverId) {
+      conditions.push(eq(inspections.driverId, driverId));
+    }
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      conditions.push(gte(inspections.createdAt, start));
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(sql`${inspections.createdAt} <= ${end}`);
+    }
+    
+    const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
+    
+    const inspectionList = await db.select().from(inspections)
+      .where(whereCondition)
       .orderBy(desc(inspections.createdAt))
       .limit(limit)
       .offset(offset);
+    
+    const [{ count: totalCount }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(inspections)
+      .where(whereCondition);
+    
+    return { inspections: inspectionList, total: totalCount };
   }
 
   async getInspectionById(id: number): Promise<Inspection | undefined> {

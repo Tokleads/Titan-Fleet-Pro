@@ -11,6 +11,9 @@ import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
 import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 import { registerFuelIntelligenceRoutes } from "./fuelIntelligenceRoutes";
 import driverRoutes from "./driverRoutes";
+import { ObjectStorageService } from "./objectStorage";
+
+const objectStorageService = new ObjectStorageService();
 
 export async function registerRoutes(
   httpServer: Server,
@@ -100,6 +103,29 @@ export async function registerRoutes(
         error: "Failed to run notification checks",
         message: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Defect photo upload - get presigned URL
+  app.post("/api/defect-photos/request-url", async (req, res) => {
+    try {
+      const { companyId, filename, contentType } = req.body;
+      if (!companyId || !filename) {
+        return res.status(400).json({ error: "Missing companyId or filename" });
+      }
+      
+      const result = await objectStorageService.getDocumentUploadURL(
+        Number(companyId),
+        `defect-${Date.now()}-${filename}`
+      );
+      
+      res.json({
+        uploadURL: result.uploadUrl,
+        objectPath: result.storagePath,
+      });
+    } catch (error) {
+      console.error("Failed to get defect photo upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
     }
   });
 
@@ -506,16 +532,32 @@ export async function registerRoutes(
     }
   });
 
-  // All inspections for manager
+  // All inspections for manager with server-side filtering
   app.get("/api/manager/inspections/:companyId", async (req, res) => {
     try {
-      const { limit = '50', offset = '0' } = req.query;
-      const inspectionList = await storage.getAllInspections(
+      const { 
+        limit = '50', 
+        offset = '0',
+        status,
+        vehicleId,
+        driverId,
+        startDate,
+        endDate
+      } = req.query;
+      
+      const result = await storage.getAllInspections(
         Number(req.params.companyId),
-        Number(limit),
-        Number(offset)
+        {
+          limit: Number(limit),
+          offset: Number(offset),
+          status: status as string | undefined,
+          vehicleId: vehicleId ? Number(vehicleId) : undefined,
+          driverId: driverId ? Number(driverId) : undefined,
+          startDate: startDate as string | undefined,
+          endDate: endDate as string | undefined
+        }
       );
-      res.json(inspectionList);
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }

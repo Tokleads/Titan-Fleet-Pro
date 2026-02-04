@@ -7,10 +7,11 @@ import { useLocation, useRoute, useSearch } from "wouter";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle } from "@shared/schema";
-import { Check, ChevronLeft, ChevronDown, ChevronUp, Camera, AlertTriangle, Loader2, X, Play, Clock, Timer } from "lucide-react";
+import { Check, ChevronLeft, ChevronDown, ChevronUp, Camera, AlertTriangle, Loader2, X, Play, Clock, Timer, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 
 // DVSA minimum check times in seconds
 const MIN_CHECK_TIME_HGV = 10 * 60; // 10 minutes for HGV
@@ -190,6 +191,10 @@ export default function VehicleInspection() {
   const [defectSheetItem, setDefectSheetItem] = useState<{ sectionId: string; itemId: string } | null>(null);
   const [defectNote, setDefectNote] = useState("");
   const [defectPhoto, setDefectPhoto] = useState<string | null>(null);
+  const [defectPhotoPreview, setDefectPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   
   // DVSA Auditable Timing State
   const [checkStarted, setCheckStarted] = useState(false);
@@ -305,6 +310,7 @@ export default function VehicleInspection() {
     const item = section?.items.find(i => i.id === itemId);
     setDefectNote(item?.defectNote || "");
     setDefectPhoto(item?.defectPhoto || null);
+    setDefectPhotoPreview(null);
     setDefectSheetItem({ sectionId, itemId });
   };
 
@@ -323,6 +329,10 @@ export default function VehicleInspection() {
     setDefectSheetItem(null);
     setDefectNote("");
     setDefectPhoto(null);
+    if (defectPhotoPreview) {
+      URL.revokeObjectURL(defectPhotoPreview);
+      setDefectPhotoPreview(null);
+    }
     toast({ title: "Defect recorded", description: "Item marked as failed" });
   };
 
@@ -340,7 +350,69 @@ export default function VehicleInspection() {
     }));
     setDefectSheetItem(null);
     setDefectNote("");
+    removePhoto();
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !company) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setDefectPhotoPreview(previewUrl);
+    setIsUploadingPhoto(true);
+    setUploadProgress(10);
+
+    try {
+      const response = await fetch("/api/defect-photos/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: company.id,
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadURL, objectPath } = await response.json();
+      setUploadProgress(30);
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload photo");
+      }
+
+      setUploadProgress(100);
+      setDefectPhoto(objectPath);
+      toast({ title: "Photo uploaded", description: "Defect photo captured successfully" });
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      toast({ variant: "destructive", title: "Upload failed", description: "Could not upload photo. Please try again." });
+      URL.revokeObjectURL(previewUrl);
+      setDefectPhotoPreview(null);
+    } finally {
+      setIsUploadingPhoto(false);
+      setUploadProgress(0);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removePhoto = () => {
+    if (defectPhotoPreview) {
+      URL.revokeObjectURL(defectPhotoPreview);
+    }
     setDefectPhoto(null);
+    setDefectPhotoPreview(null);
   };
 
   // Progress calculation
@@ -383,6 +455,7 @@ export default function VehicleInspection() {
           item: item.label,
           status: item.status,
           defectNote: item.defectNote || null,
+          defectPhoto: item.defectPhoto || null,
           hasPhoto: !!item.defectPhoto,
         }))
       );
@@ -398,7 +471,11 @@ export default function VehicleInspection() {
         odometer: Number(odometer),
         status: failedItems.length > 0 ? "FAIL" : "PASS",
         checklist,
-        defects: failedItems.length > 0 ? failedItems.map(i => ({ item: i.label, note: i.defectNote })) : null,
+        defects: failedItems.length > 0 ? failedItems.map(i => ({ 
+          item: i.label, 
+          note: i.defectNote,
+          photo: i.defectPhoto || null
+        })) : null,
         hasTrailer: hasTrailer,
         // DVSA Auditable Timing
         startedAt: startedAt?.toISOString(),
@@ -657,14 +734,50 @@ export default function VehicleInspection() {
                   
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-2">Photo Evidence (Required)</label>
-                    {defectPhoto ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-sm flex items-center gap-2">
-                        <Check className="h-4 w-4" /> Photo captured
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      data-testid="input-defect-photo"
+                    />
+                    
+                    {isUploadingPhoto ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                          <span className="text-blue-700 text-sm font-medium">Uploading photo...</span>
+                        </div>
+                        <Progress value={uploadProgress} className="h-2" />
+                      </div>
+                    ) : defectPhoto && defectPhotoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={defectPhotoPreview}
+                          alt="Defect photo"
+                          className="w-full h-40 object-cover rounded-lg border border-green-200"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <button
+                            onClick={removePhoto}
+                            className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                            data-testid="button-remove-photo"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Photo captured
+                        </div>
                       </div>
                     ) : (
                       <button
-                        onClick={() => setDefectPhoto(`captured_${Date.now()}`)}
+                        onClick={() => photoInputRef.current?.click()}
                         className="w-full p-4 border-2 border-dashed border-red-200 bg-red-50 rounded-lg text-red-600 hover:border-red-300 transition-colors flex items-center justify-center gap-2"
+                        data-testid="button-capture-photo"
                       >
                         <Camera className="h-5 w-5" />
                         <span>Capture Photo</span>
@@ -680,7 +793,8 @@ export default function VehicleInspection() {
                       variant="destructive" 
                       className="flex-1" 
                       onClick={saveDefect}
-                      disabled={!defectNote.trim() || !defectPhoto}
+                      disabled={!defectNote.trim() || !defectPhoto || isUploadingPhoto}
+                      data-testid="button-save-defect"
                     >
                       Save Defect
                     </TitanButton>
