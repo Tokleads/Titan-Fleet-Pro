@@ -2516,6 +2516,61 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to update notification" });
     }
   });
+  
+  // Get notifications for current user (both direct and broadcast)
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const { companyId, userId, limit } = req.query;
+      
+      if (!companyId || !userId) {
+        return res.status(400).json({ error: "Missing companyId or userId" });
+      }
+      
+      const notifications = await storage.getUserNotifications(
+        Number(companyId),
+        Number(userId),
+        limit ? Number(limit) : 50
+      );
+      res.json(notifications);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+  
+  // Mark all notifications as read
+  app.patch("/api/notifications/mark-all-read", async (req, res) => {
+    try {
+      const { companyId, userId } = req.body;
+      
+      if (!companyId || !userId) {
+        return res.status(400).json({ error: "Missing companyId or userId" });
+      }
+      
+      await storage.markAllNotificationsRead(Number(companyId), Number(userId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark all as read" });
+    }
+  });
+  
+  // Get unread notification count
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    try {
+      const { companyId, userId } = req.query;
+      
+      if (!companyId || !userId) {
+        return res.status(400).json({ error: "Missing companyId or userId" });
+      }
+      
+      const count = await storage.getUnreadNotificationCount(Number(companyId), Number(userId));
+      res.json({ count });
+    } catch (error) {
+      console.error("Failed to get unread count:", error);
+      res.status(500).json({ error: "Failed to get unread count" });
+    }
+  });
 
   // ==================== REPORT ENDPOINTS ====================
   

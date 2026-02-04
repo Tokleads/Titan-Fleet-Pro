@@ -4,6 +4,7 @@ import { LogOut, Home, History, UploadCloud, Settings, Menu, X, Truck, FileText 
 import { useState } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function DriverLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -29,8 +30,9 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </div>
             
-            {/* Online Status */}
+            {/* Notifications and Status */}
             <div className="flex items-center gap-2">
+                <NotificationBell />
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </div>
         </div>

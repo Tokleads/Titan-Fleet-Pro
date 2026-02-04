@@ -30,6 +30,7 @@ import {
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
 import { TitanIntelligenceSidebar } from "@/components/TitanIntelligenceSidebar";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const navItems = [
   { path: "/manager", icon: LayoutDashboard, label: "Dashboard" },
@@ -151,13 +152,7 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button 
-              className="relative h-10 w-10 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-5 w-5 text-slate-500" />
-              <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white" />
-            </button>
+            <NotificationBell />
             
             <div className="w-px h-8 bg-slate-200 mx-2" />
             

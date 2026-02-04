@@ -157,6 +157,9 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   getDriverNotifications(driverId: number): Promise<Notification[]>;
   markNotificationRead(id: number): Promise<Notification | undefined>;
+  getUserNotifications(companyId: number, userId: number, limit?: number): Promise<Notification[]>;
+  markAllNotificationsRead(companyId: number, userId: number): Promise<void>;
+  getUnreadNotificationCount(companyId: number, userId: number): Promise<number>;
   
   // Shift check operations (End-of-shift vehicle checks)
   createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number): Promise<any>;
@@ -1356,6 +1359,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.id, id))
       .returning();
     return updated || undefined;
+  }
+  
+  async getUserNotifications(companyId: number, userId: number, limit: number = 50): Promise<Notification[]> {
+    return await db.select().from(notifications)
+      .where(and(
+        eq(notifications.companyId, companyId),
+        eq(notifications.recipientId, userId)
+      ))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+  
+  async markAllNotificationsRead(companyId: number, userId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(notifications.companyId, companyId),
+        eq(notifications.recipientId, userId),
+        eq(notifications.isRead, false)
+      ));
+  }
+  
+  async getUnreadNotificationCount(companyId: number, userId: number): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(notifications)
+      .where(and(
+        eq(notifications.companyId, companyId),
+        eq(notifications.recipientId, userId),
+        eq(notifications.isRead, false)
+      ));
+    return result?.count || 0;
   }
   
   // ==================== SHIFT CHECKS (END-OF-SHIFT) ====================
