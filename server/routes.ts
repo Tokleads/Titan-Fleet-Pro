@@ -12,6 +12,7 @@ import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 import { registerFuelIntelligenceRoutes } from "./fuelIntelligenceRoutes";
 import driverRoutes from "./driverRoutes";
 import { ObjectStorageService } from "./objectStorage";
+import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome, checkMOTExpiryWarnings } from "./notificationTriggers";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -101,6 +102,23 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ 
         error: "Failed to run notification checks",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // MOT expiry check endpoint
+  app.post("/api/notifications/check-mot-expiry", async (req, res) => {
+    try {
+      const result = await checkMOTExpiryWarnings();
+      res.json({
+        message: "MOT expiry check completed",
+        vehiclesChecked: result.checked,
+        notificationsSent: result.notified
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to check MOT expiry",
         message: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -218,6 +236,20 @@ export async function registerRoutes(
         inspection.driverId,
         inspection.vehicleId
       );
+      
+      // If inspection failed (has defects), notify managers
+      if (inspection.status === 'FAIL') {
+        const defectsArray = inspection.defects as any[] | null;
+        const defectCount = defectsArray?.length || 1;
+        setImmediate(() => {
+          triggerInspectionFailed({
+            companyId: inspection.companyId,
+            vehicleId: inspection.vehicleId,
+            driverId: inspection.driverId,
+            defectCount,
+          });
+        });
+      }
       
       // Auto-upload PDF to Google Drive if configured (async, non-blocking)
       setImmediate(async () => {
@@ -365,7 +397,7 @@ export async function registerRoutes(
   // Create defect report (driver)
   app.post("/api/defects", async (req, res) => {
     try {
-      const { companyId, vehicleId, reportedBy, description, hasPhoto } = req.body;
+      const { companyId, vehicleId, reportedBy, description, hasPhoto, severity } = req.body;
       if (!companyId || !vehicleId || !reportedBy || !description) {
         return res.status(400).json({ error: "Missing required fields" });
       }
@@ -377,6 +409,18 @@ export async function registerRoutes(
         description,
         category: "VEHICLE",
         status: "OPEN",
+        severity: severity || "MEDIUM",
+      });
+      
+      // Trigger notification to managers (async, non-blocking)
+      setImmediate(() => {
+        triggerDefectReported({
+          companyId,
+          vehicleId,
+          reportedBy,
+          description,
+          severity: defect.severity,
+        });
       });
       
       res.status(201).json(defect);
@@ -590,6 +634,20 @@ export async function registerRoutes(
     try {
       const validated = insertDefectSchema.parse(req.body);
       const defect = await storage.createDefect(validated);
+      
+      // Trigger notification to managers (async, non-blocking)
+      if (defect.vehicleId) {
+        setImmediate(() => {
+          triggerDefectReported({
+            companyId: defect.companyId,
+            vehicleId: defect.vehicleId!,
+            reportedBy: defect.reportedBy,
+            description: defect.description,
+            severity: defect.severity,
+          });
+        });
+      }
+      
       res.status(201).json(defect);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -973,6 +1031,17 @@ export async function registerRoutes(
         pin: validated.pin || null,
         active: true,
       });
+      
+      // Send welcome notification to new drivers
+      if (validated.role === 'DRIVER' && validated.managerId) {
+        setImmediate(() => {
+          triggerNewDriverWelcome({
+            companyId: validated.companyId,
+            newDriverId: user.id,
+            addedByManagerId: validated.managerId!,
+          });
+        });
+      }
       
       // Audit log
       const { logAudit } = await import("./auditService");
