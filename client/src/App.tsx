@@ -11,7 +11,7 @@ import VehicleInspection from "@/pages/driver/VehicleInspection";
 import FuelEntry from "@/pages/driver/FuelEntry";
 import DefectReport from "@/pages/driver/DefectReport";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
-import ManagerDashboard from "@/pages/manager/Dashboard";
+import ManagerDashboard from "@/pages/manager/AdvancedDashboard";
 import ManagerInspections from "@/pages/manager/Inspections";
 import ManagerDefects from "@/pages/manager/Defects";
 import ManagerFuelLog from "@/pages/manager/FuelLog";
@@ -24,7 +24,6 @@ import LiveTracking from "@/pages/manager/LiveTracking";
 import Timesheets from "@/pages/manager/Timesheets";
 import TitanCommand from "@/pages/manager/TitanCommand";
 import Geofences from "@/pages/manager/Geofences";
-import AdvancedDashboard from "@/pages/manager/AdvancedDashboard";
 import FleetDocuments from "@/pages/manager/FleetDocuments";
 import VehicleDetails from "@/pages/manager/VehicleDetails";
 import UserRoles from "@/pages/manager/UserRoles";
@@ -74,7 +73,6 @@ function Router() {
       <Route path="/manager/fuel-intelligence" component={FuelIntelligence} />
       <Route path="/manager/titan-command" component={TitanCommand} />
       <Route path="/manager/geofences" component={Geofences} />
-      <Route path="/manager/advanced-dashboard" component={AdvancedDashboard} />
       <Route path="/manager/fleet-documents" component={FleetDocuments} />
       <Route path="/manager/user-roles" component={UserRoles} />
       <Route path="/manager/notifications" component={NotificationPreferences} />
