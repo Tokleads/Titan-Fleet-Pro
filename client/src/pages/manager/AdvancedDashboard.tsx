@@ -111,8 +111,20 @@ export default function AdvancedDashboard() {
         const defectData = await defectRes.json();
         const activityData = await activityRes.json();
         
+        // Transform nested KPI structure to flat structure
+        const transformedKpis: KPIs = {
+          totalVehicles: Number(kpisData.totalVehicles?.value) || 0,
+          totalVehiclesTrend: Number(kpisData.totalVehicles?.trend) || 0,
+          activeDrivers: Number(kpisData.activeDrivers?.value) || 0,
+          activeDriversTrend: Number(kpisData.activeDrivers?.trend) || 0,
+          inspectionsMTD: Number(kpisData.inspectionsMTD?.value) || 0,
+          inspectionsMTDTrend: Number(kpisData.inspectionsMTD?.trend) || 0,
+          complianceRate: Number(kpisData.complianceRate?.value) || 0,
+          complianceRateTrend: Number(kpisData.complianceRate?.trend) || 0,
+        };
+        
         // Set state
-        setKpis(kpisData);
+        setKpis(transformedKpis);
         setFleetStatusData(fleetData.data);
         setCostAnalysisData(costData.data);
         setComplianceData(complianceDataRes.data);
