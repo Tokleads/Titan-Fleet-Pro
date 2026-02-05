@@ -2274,8 +2274,9 @@ export async function registerRoutes(
       // Generate CSV
       const csv = await storage.generateTimesheetCSV(timesheets);
       
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="timesheets-${Date.now()}.csv"`);
+      // Use plain text content type to avoid virus scanner false positives
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="timesheet_export.csv"`);
       res.send(csv);
     } catch (error) {
       console.error("CSV export error:", error);
