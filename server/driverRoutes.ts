@@ -124,9 +124,11 @@ router.get("/", async (req, res) => {
 // POST /api/drivers - Create a new driver
 router.post("/", async (req, res) => {
   try {
+    console.log("POST /api/drivers - Request body:", JSON.stringify(req.body));
     const { companyId, name, email, phone, pin, licenseNumber, role } = req.body;
 
     if (!companyId || !name || !email || !pin) {
+      console.log("Missing fields - companyId:", companyId, "name:", name, "email:", email, "pin:", pin);
       return res.status(400).json({ error: "Missing required fields" });
     }
 
