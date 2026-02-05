@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown, Signal } from 'lucide-react';
+import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown, Signal, Shield, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   calculateDistance, 
   isPointInGeofence, 
@@ -32,6 +41,16 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   const [matchingGeofences, setMatchingGeofences] = useState<Geofence[]>([]);
   const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [showManualSelection, setShowManualSelection] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(() => {
+    // Check if policy was accepted today
+    const acceptedDate = localStorage.getItem(`policy-accepted-${driverId}`);
+    if (acceptedDate) {
+      const today = new Date().toDateString();
+      return acceptedDate === today;
+    }
+    return false;
+  });
   const queryClient = useQueryClient();
 
   // Fetch geofences (depots)
@@ -218,6 +237,25 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
 
   // Can clock in if: location available, accuracy valid, and either inside geofence OR manual selection made
   const canClockIn = currentLocation && isAccuracyValid && (isInsideGeofence || selectedDepotId !== null);
+
+  // Handle policy acceptance
+  const handleAcceptPolicy = () => {
+    const today = new Date().toDateString();
+    localStorage.setItem(`policy-accepted-${driverId}`, today);
+    setPolicyAccepted(true);
+    setShowPolicyModal(false);
+    // Now proceed with clock in
+    clockInMutation.mutate();
+  };
+
+  // Handle clock in button click - show policy if not accepted
+  const handleClockInClick = () => {
+    if (!policyAccepted) {
+      setShowPolicyModal(true);
+    } else {
+      clockInMutation.mutate();
+    }
+  };
 
   if (loadingTimesheet) {
     return (
@@ -428,7 +466,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           <Button
             size="lg"
             className="w-full h-16 text-lg"
-            onClick={() => clockInMutation.mutate()}
+            onClick={handleClockInClick}
             disabled={!canClockIn || clockInMutation.isPending}
           >
             {clockInMutation.isPending ? (
@@ -485,6 +523,89 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           </p>
         </Card>
       )}
+
+      {/* GPS Tracking Policy Modal */}
+      <Dialog open={showPolicyModal} onOpenChange={setShowPolicyModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <DialogTitle className="text-xl">GPS Tracking Policy</DialogTitle>
+            </div>
+            <DialogDescription className="text-left">
+              Please read and acknowledge the following policy before starting your shift.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
+              <div className="flex items-start gap-2">
+                <FileText className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Vehicle Location Monitoring</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    During your shift, the company vehicle's location will be tracked for fleet management, route optimization, and safety purposes.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-medium">When Tracking Occurs</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Location tracking is active only while you are clocked in for your shift. Tracking stops automatically when you clock out.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Shield className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Data Protection</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    All location data is stored securely and used only for legitimate business purposes in accordance with GDPR and UK data protection laws.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <Clock className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Data Retention</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Location history is retained for 90 days for operational purposes and may be used for timesheet verification.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              By clicking "I Understand & Accept", you confirm that you have read and understood this GPS tracking policy. This acknowledgment is required daily before starting your shift.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button 
+              onClick={handleAcceptPolicy}
+              className="w-full"
+              size="lg"
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              I Understand & Accept
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowPolicyModal(false)}
+              className="w-full text-muted-foreground"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
