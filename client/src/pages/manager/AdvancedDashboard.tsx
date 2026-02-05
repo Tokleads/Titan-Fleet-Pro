@@ -52,6 +52,10 @@ interface KPIs {
   inspectionsMTDTrend: number;
   complianceRate: number;
   complianceRateTrend: number;
+  avgMpg: number;
+  avgMpgTrend: number;
+  fuelCostMTD: number;
+  fuelCostTrend: number;
 }
 
 interface ChartData {
@@ -74,6 +78,7 @@ export default function AdvancedDashboard() {
   const [defectTrendData, setDefectTrendData] = useState<ChartData[]>([]);
   const [driverActivityData, setDriverActivityData] = useState<ChartData[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [topDriversMpg, setTopDriversMpg] = useState<ChartData[]>([]);
   
   // Fetch all dashboard data
   useEffect(() => {
@@ -84,6 +89,12 @@ export default function AdvancedDashboard() {
         setLoading(true);
         
         // Fetch all data in parallel
+        // Calculate date range for fuel intelligence (last 30 days)
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDateObj = new Date();
+        startDateObj.setDate(startDateObj.getDate() - 30);
+        const startDate = startDateObj.toISOString().split('T')[0];
+
         const [
           kpisRes,
           fleetRes,
@@ -91,7 +102,9 @@ export default function AdvancedDashboard() {
           complianceRes,
           driverRes,
           defectRes,
-          activityRes
+          activityRes,
+          fuelSummaryRes,
+          driverMpgRes
         ] = await Promise.all([
           fetch(`/api/dashboard/kpis?companyId=${companyId}`, { signal: controller.signal }),
           fetch(`/api/dashboard/fleet-overview?companyId=${companyId}`, { signal: controller.signal }),
@@ -99,7 +112,9 @@ export default function AdvancedDashboard() {
           fetch(`/api/dashboard/compliance?companyId=${companyId}`, { signal: controller.signal }),
           fetch(`/api/dashboard/driver-activity?companyId=${companyId}`, { signal: controller.signal }),
           fetch(`/api/dashboard/defect-trends?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/recent-activity?companyId=${companyId}`, { signal: controller.signal })
+          fetch(`/api/dashboard/recent-activity?companyId=${companyId}`, { signal: controller.signal }),
+          fetch(`/api/fuel-intelligence/summary?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal }),
+          fetch(`/api/fuel-intelligence/driver-performance?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal })
         ]);
         
         // Parse responses
@@ -110,6 +125,8 @@ export default function AdvancedDashboard() {
         const driverData = await driverRes.json();
         const defectData = await defectRes.json();
         const activityData = await activityRes.json();
+        const fuelSummary = fuelSummaryRes.ok ? await fuelSummaryRes.json() : null;
+        const driverMpgData = driverMpgRes.ok ? await driverMpgRes.json() : [];
         
         // Transform nested KPI structure to flat structure
         const transformedKpis: KPIs = {
@@ -121,16 +138,29 @@ export default function AdvancedDashboard() {
           inspectionsMTDTrend: Number(kpisData.inspectionsMTD?.trend) || 0,
           complianceRate: Number(kpisData.complianceRate?.value) || 0,
           complianceRateTrend: Number(kpisData.complianceRate?.trend) || 0,
+          avgMpg: Number(fuelSummary?.avgMpg) || 0,
+          avgMpgTrend: 0,
+          fuelCostMTD: Number(fuelSummary?.totalCost) || 0,
+          fuelCostTrend: 0,
         };
+
+        // Transform driver MPG data for chart
+        const topDrivers = Array.isArray(driverMpgData) 
+          ? driverMpgData.slice(0, 5).map((d: any) => ({
+              name: d.driverName || 'Unknown',
+              mpg: Number(d.avgMpg) || 0,
+            }))
+          : [];
         
         // Set state
         setKpis(transformedKpis);
-        setFleetStatusData(fleetData.data);
-        setCostAnalysisData(costData.data);
-        setComplianceData(complianceDataRes.data);
-        setDriverActivityData(driverData.data);
-        setDefectTrendData(defectData.data);
-        setRecentActivity(activityData.activities);
+        setFleetStatusData(fleetData.data || []);
+        setCostAnalysisData(costData.data || []);
+        setComplianceData(complianceDataRes.data || []);
+        setDriverActivityData(driverData.data || []);
+        setDefectTrendData(defectData.data || []);
+        setRecentActivity(activityData.activities || []);
+        setTopDriversMpg(topDrivers);
       } catch (error: any) {
         if (error.name !== 'AbortError') {
           toast({
@@ -194,7 +224,7 @@ export default function AdvancedDashboard() {
 
         {/* KPI Cards */}
         {kpis && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Total Vehicles */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -287,6 +317,38 @@ export default function AdvancedDashboard() {
                     {Math.abs(kpis.complianceRateTrend).toFixed(1)}%
                   </span>
                   <span>vs last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Average MPG */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Fleet Avg MPG
+                </CardTitle>
+                <Activity className="w-4 h-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{kpis.avgMpg.toFixed(1)}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Last 30 days average
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Fuel Cost MTD */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Fuel Cost MTD
+                </CardTitle>
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">£{kpis.fuelCostMTD.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Last 30 days spend
                 </div>
               </CardContent>
             </Card>
@@ -452,6 +514,27 @@ export default function AdvancedDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Top Drivers by MPG */}
+        {topDriversMpg.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Drivers by Fuel Efficiency</CardTitle>
+              <CardDescription>Best performing drivers by average MPG (last 30 days)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topDriversMpg} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 'auto']} />
+                  <YAxis dataKey="name" type="category" width={100} />
+                  <Tooltip formatter={(value: number) => [`${value.toFixed(1)} MPG`, 'Efficiency']} />
+                  <Bar dataKey="mpg" fill="#10b981" name="Avg MPG" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <Card>
