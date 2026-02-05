@@ -255,15 +255,20 @@ export default function Drivers() {
   // Add driver mutation
   const addDriverMutation = useMutation({
     mutationFn: async (driver: DriverFormData) => {
+      const payload = {
+        ...driver,
+        companyId,
+      };
+      console.log("Adding driver with payload:", payload);
       const res = await fetch("/api/drivers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...driver,
-          companyId,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to add driver");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to add driver");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -273,8 +278,8 @@ export default function Drivers() {
       setShowPin(false);
       toast.success("Driver added successfully!");
     },
-    onError: () => {
-      toast.error("Failed to add driver");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to add driver");
     },
   });
 
