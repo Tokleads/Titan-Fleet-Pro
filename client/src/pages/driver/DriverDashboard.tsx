@@ -149,11 +149,12 @@ export default function DriverDashboard() {
           </div>
         )}
 
-        {/* GPS Tracking Status */}
+        {/* GPS Tracking - runs silently in background */}
         {user?.id && (
           <GPSTrackingStatus 
             driverId={user.id} 
             autoStart={true}
+            hidden={true}
           />
         )}
 

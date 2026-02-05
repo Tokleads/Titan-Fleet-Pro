@@ -23,13 +23,15 @@ interface GPSTrackingStatusProps {
   vehicleId?: number | null;
   autoStart?: boolean;
   compact?: boolean;
+  hidden?: boolean;
 }
 
 export function GPSTrackingStatus({ 
   driverId, 
   vehicleId, 
   autoStart = true,
-  compact = false 
+  compact = false,
+  hidden = false
 }: GPSTrackingStatusProps) {
   const {
     isTracking,
@@ -54,6 +56,11 @@ export function GPSTrackingStatus({
   };
 
   const isOnline = navigator.onLine;
+
+  // Hidden mode - tracking runs but UI is invisible
+  if (hidden) {
+    return null;
+  }
 
   if (compact) {
     return (
