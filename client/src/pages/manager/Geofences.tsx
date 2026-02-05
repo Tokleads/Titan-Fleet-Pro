@@ -4,7 +4,6 @@ import { session } from "@/lib/session";
 import { 
   MapPin, 
   Plus,
-  Edit2,
   Trash2,
   CheckCircle2,
   XCircle,
@@ -12,6 +11,8 @@ import {
   Target
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import * as L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 interface Geofence {
   id: number;
@@ -29,14 +30,14 @@ export default function Geofences() {
   const companyId = company?.id;
   const queryClient = useQueryClient();
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [circles, setCircles] = useState<Map<number, google.maps.Circle>>(new Map());
-  const [tempMarker, setTempMarker] = useState<google.maps.Marker | null>(null);
-  const [tempCircle, setTempCircle] = useState<google.maps.Circle | null>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const circlesRef = useRef<Map<number, L.Circle>>(new Map());
+  const markersRef = useRef<Map<number, L.Marker>>(new Map());
+  const tempMarkerRef = useRef<L.Marker | null>(null);
+  const tempCircleRef = useRef<L.Circle | null>(null);
 
   const [isAdding, setIsAdding] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     latitude: "",
@@ -67,16 +68,14 @@ export default function Geofences() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["geofences"] });
       setIsAdding(false);
-      setShowMap(false);
       setFormData({ name: "", latitude: "", longitude: "", radiusMeters: 250 });
-      // Clear temp markers
-      if (tempMarker) {
-        tempMarker.setMap(null);
-        setTempMarker(null);
+      if (tempMarkerRef.current) {
+        tempMarkerRef.current.remove();
+        tempMarkerRef.current = null;
       }
-      if (tempCircle) {
-        tempCircle.setMap(null);
-        setTempCircle(null);
+      if (tempCircleRef.current) {
+        tempCircleRef.current.remove();
+        tempCircleRef.current = null;
       }
     }
   });
@@ -93,7 +92,6 @@ export default function Geofences() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["geofences"] });
-      setEditingId(null);
     }
   });
 
@@ -110,136 +108,167 @@ export default function Geofences() {
     }
   });
 
-  // Initialize Google Map
+  // Initialize Leaflet Map
   useEffect(() => {
-    if (!mapRef.current || map) return;
+    if (!mapRef.current || !showMap) return;
+    
+    // If map already exists, just return
+    if (leafletMapRef.current) return;
 
-    const initMap = () => {
-      const newMap = new google.maps.Map(mapRef.current!, {
-        center: { lat: 51.5074, lng: -0.1278 }, // Default to London
-        zoom: 12,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true,
+    // Create map centered on London
+    const map = L.map(mapRef.current).setView([51.5074, -0.1278], 12);
+
+    // Add OpenStreetMap tile layer (free!)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    leafletMapRef.current = map;
+
+    // Cleanup on unmount
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, [showMap]);
+
+  // Add click listener for placing new geofences
+  useEffect(() => {
+    if (!leafletMapRef.current) return;
+
+    const map = leafletMapRef.current;
+
+    const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (!isAdding) return;
+
+      const { lat, lng } = e.latlng;
+
+      // Update form data
+      setFormData(prev => ({
+        ...prev,
+        latitude: lat.toFixed(6),
+        longitude: lng.toFixed(6)
+      }));
+
+      // Clear previous temp marker/circle
+      if (tempMarkerRef.current) {
+        tempMarkerRef.current.remove();
+      }
+      if (tempCircleRef.current) {
+        tempCircleRef.current.remove();
+      }
+
+      // Create custom icon for temp marker
+      const tempIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `
+          <div style="
+            width: 24px;
+            height: 24px;
+            background-color: #3b82f6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          "></div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
       });
-      setMap(newMap);
 
-      // Add click listener for placing new geofences
-      newMap.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (!isAdding) return;
-        
-        const lat = e.latLng?.lat();
-        const lng = e.latLng?.lng();
-        
-        if (lat && lng) {
-          // Update form data
-          setFormData(prev => ({
-            ...prev,
-            latitude: lat.toFixed(6),
-            longitude: lng.toFixed(6)
-          }));
+      // Add new temp marker
+      const marker = L.marker([lat, lng], { icon: tempIcon }).addTo(map);
+      tempMarkerRef.current = marker;
 
-          // Clear previous temp marker/circle
-          if (tempMarker) tempMarker.setMap(null);
-          if (tempCircle) tempCircle.setMap(null);
-
-          // Add new temp marker
-          const marker = new google.maps.Marker({
-            position: { lat, lng },
-            map: newMap,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: '#3b82f6',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2,
-            },
-            title: 'New Depot Location'
-          });
-          setTempMarker(marker);
-
-          // Add temp circle
-          const circle = new google.maps.Circle({
-            map: newMap,
-            center: { lat, lng },
-            radius: formData.radiusMeters,
-            fillColor: '#3b82f6',
-            fillOpacity: 0.15,
-            strokeColor: '#3b82f6',
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            editable: false,
-          });
-          setTempCircle(circle);
-        }
-      });
+      // Add temp circle
+      const circle = L.circle([lat, lng], {
+        radius: formData.radiusMeters,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.15,
+        color: '#3b82f6',
+        weight: 2,
+      }).addTo(map);
+      tempCircleRef.current = circle;
     };
 
-    // Load Google Maps script if not already loaded
-    if (!window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      document.head.appendChild(script);
-    } else {
-      initMap();
-    }
-  }, [map, isAdding, formData.radiusMeters]);
+    map.on('click', handleMapClick);
+
+    return () => {
+      map.off('click', handleMapClick);
+    };
+  }, [isAdding, formData.radiusMeters]);
 
   // Update temp circle radius when slider changes
   useEffect(() => {
-    if (tempCircle) {
-      tempCircle.setRadius(formData.radiusMeters);
+    if (tempCircleRef.current) {
+      tempCircleRef.current.setRadius(formData.radiusMeters);
     }
-  }, [formData.radiusMeters, tempCircle]);
+  }, [formData.radiusMeters]);
 
   // Draw existing geofences on map
   useEffect(() => {
-    if (!map || !geofences) return;
+    if (!leafletMapRef.current || !geofences) return;
 
-    // Clear existing circles
-    circles.forEach(circle => circle.setMap(null));
-    const newCircles = new Map<number, google.maps.Circle>();
+    const map = leafletMapRef.current;
+
+    // Clear existing circles and markers
+    circlesRef.current.forEach(circle => circle.remove());
+    markersRef.current.forEach(marker => marker.remove());
+    circlesRef.current.clear();
+    markersRef.current.clear();
 
     geofences.forEach((geofence) => {
       const lat = parseFloat(geofence.latitude);
       const lng = parseFloat(geofence.longitude);
 
-      const circle = new google.maps.Circle({
-        map,
-        center: { lat, lng },
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const color = geofence.isActive ? '#10b981' : '#94a3b8';
+
+      // Add circle
+      const circle = L.circle([lat, lng], {
         radius: geofence.radiusMeters,
-        fillColor: geofence.isActive ? '#10b981' : '#94a3b8',
+        fillColor: color,
         fillOpacity: 0.2,
-        strokeColor: geofence.isActive ? '#10b981' : '#94a3b8',
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        editable: false,
+        color: color,
+        weight: 2,
+      }).addTo(map);
+      circlesRef.current.set(geofence.id, circle);
+
+      // Create custom icon
+      const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `
+          <div style="
+            width: 20px;
+            height: 20px;
+            background-color: ${color};
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          "></div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
       });
 
-      // Add marker
-      new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: geofence.isActive ? '#10b981' : '#94a3b8',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
-        title: geofence.name
-      });
-
-      newCircles.set(geofence.id, circle);
+      // Add marker with popup
+      const marker = L.marker([lat, lng], { icon: customIcon })
+        .bindPopup(`<strong>${geofence.name}</strong><br/>Radius: ${geofence.radiusMeters}m`)
+        .addTo(map);
+      markersRef.current.set(geofence.id, marker);
     });
 
-    setCircles(newCircles);
-  }, [map, geofences]);
+    // Fit bounds to show all geofences if there are any
+    if (geofences.length > 0) {
+      const bounds = L.latLngBounds(
+        geofences.map(g => [parseFloat(g.latitude), parseFloat(g.longitude)] as [number, number])
+      );
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [geofences, showMap]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,18 +299,16 @@ export default function Geofences() {
 
   const handleCancelAdding = () => {
     setIsAdding(false);
-    setShowMap(false);
     setFormData({ name: "", latitude: "", longitude: "", radiusMeters: 250 });
-    if (tempMarker) {
-      tempMarker.setMap(null);
-      setTempMarker(null);
+    if (tempMarkerRef.current) {
+      tempMarkerRef.current.remove();
+      tempMarkerRef.current = null;
     }
-    if (tempCircle) {
-      tempCircle.setMap(null);
-      setTempCircle(null);
+    if (tempCircleRef.current) {
+      tempCircleRef.current.remove();
+      tempCircleRef.current = null;
     }
   };
-
 
   return (
     <ManagerLayout>
@@ -331,7 +358,6 @@ export default function Geofences() {
             <div ref={mapRef} className="w-full h-[500px]" />
           </div>
         )}
-
 
         {/* Add/Edit Form */}
         {isAdding && (
