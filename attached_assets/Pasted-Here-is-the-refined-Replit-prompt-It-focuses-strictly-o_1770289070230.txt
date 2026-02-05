@@ -1,0 +1,44 @@
+Here is the refined Replit prompt. It focuses strictly on a **single, interactive UI component** rather than a full landing page, making it much easier to drop into your existing app.
+
+### Replit Agent Prompt
+
+**Role:** Expert UI/UX Developer.
+**Task:** Build a single, high-converting "Pricing Section" component for a React/Tailwind app.
+
+**Component Requirements:**
+
+1. **The Layout:** - A clean horizontal grid with 4 cards: **Starter (£59)**, **Growth (£129)**, **Pro (£249)**, and **Scale (£399)**.
+* Use a "Most Popular" badge on the Growth card.
+* All prices must clearly state: **"Total price - No VAT applicable"**.
+
+
+2. **The Logic (Interactive Slider):**
+* Place a sleek slider above or below the cards titled: **"How many vehicles are in your fleet?"** (Range: 1–150).
+* **Overage Calculation:** - Base price starts at £59 (up to 10 vehicles).
+* For every vehicle above 10, add **£6.00**.
+* As the user slides, dynamically highlight the card that offers the best value.
+* Example: If the user slides to 12 vehicles, show the total as **"£71.00/mo"** (£59 base + £12 overage).
+
+
+
+
+3. **Visual Cues:**
+* Use **Lucide-React** icons for feature lists (e.g., Green checkmarks).
+* Use a professional UK-centric "Compliance Navy" (#0f172a) and "DVSA Green" (#22c55e) color scheme.
+* Add a small comparison box below the slider: **"TitanFleet (£0 Setup) vs. Hardware Trackers (£300+ Setup Fee)"**.
+
+
+4. **Tech Details:**
+* Framework: **React**, **Tailwind CSS**, **Framer Motion** for smooth transitions on the slider.
+
+
+
+---
+
+### How this works for you:
+
+* **The £6 Overage:** The slider eliminates the "11th vehicle shock" by showing the math in real-time.
+* **No VAT:** By stating "Total price," you avoid the awkwardness of not being VAT registered. Small hauliers will see it as a 20% saving compared to competitors who add VAT on top.
+* **Conversion:** The comparison box at the bottom handles the biggest objection ("Why is this £59?") by reminding them they aren't paying for hardware.
+
+**Copy the prompt above and paste it directly into Replit. It will generate the code and the interactive logic for you instantly.**

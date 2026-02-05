@@ -1,0 +1,48 @@
+To reach your **£100k/month goal** with a solo-founder setup, your site must act as a **silent salesperson**. In the 2026 UK market, where fleet managers prioritize speed and "no-nonsense" compliance, your pricing page should follow the **"Three-Tier Sweet Spot"** to reduce decision fatigue while clearly explaining your hybrid overage logic.
+
+### 1. Above-the-Fold: The "Value Anchor"
+
+Before users see the price, they must see the **Total Cost of Ownership (TCO)** advantage.
+
+* **Headline:** "UK Fleet Compliance. Zero Hardware. Go Live in 10 Minutes."
+* **Sub-headline:** "No £300 tracking units. No mechanics. Just £5.90/vehicle compliance for small fleets."
+* **The 2026 Toggle:** Include a **Monthly vs. Annual** toggle. Offer a **15-20% discount** for annual billing to boost your upfront cash flow as a solo entrepreneur.
+
+### 2. The Main Pricing Table (Good, Better, Best)
+
+Use three vertical cards. Highlight the **Growth (£129)** tier as "Most Popular" to guide users toward your mid-market sweet spot.
+
+| Feature | Starter | **Growth (Recommended)** | Pro / Scale |
+| --- | --- | --- | --- |
+| **Price** | **£59** / month | **£129** / month | **£249** / month |
+| **Included Vehicles** | Up to 10 | Up to 25 | Up to 60 |
+| **Overage Rate** | **£5.50** / extra vehicle | **£5.00** / extra vehicle | **£4.50** / extra vehicle |
+| **Core Value** | All DVSA Compliance | Advanced Reporting | Multi-Depot Workflows |
+| **Best For** | 1–10 Vehicle Owners | Regional Hauliers | National Operations |
+
+### 3. Visualizing the "No-Cliff" Overage
+
+Because "Overage" can sound scary, you must visualize it as a **feature**, not a penalty.
+
+* **The Overage Label:** Under the main price, add a smaller text line: *"Add your 11th vehicle for just £5.50/mo. No forced upgrades."*
+* **Interactive Slider (Optional):** Below the cards, add a simple slider that says **"How many vehicles do you have?"** When a user drags it to 15, it should highlight the Starter card and show the total: **"£59 base + £27.50 overage = £86.50/mo total."** This transparency builds immediate trust.
+
+### 4. Handling Objections with "Zero-Friction" UX
+
+As a solo founder, you cannot answer 50 "Is it right for me?" calls a day. Use these conversion tools:
+
+* **"Compare to Hardware" Table:** A simple list showing **TitanFleet (£0 setup)** vs. **Traditional Telematics (£300+ setup)**.
+* **Tooltips for Features:** Use tooltips to explain "Timed Audit Trail" or "DVLA Integration" so the page stays clean but informative.
+* **The 2026 Trust Indicators:** Display "DVSA-Compliant Software" badges prominently. In the UK, these compliance "stamps of approval" are more important than generic customer logos.
+
+### 5. Final Checklist for Conversion
+
+* **The Primary CTA:** Use high-contrast buttons like **"Start 14-Day Free Trial"** on every card.
+* **The Secondary CTA:** For the **Scale (£399+)** tier, use **"Talk to the Founder"** or **"Book a Demo"** to handle higher-touch enterprise leads.
+* **FAQ Section:** Address the two biggest deal-breakers for hauliers:
+1. *"Does this work on older Android phones?"* (Yes).
+2. *"Can I export data if I leave?"* (Yes, anytime).
+
+
+
+**Would you like me to draft the "Comparison Table" copy that specifically compares your £59 plan to a 10-vehicle FleetCheck contract?**
