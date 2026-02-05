@@ -30,6 +30,13 @@ export default function DriverDashboard() {
   const user = session.getUser();
   const company = session.getCompany();
 
+  // Redirect to login if not logged in
+  useEffect(() => {
+    if (!user || !company) {
+      setLocation('/app');
+    }
+  }, [user, company, setLocation]);
+
   const { data: unreadDocs } = useQuery({
     queryKey: ["unread-documents", company?.id, user?.id],
     queryFn: async () => {
