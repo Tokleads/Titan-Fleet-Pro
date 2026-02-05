@@ -87,6 +87,128 @@ const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
 ];
 
+function DriverForm({ 
+  data, 
+  setData, 
+  showPinToggle, 
+  setShowPinToggle,
+  isEdit = false 
+}: { 
+  data: DriverFormData; 
+  setData: (data: DriverFormData) => void;
+  showPinToggle: boolean;
+  setShowPinToggle: (show: boolean) => void;
+  isEdit?: boolean;
+}) {
+  return (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-name" : "name"}>Full Name *</Label>
+        <Input
+          id={isEdit ? "edit-name" : "name"}
+          data-testid={isEdit ? "input-edit-driver-name" : "input-driver-name"}
+          placeholder="John Smith"
+          value={data.name}
+          onChange={(e) => setData({ ...data, name: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-email" : "email"}>Email Address *</Label>
+        <Input
+          id={isEdit ? "edit-email" : "email"}
+          data-testid={isEdit ? "input-edit-driver-email" : "input-driver-email"}
+          type="email"
+          placeholder="john.smith@example.com"
+          value={data.email}
+          onChange={(e) => setData({ ...data, email: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-phone" : "phone"}>Phone Number</Label>
+        <Input
+          id={isEdit ? "edit-phone" : "phone"}
+          data-testid={isEdit ? "input-edit-driver-phone" : "input-driver-phone"}
+          type="tel"
+          placeholder="+44 7700 900000"
+          value={data.phone}
+          onChange={(e) => setData({ ...data, phone: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-role" : "role"}>Role *</Label>
+        <Select
+          value={data.role}
+          onValueChange={(value) => setData({ ...data, role: value })}
+        >
+          <SelectTrigger data-testid={isEdit ? "select-edit-driver-role" : "select-driver-role"}>
+            <SelectValue placeholder="Select a role" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-pin" : "pin"}>Driver PIN (4 digits) *</Label>
+        <div className="relative">
+          <Input
+            id={isEdit ? "edit-pin" : "pin"}
+            data-testid={isEdit ? "input-edit-driver-pin" : "input-driver-pin"}
+            type={showPinToggle ? "text" : "password"}
+            maxLength={4}
+            placeholder="••••"
+            value={data.pin}
+            onChange={(e) => setData({ ...data, pin: e.target.value.replace(/\D/g, '') })}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+            onClick={() => setShowPinToggle(!showPinToggle)}
+            data-testid={isEdit ? "button-toggle-edit-pin" : "button-toggle-pin"}
+          >
+            {showPinToggle ? (
+              <EyeOff className="h-4 w-4 text-slate-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-slate-400" />
+            )}
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={isEdit ? "edit-license" : "license"}>License Number</Label>
+        <Input
+          id={isEdit ? "edit-license" : "license"}
+          data-testid={isEdit ? "input-edit-driver-license" : "input-driver-license"}
+          placeholder="SMITH123456AB7CD"
+          value={data.licenseNumber}
+          onChange={(e) => setData({ ...data, licenseNumber: e.target.value })}
+        />
+      </div>
+      {isEdit && (
+        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+          <div>
+            <Label htmlFor="active-toggle" className="font-medium">Active Status</Label>
+            <p className="text-sm text-slate-500">Inactive drivers cannot log in</p>
+          </div>
+          <Switch
+            id="active-toggle"
+            data-testid="switch-driver-active"
+            checked={data.active}
+            onCheckedChange={(checked) => setData({ ...data, active: checked })}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
@@ -252,127 +374,6 @@ export default function Drivers() {
   const startingSoonDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "starting");
   const offShiftDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "off");
   const inactiveDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "inactive");
-
-  // Driver form component (shared between Add and Edit)
-  const DriverForm = ({ 
-    data, 
-    setData, 
-    showPinToggle, 
-    setShowPinToggle,
-    isEdit = false 
-  }: { 
-    data: DriverFormData; 
-    setData: (data: DriverFormData) => void;
-    showPinToggle: boolean;
-    setShowPinToggle: (show: boolean) => void;
-    isEdit?: boolean;
-  }) => (
-    <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-name" : "name"}>Full Name *</Label>
-        <Input
-          id={isEdit ? "edit-name" : "name"}
-          data-testid={isEdit ? "input-edit-driver-name" : "input-driver-name"}
-          placeholder="John Smith"
-          value={data.name}
-          onChange={(e) => setData({ ...data, name: e.target.value })}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-email" : "email"}>Email Address *</Label>
-        <Input
-          id={isEdit ? "edit-email" : "email"}
-          data-testid={isEdit ? "input-edit-driver-email" : "input-driver-email"}
-          type="email"
-          placeholder="john.smith@example.com"
-          value={data.email}
-          onChange={(e) => setData({ ...data, email: e.target.value })}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-phone" : "phone"}>Phone Number</Label>
-        <Input
-          id={isEdit ? "edit-phone" : "phone"}
-          data-testid={isEdit ? "input-edit-driver-phone" : "input-driver-phone"}
-          type="tel"
-          placeholder="+44 7700 900000"
-          value={data.phone}
-          onChange={(e) => setData({ ...data, phone: e.target.value })}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-role" : "role"}>Role *</Label>
-        <Select
-          value={data.role}
-          onValueChange={(value) => setData({ ...data, role: value })}
-        >
-          <SelectTrigger data-testid={isEdit ? "select-edit-driver-role" : "select-driver-role"}>
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            {ROLE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-pin" : "pin"}>Driver PIN (4 digits) *</Label>
-        <div className="relative">
-          <Input
-            id={isEdit ? "edit-pin" : "pin"}
-            data-testid={isEdit ? "input-edit-driver-pin" : "input-driver-pin"}
-            type={showPinToggle ? "text" : "password"}
-            maxLength={4}
-            placeholder="••••"
-            value={data.pin}
-            onChange={(e) => setData({ ...data, pin: e.target.value.replace(/\D/g, '') })}
-            className="pr-10"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-            onClick={() => setShowPinToggle(!showPinToggle)}
-            data-testid={isEdit ? "button-toggle-edit-pin" : "button-toggle-pin"}
-          >
-            {showPinToggle ? (
-              <EyeOff className="h-4 w-4 text-slate-400" />
-            ) : (
-              <Eye className="h-4 w-4 text-slate-400" />
-            )}
-          </Button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-license" : "license"}>License Number</Label>
-        <Input
-          id={isEdit ? "edit-license" : "license"}
-          data-testid={isEdit ? "input-edit-driver-license" : "input-driver-license"}
-          placeholder="SMITH123456AB7CD"
-          value={data.licenseNumber}
-          onChange={(e) => setData({ ...data, licenseNumber: e.target.value })}
-        />
-      </div>
-      {isEdit && (
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-          <div>
-            <Label htmlFor="active-toggle" className="font-medium">Active Status</Label>
-            <p className="text-sm text-slate-500">Inactive drivers cannot log in</p>
-          </div>
-          <Switch
-            id="active-toggle"
-            data-testid="switch-driver-active"
-            checked={data.active}
-            onCheckedChange={(checked) => setData({ ...data, active: checked })}
-          />
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <ManagerLayout>
