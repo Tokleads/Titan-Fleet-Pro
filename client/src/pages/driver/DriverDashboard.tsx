@@ -7,7 +7,7 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { DocumentsPopup } from "@/components/driver/DocumentsPopup";
 import { GPSTrackingStatus } from "@/components/driver/GPSTrackingStatus";
 import ClockInOut from "./ClockInOut";
-import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle } from "lucide-react";
+import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
@@ -39,6 +39,8 @@ export default function DriverDashboard() {
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [manualVrm, setManualVrm] = useState("");
   const [manualNotes, setManualNotes] = useState("");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [showAnnouncements, setShowAnnouncements] = useState(true);
   const { toast } = useToast();
 
   const user = session.getUser();
@@ -96,6 +98,22 @@ export default function DriverDashboard() {
       mounted = false;
     };
   }, [company, user]);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      if (!company?.code) return;
+      try {
+        const response = await fetch(`/api/notifications/public/${company.code}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAnnouncements(data);
+        }
+      } catch (error) {
+        console.error('Failed to load announcements:', error);
+      }
+    };
+    fetchAnnouncements();
+  }, [company?.code]);
 
   const loadRecents = async () => {
     if (!company || !user) return;
@@ -210,6 +228,76 @@ export default function DriverDashboard() {
             <h1 className="titan-title">Driver Home</h1>
             <p className="titan-helper">Ready to start your shift?</p>
         </div>
+
+        {/* Company Announcements */}
+        <AnimatePresence>
+          {announcements.length > 0 && showAnnouncements && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-2"
+            >
+              <div className="titan-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Bell className="h-4 w-4 text-[#5B6CFF]" />
+                    <span>Announcements</span>
+                    <span className="bg-[#5B6CFF] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {announcements.length}
+                    </span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setShowAnnouncements(false)}
+                    className="text-slate-400 hover:text-slate-600 p-1"
+                    data-testid="button-dismiss-announcements"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {announcements.map((announcement: any) => (
+                    <div 
+                      key={announcement.id}
+                      data-testid={`announcement-${announcement.id}`}
+                      className={`p-3 rounded-lg border text-sm ${
+                        announcement.priority?.toLowerCase() === 'urgent' 
+                          ? 'bg-red-50 border-red-200 text-red-800'
+                          : announcement.priority?.toLowerCase() === 'high'
+                          ? 'bg-amber-50 border-amber-200 text-amber-800'
+                          : 'bg-blue-50 border-blue-200 text-blue-800'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {announcement.priority?.toLowerCase() === 'urgent' ? (
+                          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        ) : announcement.priority?.toLowerCase() === 'high' ? (
+                          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{announcement.title}</p>
+                          <p className="text-xs opacity-80 mt-0.5">{announcement.message}</p>
+                          <p className="text-[10px] opacity-60 mt-1">
+                            {new Date(announcement.createdAt).toLocaleDateString('en-GB', { 
+                              weekday: 'short', 
+                              day: 'numeric', 
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Clock In/Out */}
         {user?.id && company?.id ? (
