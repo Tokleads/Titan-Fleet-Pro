@@ -167,10 +167,12 @@ export async function recordUserConsent(
  */
 export function getRetentionPeriod(dataType: string): number {
   const retentionPeriods: Record<string, number> = {
-    INSPECTION: 15, // months (DVSA requirement)
-    DEFECT: 15, // months (DVSA requirement)
-    TIMESHEET: 6, // years (employment law)
-    AUDIT_LOG: 7, // years (compliance)
+    INSPECTION: 18, // months - DVSA minimum requirement for walkaround check records
+    DEFECT: 18, // months - DVSA minimum requirement for defect records
+    CAB_PHOTO: 18, // months - tied to inspection records (DVSA)
+    FUEL_ENTRY: 18, // months - operational records linked to inspections
+    TIMESHEET: 72, // 6 years in months (employment law)
+    AUDIT_LOG: 84, // 7 years in months (compliance)
     NOTIFICATION: 3, // months (operational)
     USER_DATA: 0, // deleted on request (GDPR)
   };
