@@ -43,9 +43,10 @@ client/src/components/titan-ui/ - Custom UI components
 - **Companies**: Multi-tenant root with branding settings
 - **Users**: Drivers and Managers with PIN authentication
 - **Vehicles**: Fleet with VRM, make/model, MOT dates
-- **Inspections**: Daily/end-of-shift vehicle checks
+- **Inspections**: Daily/end-of-shift vehicle checks with cab photos
 - **FuelEntries**: Diesel/AdBlue fuel logs
 - **VehicleUsage**: Track recent vehicles per driver
+- **Deliveries**: Proof of Delivery records with signature, photos, GPS
 
 ## Environment Variables
 
@@ -100,9 +101,31 @@ Access at `/manager/login` with:
 - `GET /api/manager/trailers/:companyId` - All trailers
 - `POST/PATCH/DELETE /api/manager/vehicles` - Vehicle CRUD
 
+### Delivery/POD API Endpoints
+- `POST /api/deliveries` - Create delivery with signature, photos, GPS
+- `GET /api/deliveries/driver` - Get driver's deliveries (paginated)
+- `GET /api/deliveries/:id` - Get single delivery
+- `GET /api/deliveries/:id/pdf` - Download POD PDF
+- `GET /api/manager/deliveries/:companyId` - All company deliveries (paginated, filterable)
+- `PATCH /api/manager/deliveries/:id/status` - Update delivery status
+- `POST /api/manager/deliveries/bulk-status` - Bulk status update
+- `GET /api/manager/deliveries/:companyId/csv` - Export deliveries as CSV
+- `GET /api/manager/deliveries/:companyId/stats` - Delivery statistics
+
 ## Recent Changes
 
-### 2025-12-14 (Latest)
+### 2026-02-07 (Latest)
+- **Proof of Delivery (POD) System**: Complete delivery capture and management
+  - Driver: Mobile-first POD capture with customer name, address, reference, signature pad, up to 5 photos, GPS auto-capture
+  - Driver: Delivery history page with status badges and detail view
+  - Manager: Full deliveries dashboard with stats cards, table, filters, detail modal with signature/photo preview
+  - Manager: Bulk status updates, individual status changes, CSV export, PDF generation per delivery
+  - SignaturePad component using react-signature-canvas
+  - Photos/signatures uploaded to Object Storage
+  - GDPR: 18-month retention for delivery records
+  - Files: CompleteDelivery.tsx, DriverDeliveries.tsx, manager/Deliveries.tsx, podPdfService.ts, SignaturePad.tsx
+
+### 2025-12-14
 - **Team Management**: Full user CRUD in Settings page
   - Add new drivers and managers with name, email, role, PIN
   - Edit existing user profiles

@@ -170,6 +170,7 @@ export function getRetentionPeriod(dataType: string): number {
     INSPECTION: 18, // months - DVSA minimum requirement for walkaround check records
     DEFECT: 18, // months - DVSA minimum requirement for defect records
     CAB_PHOTO: 18, // months - tied to inspection records (DVSA)
+    DELIVERY: 18, // months - DVSA compliance for proof of delivery records
     FUEL_ENTRY: 18, // months - operational records linked to inspections
     TIMESHEET: 72, // 6 years in months (employment law)
     AUDIT_LOG: 84, // 7 years in months (compliance)

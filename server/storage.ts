@@ -19,10 +19,11 @@ import {
   type Notification, type InsertNotification,
   type ServiceHistory, type InsertServiceHistory,
   type Referral, type InsertReferral,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals
+  type Delivery, type InsertDelivery,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, count } from "drizzle-orm";
+import { eq, and, desc, sql, gte, count, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Company operations
@@ -188,6 +189,16 @@ export interface IStorage {
   getReferralsByReferrer(companyId: number): Promise<Referral[]>;
   getReferralStats(companyId: number): Promise<{ total: number; signedUp: number; converted: number; rewardsEarned: number }>;
   updateReferral(id: number, updates: Partial<Referral>): Promise<Referral | undefined>;
+
+  // Delivery (POD) operations
+  createDelivery(delivery: InsertDelivery): Promise<Delivery>;
+  getDeliveriesByDriver(companyId: number, driverId: number, limit: number, offset: number): Promise<{ deliveries: Delivery[], total: number }>;
+  getDeliveriesByCompany(companyId: number, filters?: { startDate?: string; endDate?: string; driverId?: number; vehicleId?: number; status?: string; search?: string }, limit?: number, offset?: number): Promise<{ deliveries: any[], total: number }>;
+  getDeliveryById(id: number): Promise<Delivery | undefined>;
+  updateDeliveryStatus(id: number, status: string, invoicedAt?: Date): Promise<Delivery>;
+  bulkUpdateDeliveryStatus(ids: number[], status: string): Promise<number>;
+  deleteDelivery(id: number): Promise<void>;
+  getDeliveryStats(companyId: number): Promise<{ today: number; thisWeek: number; thisMonth: number; avgPerDriver: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1682,6 +1693,162 @@ export class DatabaseStorage implements IStorage {
       .where(eq(referrals.id, id))
       .returning();
     return updated;
+  }
+
+  async createDelivery(delivery: InsertDelivery): Promise<Delivery> {
+    const [newDelivery] = await db.insert(deliveries).values(delivery).returning();
+    return newDelivery;
+  }
+
+  async getDeliveriesByDriver(companyId: number, driverId: number, limit: number, offset: number): Promise<{ deliveries: Delivery[], total: number }> {
+    const deliveryList = await db.select().from(deliveries)
+      .where(and(
+        eq(deliveries.companyId, companyId),
+        eq(deliveries.driverId, driverId)
+      ))
+      .orderBy(desc(deliveries.completedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count: totalCount }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(and(
+        eq(deliveries.companyId, companyId),
+        eq(deliveries.driverId, driverId)
+      ));
+
+    return { deliveries: deliveryList, total: totalCount };
+  }
+
+  async getDeliveriesByCompany(companyId: number, filters?: { startDate?: string; endDate?: string; driverId?: number; vehicleId?: number; status?: string; search?: string }, limit: number = 50, offset: number = 0): Promise<{ deliveries: any[], total: number }> {
+    const conditions: any[] = [eq(deliveries.companyId, companyId)];
+
+    if (filters?.startDate) {
+      const start = new Date(filters.startDate);
+      start.setHours(0, 0, 0, 0);
+      conditions.push(gte(deliveries.completedAt, start));
+    }
+    if (filters?.endDate) {
+      const end = new Date(filters.endDate);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(sql`${deliveries.completedAt} <= ${end}`);
+    }
+    if (filters?.driverId) {
+      conditions.push(eq(deliveries.driverId, filters.driverId));
+    }
+    if (filters?.vehicleId) {
+      conditions.push(eq(deliveries.vehicleId, filters.vehicleId));
+    }
+    if (filters?.status) {
+      conditions.push(eq(deliveries.status, filters.status));
+    }
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(sql`(${deliveries.customerName} ILIKE ${searchTerm} OR ${deliveries.referenceNumber} ILIKE ${searchTerm} OR ${deliveries.deliveryAddress} ILIKE ${searchTerm})`);
+    }
+
+    const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    const deliveryList = await db
+      .select({
+        id: deliveries.id,
+        companyId: deliveries.companyId,
+        driverId: deliveries.driverId,
+        vehicleId: deliveries.vehicleId,
+        customerName: deliveries.customerName,
+        deliveryAddress: deliveries.deliveryAddress,
+        referenceNumber: deliveries.referenceNumber,
+        signatureUrl: deliveries.signatureUrl,
+        photoUrls: deliveries.photoUrls,
+        deliveryNotes: deliveries.deliveryNotes,
+        gpsLatitude: deliveries.gpsLatitude,
+        gpsLongitude: deliveries.gpsLongitude,
+        gpsAccuracy: deliveries.gpsAccuracy,
+        completedAt: deliveries.completedAt,
+        status: deliveries.status,
+        invoicedAt: deliveries.invoicedAt,
+        createdAt: deliveries.createdAt,
+        updatedAt: deliveries.updatedAt,
+        driverName: users.name,
+      })
+      .from(deliveries)
+      .leftJoin(users, eq(deliveries.driverId, users.id))
+      .where(whereCondition)
+      .orderBy(desc(deliveries.completedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count: totalCount }] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(whereCondition);
+
+    return { deliveries: deliveryList, total: totalCount };
+  }
+
+  async getDeliveryById(id: number): Promise<Delivery | undefined> {
+    const [delivery] = await db.select().from(deliveries).where(eq(deliveries.id, id));
+    return delivery || undefined;
+  }
+
+  async updateDeliveryStatus(id: number, status: string, invoicedAt?: Date): Promise<Delivery> {
+    const updates: any = { status, updatedAt: new Date() };
+    if (invoicedAt) {
+      updates.invoicedAt = invoicedAt;
+    }
+    const [updated] = await db.update(deliveries)
+      .set(updates)
+      .where(eq(deliveries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async bulkUpdateDeliveryStatus(ids: number[], status: string): Promise<number> {
+    const result = await db.update(deliveries)
+      .set({ status, updatedAt: new Date() })
+      .where(inArray(deliveries.id, ids))
+      .returning();
+    return result.length;
+  }
+
+  async deleteDelivery(id: number): Promise<void> {
+    await db.delete(deliveries).where(eq(deliveries.id, id));
+  }
+
+  async getDeliveryStats(companyId: number): Promise<{ today: number; thisWeek: number; thisMonth: number; avgPerDriver: number }> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(now);
+    monthStart.setDate(monthStart.getDate() - 30);
+
+    const [todayResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(and(eq(deliveries.companyId, companyId), gte(deliveries.completedAt, todayStart)));
+
+    const [weekResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(and(eq(deliveries.companyId, companyId), gte(deliveries.completedAt, weekStart)));
+
+    const [monthResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(and(eq(deliveries.companyId, companyId), gte(deliveries.completedAt, monthStart)));
+
+    const driverCounts = await db.select({ driverId: deliveries.driverId, count: sql<number>`count(*)::int` })
+      .from(deliveries)
+      .where(and(eq(deliveries.companyId, companyId), gte(deliveries.completedAt, monthStart)))
+      .groupBy(deliveries.driverId);
+
+    const avgPerDriver = driverCounts.length > 0
+      ? Math.round(driverCounts.reduce((sum, d) => sum + d.count, 0) / driverCounts.length)
+      : 0;
+
+    return {
+      today: todayResult?.count || 0,
+      thisWeek: weekResult?.count || 0,
+      thisMonth: monthResult?.count || 0,
+      avgPerDriver,
+    };
   }
 }
 export const storage = new DatabaseStorage();

@@ -7,7 +7,7 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { DocumentsPopup } from "@/components/driver/DocumentsPopup";
 import { GPSTrackingStatus } from "@/components/driver/GPSTrackingStatus";
 import ClockInOut from "./ClockInOut";
-import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X } from "lucide-react";
+import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
@@ -101,9 +101,9 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      if (!company?.code) return;
+      if (!company?.companyCode) return;
       try {
-        const response = await fetch(`/api/notifications/public/${company.code}`);
+        const response = await fetch(`/api/notifications/public/${company.companyCode}`);
         if (response.ok) {
           const data = await response.json();
           setAnnouncements(data);
@@ -113,7 +113,7 @@ export default function DriverDashboard() {
       }
     };
     fetchAnnouncements();
-  }, [company?.code]);
+  }, [company?.companyCode]);
 
   const loadRecents = async () => {
     if (!company || !user) return;
@@ -311,6 +311,43 @@ export default function DriverDashboard() {
             <p>Clock in/out requires login. Please log in again.</p>
           </div>
         )}
+
+        {/* Delivery Actions */}
+        <div className="space-y-3">
+          <div 
+            className="titan-card p-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setLocation("/driver/complete-delivery")}
+            data-testid="button-complete-delivery"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-[#5B6CFF]/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-[#5B6CFF]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900">Complete Delivery</p>
+                <p className="text-xs text-slate-500">Capture proof of delivery with photos & signature</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </div>
+          </div>
+
+          <div 
+            className="titan-card p-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setLocation("/driver/deliveries")}
+            data-testid="button-my-deliveries"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <FileTextIcon className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900">My Deliveries</p>
+                <p className="text-xs text-slate-500">View your completed delivery records</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </div>
+          </div>
+        </div>
 
         {/* GPS Tracking - runs silently in background */}
         {user?.id && (

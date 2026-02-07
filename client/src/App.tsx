@@ -10,6 +10,8 @@ import VehicleDetail from "@/pages/driver/VehicleDetail";
 import VehicleInspection from "@/pages/driver/VehicleInspection";
 import FuelEntry from "@/pages/driver/FuelEntry";
 import DefectReport from "@/pages/driver/DefectReport";
+import CompleteDelivery from "@/pages/driver/CompleteDelivery";
+import DriverDeliveries from "@/pages/driver/DriverDeliveries";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
 import ManagerDashboard from "@/pages/manager/AdvancedDashboard";
 import ManagerInspections from "@/pages/manager/Inspections";
@@ -33,6 +35,7 @@ import PayRates from './pages/manager/PayRates';
 import FuelIntelligence from './pages/manager/FuelIntelligence';
 import Drivers from './pages/manager/Drivers';
 import Referrals from './pages/manager/Referrals';
+import Deliveries from './pages/manager/Deliveries';
 import Performance from "@/pages/admin/Performance";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -55,6 +58,8 @@ function Router() {
       <Route path="/driver/inspection/:id" component={VehicleInspection} />
       <Route path="/driver/fuel/:id" component={FuelEntry} />
       <Route path="/driver/defect/:id" component={DefectReport} />
+      <Route path="/driver/complete-delivery" component={CompleteDelivery} />
+      <Route path="/driver/deliveries" component={DriverDeliveries} />
       <Route path="/manager/login" component={ManagerLogin} />
       <Route path="/manager" component={ManagerDashboard} />
       <Route path="/manager/inspections" component={ManagerInspections} />
@@ -78,6 +83,7 @@ function Router() {
       <Route path="/manager/notifications" component={NotificationPreferences} />
       <Route path="/manager/notification-history" component={NotificationHistory} />
       <Route path="/manager/referrals" component={Referrals} />
+      <Route path="/manager/deliveries" component={Deliveries} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/companies" component={AdminCompanies} />

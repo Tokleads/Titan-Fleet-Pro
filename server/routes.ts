@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc } from "drizzle-orm";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, vehicles, notifications } from "@shared/schema";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, vehicles, notifications } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
@@ -3335,5 +3335,240 @@ export async function registerRoutes(
     }
   });
   
+  // ==================== DELIVERY (POD) ROUTES ====================
+
+  app.post("/api/deliveries", async (req, res) => {
+    try {
+      const validated = insertDeliverySchema.parse(req.body);
+      const delivery = await storage.createDelivery(validated);
+      res.status(201).json(delivery);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Failed to create delivery:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/deliveries/driver", async (req, res) => {
+    try {
+      const { companyId, driverId, limit = '20', offset = '0' } = req.query;
+      if (!companyId || !driverId) {
+        return res.status(400).json({ error: "Missing companyId or driverId" });
+      }
+      const result = await storage.getDeliveriesByDriver(
+        Number(companyId),
+        Number(driverId),
+        Number(limit),
+        Number(offset)
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get driver deliveries:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/deliveries/:id/pdf", async (req, res) => {
+    try {
+      const delivery = await storage.getDeliveryById(Number(req.params.id));
+      if (!delivery) {
+        return res.status(404).json({ error: "Delivery not found" });
+      }
+
+      const company = await storage.getCompanyById(delivery.companyId);
+      const driver = await storage.getUser(delivery.driverId);
+      let vehicleVrm: string | undefined;
+      if (delivery.vehicleId) {
+        const vehicle = await storage.getVehicleById(delivery.vehicleId);
+        vehicleVrm = vehicle?.vrm;
+      }
+
+      const { generatePODPdf } = await import("./podPdfService");
+
+      const pdfData = {
+        id: delivery.id,
+        companyName: company?.name || "Unknown Company",
+        driverName: driver?.name || "Unknown Driver",
+        vehicleVrm,
+        customerName: delivery.customerName,
+        deliveryAddress: delivery.deliveryAddress || undefined,
+        referenceNumber: delivery.referenceNumber || undefined,
+        deliveryNotes: delivery.deliveryNotes || undefined,
+        gpsLatitude: delivery.gpsLatitude,
+        gpsLongitude: delivery.gpsLongitude,
+        gpsAccuracy: delivery.gpsAccuracy || undefined,
+        completedAt: delivery.completedAt.toISOString(),
+        status: delivery.status,
+        photoCount: Array.isArray(delivery.photoUrls) ? (delivery.photoUrls as string[]).length : 0,
+        hasSignature: !!delivery.signatureUrl,
+      };
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="POD_${delivery.customerName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date(delivery.completedAt).toISOString().split('T')[0]}.pdf"`);
+
+      const pdfStream = generatePODPdf(pdfData);
+      pdfStream.pipe(res);
+    } catch (error) {
+      console.error("POD PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  app.get("/api/deliveries/:id", async (req, res) => {
+    try {
+      const delivery = await storage.getDeliveryById(Number(req.params.id));
+      if (!delivery) {
+        return res.status(404).json({ error: "Delivery not found" });
+      }
+      res.json(delivery);
+    } catch (error) {
+      console.error("Failed to get delivery:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/deliveries/upload-url", async (req, res) => {
+    try {
+      const { companyId, filename, contentType, type } = req.body;
+      if (!companyId || !filename) {
+        return res.status(400).json({ error: "Missing companyId or filename" });
+      }
+      const prefix = type === "signature" ? "sig" : "photo";
+      const result = await objectStorageService.getDocumentUploadURL(
+        Number(companyId),
+        `deliveries/company-${companyId}/${prefix}-${Date.now()}-${filename}`
+      );
+      res.json({
+        uploadURL: result.uploadUrl,
+        objectPath: result.storagePath,
+      });
+    } catch (error) {
+      console.error("Failed to get delivery upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.get("/api/manager/deliveries/:companyId/stats", async (req, res) => {
+    try {
+      const stats = await storage.getDeliveryStats(Number(req.params.companyId));
+      res.json(stats);
+    } catch (error) {
+      console.error("Failed to get delivery stats:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/manager/deliveries/:companyId/export/csv", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const { startDate, endDate, driverId, vehicleId, status, search } = req.query;
+      const filters: any = {};
+      if (startDate) filters.startDate = startDate as string;
+      if (endDate) filters.endDate = endDate as string;
+      if (driverId) filters.driverId = Number(driverId);
+      if (vehicleId) filters.vehicleId = Number(vehicleId);
+      if (status) filters.status = status as string;
+      if (search) filters.search = search as string;
+
+      const { deliveries: deliveryList } = await storage.getDeliveriesByCompany(companyId, filters, 10000, 0);
+
+      const csvHeader = "Date,Time,Driver,Vehicle,Customer,Address,Reference,GPS Lat,GPS Lng,Notes,Status";
+      const csvRows = deliveryList.map((d: any) => {
+        const completedAt = new Date(d.completedAt);
+        const date = completedAt.toISOString().split('T')[0];
+        const time = completedAt.toTimeString().split(' ')[0];
+        const escape = (val: any) => {
+          const str = String(val || '').replace(/"/g, '""');
+          return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str}"` : str;
+        };
+        return [
+          date,
+          time,
+          escape(d.driverName || ''),
+          escape(d.vehicleId || ''),
+          escape(d.customerName),
+          escape(d.deliveryAddress),
+          escape(d.referenceNumber),
+          d.gpsLatitude,
+          d.gpsLongitude,
+          escape(d.deliveryNotes),
+          d.status,
+        ].join(',');
+      });
+
+      const csv = [csvHeader, ...csvRows].join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="deliveries-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error("Failed to export deliveries CSV:", error);
+      res.status(500).json({ error: "Failed to export CSV" });
+    }
+  });
+
+  app.get("/api/manager/deliveries/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const { startDate, endDate, driverId, vehicleId, status, search, limit = '50', offset = '0' } = req.query;
+      const filters: any = {};
+      if (startDate) filters.startDate = startDate as string;
+      if (endDate) filters.endDate = endDate as string;
+      if (driverId) filters.driverId = Number(driverId);
+      if (vehicleId) filters.vehicleId = Number(vehicleId);
+      if (status) filters.status = status as string;
+      if (search) filters.search = search as string;
+
+      const result = await storage.getDeliveriesByCompany(companyId, filters, Number(limit), Number(offset));
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get company deliveries:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/manager/deliveries/:id/status", async (req, res) => {
+    try {
+      const { status, invoicedAt } = req.body;
+      if (!status) {
+        return res.status(400).json({ error: "Missing status" });
+      }
+      const updated = await storage.updateDeliveryStatus(
+        Number(req.params.id),
+        status,
+        invoicedAt ? new Date(invoicedAt) : undefined
+      );
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update delivery status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/manager/deliveries/bulk-status", async (req, res) => {
+    try {
+      const { ids, status } = req.body;
+      if (!ids || !Array.isArray(ids) || !status) {
+        return res.status(400).json({ error: "Missing ids array or status" });
+      }
+      const count = await storage.bulkUpdateDeliveryStatus(ids, status);
+      res.json({ updated: count });
+    } catch (error) {
+      console.error("Failed to bulk update delivery status:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/manager/deliveries/:id", async (req, res) => {
+    try {
+      await storage.deleteDelivery(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete delivery:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }

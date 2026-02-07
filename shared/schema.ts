@@ -1028,3 +1028,28 @@ export const referrals = pgTable("referrals", {
 export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
+
+export const deliveries = pgTable("deliveries", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  deliveryAddress: text("delivery_address"),
+  referenceNumber: varchar("reference_number", { length: 100 }),
+  signatureUrl: text("signature_url").notNull(),
+  photoUrls: jsonb("photo_urls").notNull(),
+  deliveryNotes: text("delivery_notes"),
+  gpsLatitude: text("gps_latitude").notNull(),
+  gpsLongitude: text("gps_longitude").notNull(),
+  gpsAccuracy: integer("gps_accuracy"),
+  completedAt: timestamp("completed_at").notNull(),
+  status: varchar("status", { length: 20 }).default("completed").notNull(),
+  invoicedAt: timestamp("invoiced_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDeliverySchema = createInsertSchema(deliveries).omit({ id: true, createdAt: true, updatedAt: true });
+export type Delivery = typeof deliveries.$inferSelect;
+export type InsertDelivery = z.infer<typeof insertDeliverySchema>;
