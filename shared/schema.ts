@@ -1056,3 +1056,18 @@ export const deliveries = pgTable("deliveries", {
 export const insertDeliverySchema = createInsertSchema(deliveries).omit({ id: true, createdAt: true, updatedAt: true });
 export type Delivery = typeof deliveries.$inferSelect;
 export type InsertDelivery = z.infer<typeof insertDeliverySchema>;
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  senderId: integer("sender_id").references(() => users.id).notNull(),
+  subject: varchar("subject", { length: 255 }),
+  content: text("content").notNull(),
+  priority: varchar("priority", { length: 20 }).default("normal"),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
