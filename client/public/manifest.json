@@ -2,12 +2,15 @@
   "name": "Titan Fleet Management",
   "short_name": "Titan Fleet",
   "description": "Complete fleet management system for vehicle inspections, tracking, and compliance",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#00a3ff",
   "orientation": "portrait-primary",
   "scope": "/",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
