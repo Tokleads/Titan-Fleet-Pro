@@ -37,8 +37,8 @@ export default function TitanFleetLandingPage() {
                 <span className="text-xl font-bold text-slate-900">Titan</span>
                 <span className="text-xl text-slate-500">Fleet</span>
               </div>
-              <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-1 rounded-full">
-                BETA
+              <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full">
+                EARLY ACCESS
               </span>
             </div>
 
@@ -383,7 +383,7 @@ export default function TitanFleetLandingPage() {
               { title: "Driver-to-Manager Messaging", desc: "Drivers send priority messages directly to transport managers. Unread badges and 30-second auto-polling." },
               { title: "Auto-VOR on Failed Inspections", desc: "Vehicles are automatically flagged as off-road when an inspection fails. No manual intervention needed." },
               { title: "Defect Escalation", desc: "Unresolved defects automatically escalate in severity every 24 hours until someone acts on them." },
-              { title: "Fuel Anomaly Detection", desc: "Unusual fuel entries are flagged automatically when they exceed 2.5x the vehicle's rolling average." },
+              { title: "Fuel Anomaly Detection", desc: "Unusual fuel entries are flagged automatically against the vehicle's rolling average. Configurable sensitivity per company." },
               { title: "Compliance Score", desc: "Real-time fleet health score graded A to F. Tracks inspections, defects, MOT status, and VOR ratio." },
               { title: "MOT, Tax & Service Alerts", desc: "Automated daily checks flag upcoming expiries and send notifications to managers before deadlines hit." },
               { title: "White-Label Branding", desc: "Your logo, your colours, your domain. Each company gets their own branded experience." },

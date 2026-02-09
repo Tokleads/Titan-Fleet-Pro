@@ -300,7 +300,7 @@ export default function PricingSection() {
                   <span className={isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
                 </div>
                 <p className={`text-xs mb-6 ${isHighlighted ? "text-[#0f172a]/60" : "text-slate-500"}`}>
-                  Total price - No VAT applicable
+                  Per month · Prices exclude VAT
                 </p>
 
                 <ul className="space-y-3 mb-8">

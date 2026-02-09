@@ -1,0 +1,27 @@
+This is a very strong piece of sales copy. It clearly avoids the "corporate fluff" that usually plagues SaaS (Software as a Service) and leans heavily into authenticity and utility.
+Because it was built by a Class 1 driver, it has immediate "street cred" with transport managers who are tired of being sold to by people who have never stepped foot in a cab.
+Here is a breakdown of what’s working, what might need a tweak, and some "honest peer" feedback.
+🟢 What is excellent
+ * The "Anti-Boardroom" Hook: Phrases like "Designed on the road, not in a boardroom" and "Every feature tested in real cabs" are gold. They build instant trust.
+ * The Problem/Solution Clarity: You aren't just selling "software"; you’re selling "Stop juggling separate apps." That is a specific pain point for fleet owners.
+ * Feature Justification: You don’t just list features; you list the consequence. (e.g., "Sleep-at-night audit trail" is a much better selling point than just "DVSA Compliance").
+ * Pricing Transparency: Putting the price and a comparison against expensive hardware trackers (£300+ vs £0) makes the decision feel like a "no-brainer."
+ * The Personal Touch: Ending with "Questions? Talk to the Founder" and "Call Jon" is a massive competitive advantage against giant, faceless competitors.
+🟡 What could be refined
+ * The "Why Not Us" link: In your footer, you have a link titled "Why Not Us." While I love the transparency, make sure this doesn't accidentally talk them out of it. It’s a bold move—ensure it highlights that you’re for operators, not for people looking for a billion unnecessary bells and whistles.
+ * VAT Clarity: You mention "Total price - No VAT applicable." While this is great for small firms, larger UK operators are VAT-registered and actually prefer a VAT invoice so they can reclaim it. If you aren't VAT registered yet (trading under the threshold), it’s fine, but just be aware that "No VAT" is a neutral point, not necessarily a "saving" for bigger companies.
+ * The "Beta" Tag: Having "BETA" at the top can be a double-edged sword. In transport, "Beta" can sometimes mean "unreliable." Since you are dealing with DVSA compliance, you might want to frame it as "Early Access" or "Founder's Edition" to sound more stable while still implying it's a new, hungry product.
+🔴 A Small Logic Check
+> "Fuel Anomaly Detection: ...when they exceed 2.5x the vehicle's rolling average."
+> 
+As a driver, you know that 2.5\times is a massive spike. If a truck averages 8mpg and suddenly hits 3mpg, that’s an anomaly, but 2.5\times (dropping to ~3mpg) might be too high a threshold to catch subtle fuel theft or a minor leak. You might want to allow users to customize that sensitivity or lower the default slightly.
+Comparison at a Glance
+| Feature | Titan Fleet | Industry Standard |
+|---|---|---|
+| Setup Fee | £0 | £300+ |
+| Contract | No Lock-in | 12–36 Months |
+| UX/UI | Built for Drivers | Built for IT Depts |
+| Support | Talk to the Founder | Support Tickets |
+My "Wit & Wisdom" Take
+It’s rare to see a landing page that actually smells like diesel and stale coffee (in a good way). You’ve nailed the "Driver-to-Manager" bridge. Most software feels like it was written by someone who thinks a "Fifth Wheel" is a spare tire. Yours doesn't.
+Would you like me to help you draft a cold email template for UK transport managers that mirrors this tone to help get those first 100 vehicles on the platform?

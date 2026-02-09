@@ -303,7 +303,10 @@ export async function checkFuelAnomalies(): Promise<{ checked: number; flagged: 
       
       const amounts = historicalEntries.map(e => Number(e.litres));
       const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-      const threshold = avg * 2.5;
+      const company = await storage.getCompanyById(entry.companyId);
+      const companySettings = (company?.settings as any) || {};
+      const multiplier = companySettings.fuelAnomalyThreshold ?? 2.0;
+      const threshold = avg * multiplier;
       
       if (Number(entry.litres) > threshold && avg > 0) {
         flaggedCount++;

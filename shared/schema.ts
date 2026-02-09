@@ -31,7 +31,8 @@ export const companies = pgTable("companies", {
     adblueEnabled: true,
     collisionsEnabled: true,
     podEnabled: true,
-    driverHistoryDays: 7
+    driverHistoryDays: 7,
+    fuelAnomalyThreshold: 2.0
   }),
   
   // Contact and status
