@@ -235,7 +235,8 @@ export async function checkDefectEscalation(): Promise<{ checked: number; escala
     const openDefects = await db.select().from(defects)
       .where(and(
         eq(defects.status, 'OPEN'),
-        lte(defects.createdAt, twentyFourHoursAgo)
+        lte(defects.createdAt, twentyFourHoursAgo),
+        sql`${defects.severity} != 'CRITICAL'`
       ));
     
     let escalatedCount = 0;
@@ -244,30 +245,30 @@ export async function checkDefectEscalation(): Promise<{ checked: number; escala
       const newSeverity = defect.severity === 'LOW' ? 'MEDIUM' 
         : defect.severity === 'MEDIUM' ? 'HIGH' 
         : defect.severity === 'HIGH' ? 'CRITICAL' 
-        : 'CRITICAL';
+        : defect.severity;
       
       if (newSeverity !== defect.severity) {
         await db.update(defects)
           .set({ severity: newSeverity, updatedAt: new Date() })
           .where(eq(defects.id, defect.id));
         escalatedCount++;
-      }
-      
-      const vehicle = defect.vehicleId ? await storage.getVehicleById(defect.vehicleId) : null;
-      const vrm = vehicle?.vrm || 'Unknown';
-      
-      const managers = await getManagersByCompany(defect.companyId);
-      const hoursOpen = Math.round((Date.now() - new Date(defect.createdAt).getTime()) / 3600000);
-      
-      for (const manager of managers) {
-        await createNotificationHelper({
-          companyId: defect.companyId,
-          senderId: managers[0].id,
-          recipientId: manager.id,
-          title: `Defect Escalated - ${vrm}`,
-          message: `Unresolved defect "${defect.description}" has been open for ${hoursOpen}h. Severity escalated to ${newSeverity}.`,
-          priority: newSeverity === 'CRITICAL' ? 'URGENT' : 'HIGH',
-        });
+        
+        const vehicle = defect.vehicleId ? await storage.getVehicleById(defect.vehicleId) : null;
+        const vrm = vehicle?.vrm || 'Unknown';
+        
+        const managers = await getManagersByCompany(defect.companyId);
+        const hoursOpen = Math.round((Date.now() - new Date(defect.createdAt).getTime()) / 3600000);
+        
+        for (const manager of managers) {
+          await createNotificationHelper({
+            companyId: defect.companyId,
+            senderId: managers[0].id,
+            recipientId: manager.id,
+            title: `Defect Escalated - ${vrm}`,
+            message: `Unresolved defect "${defect.description}" has been open for ${hoursOpen}h. Severity escalated to ${newSeverity}.`,
+            priority: newSeverity === 'CRITICAL' ? 'URGENT' : 'HIGH',
+          });
+        }
       }
     }
     
@@ -292,7 +293,8 @@ export async function checkFuelAnomalies(): Promise<{ checked: number; flagged: 
       const historicalEntries = await db.select().from(fuelEntries)
         .where(and(
           eq(fuelEntries.vehicleId, entry.vehicleId),
-          eq(fuelEntries.fuelType, entry.fuelType)
+          eq(fuelEntries.fuelType, entry.fuelType),
+          sql`${fuelEntries.id} != ${entry.id}`
         ))
         .orderBy(desc(fuelEntries.createdAt))
         .limit(30);
