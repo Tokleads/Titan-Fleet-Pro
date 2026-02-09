@@ -20,7 +20,8 @@ import {
   type ServiceHistory, type InsertServiceHistory,
   type Referral, type InsertReferral,
   type Delivery, type InsertDelivery,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries
+  type Message, type InsertMessage,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, count, inArray } from "drizzle-orm";
@@ -199,6 +200,13 @@ export interface IStorage {
   bulkUpdateDeliveryStatus(ids: number[], status: string): Promise<number>;
   deleteDelivery(id: number): Promise<void>;
   getDeliveryStats(companyId: number): Promise<{ today: number; thisWeek: number; thisMonth: number; avgPerDriver: number }>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessageById(id: number): Promise<Message | undefined>;
+  getMessagesByCompany(companyId: number, options?: { limit?: number; offset?: number }): Promise<(Message & { sender?: User })[]>;
+  getUnreadMessageCount(companyId: number): Promise<number>;
+  markMessageRead(id: number): Promise<Message | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1849,6 +1857,52 @@ export class DatabaseStorage implements IStorage {
       thisMonth: monthResult?.count || 0,
       avgPerDriver,
     };
+  }
+
+  // Message operations
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async getMessageById(id: number): Promise<Message | undefined> {
+    const [msg] = await db.select().from(messages).where(eq(messages.id, id));
+    return msg || undefined;
+  }
+
+  async getMessagesByCompany(companyId: number, options?: { limit?: number; offset?: number }): Promise<(Message & { sender?: User })[]> {
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+
+    const msgs = await db.select().from(messages)
+      .where(eq(messages.companyId, companyId))
+      .orderBy(desc(messages.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const enriched = await Promise.all(msgs.map(async (msg) => {
+      const [sender] = await db.select().from(users).where(eq(users.id, msg.senderId));
+      return { ...msg, sender };
+    }));
+
+    return enriched;
+  }
+
+  async getUnreadMessageCount(companyId: number): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(messages)
+      .where(and(
+        eq(messages.companyId, companyId),
+        sql`${messages.readAt} IS NULL`
+      ));
+    return result?.count || 0;
+  }
+
+  async markMessageRead(id: number): Promise<Message | undefined> {
+    const [updated] = await db.update(messages)
+      .set({ readAt: new Date() })
+      .where(eq(messages.id, id))
+      .returning();
+    return updated || undefined;
   }
 }
 export const storage = new DatabaseStorage();

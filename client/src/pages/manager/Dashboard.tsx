@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { VORWidget } from "@/components/VORWidget";
@@ -22,9 +22,33 @@ import {
   MapPin,
   Activity,
   TrendingUp,
-  Users
+  Users,
+  MessageSquare
 } from "lucide-react";
 import { Link } from "wouter";
+
+interface DriverMessage {
+  id: number;
+  companyId: number;
+  senderId: number;
+  subject: string | null;
+  content: string;
+  priority: string | null;
+  readAt: string | null;
+  createdAt: string;
+  sender?: { id: number; name: string; role: string };
+}
+
+function timeAgo(date: string | Date) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 interface DashboardStats {
   inspectionsToday: number;
@@ -158,6 +182,8 @@ export default function ManagerDashboard() {
   const company = session.getCompany();
   const companyId = company?.id;
   const user = session.getUser();
+  const queryClient = useQueryClient();
+  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["manager-stats", companyId],
@@ -199,6 +225,49 @@ export default function ManagerDashboard() {
     },
     enabled: !!companyId,
   });
+
+  const { data: driverMessages, isLoading: messagesLoading } = useQuery<DriverMessage[]>({
+    queryKey: ["manager-messages", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/messages/${companyId}?limit=10`);
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
+  const { data: unreadCountData } = useQuery<{ count: number }>({
+    queryKey: ["manager-messages-unread", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/messages/${companyId}/unread-count`);
+      if (!res.ok) throw new Error("Failed to fetch unread count");
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
+  const unreadCount = unreadCountData?.count || 0;
+
+  async function handleMessageClick(msg: DriverMessage) {
+    if (expandedMessageId === msg.id) {
+      setExpandedMessageId(null);
+      return;
+    }
+    setExpandedMessageId(msg.id);
+    if (!msg.readAt) {
+      try {
+        await fetch(`/api/manager/messages/${msg.id}/read`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyId }),
+        });
+        queryClient.invalidateQueries({ queryKey: ["manager-messages", companyId] });
+        queryClient.invalidateQueries({ queryKey: ["manager-messages-unread", companyId] });
+      } catch (e) {}
+    }
+  }
 
   const activeVehicles = vehicles?.filter((v: any) => v.isActive).length || 0;
   const activeDrivers = users?.filter((u: any) => u.role === 'driver' && u.active).length || 0;
@@ -397,6 +466,64 @@ export default function ManagerDashboard() {
 
           {/* Right Column - Live Activity Feed */}
           <div className="space-y-6">
+            {/* Driver Messages */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden" data-testid="section-driver-messages">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-blue-600" />
+                  Driver Messages
+                  {unreadCount > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">{unreadCount}</span>
+                  )}
+                </h2>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                {messagesLoading ? (
+                  <div className="p-8 text-center text-slate-400">Loading messages...</div>
+                ) : driverMessages && driverMessages.length > 0 ? (
+                  driverMessages.map((msg: DriverMessage) => (
+                    <div key={msg.id} data-testid={`message-item-${msg.id}`}>
+                      <button
+                        onClick={() => handleMessageClick(msg)}
+                        className={`w-full text-left p-4 hover:bg-slate-50 transition-colors ${!msg.readAt ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm ${!msg.readAt ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                {msg.sender?.name || 'Driver'}
+                              </span>
+                              {msg.priority === 'urgent' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">URGENT</span>
+                              )}
+                            </div>
+                            <p className={`text-sm mt-0.5 truncate ${!msg.readAt ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
+                              {msg.subject && <span className="font-bold">{msg.subject}: </span>}
+                              {msg.content.length > 80 ? msg.content.slice(0, 80) + '...' : msg.content}
+                            </p>
+                          </div>
+                          <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{timeAgo(msg.createdAt)}</span>
+                        </div>
+                      </button>
+                      {expandedMessageId === msg.id && (
+                        <div className="px-4 pb-4 bg-slate-50 border-l-4 border-l-blue-200">
+                          {msg.subject && <p className="text-sm font-bold text-slate-900 mb-1">{msg.subject}</p>}
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{msg.content}</p>
+                          <p className="text-xs text-slate-400 mt-2">From {msg.sender?.name || 'Driver'} • {new Date(msg.createdAt).toLocaleString('en-GB')}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-slate-500 font-medium">No messages yet</p>
+                    <p className="text-sm text-slate-400 mt-1">Messages from drivers will appear here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Fleet Overview */}
             <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">

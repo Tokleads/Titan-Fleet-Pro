@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc } from "drizzle-orm";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, vehicles, notifications } from "@shared/schema";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, notifications, messages } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
@@ -1565,6 +1565,75 @@ export async function registerRoutes(
       res.json(updated);
     } catch (error) {
       console.error("Failed to update company settings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== DRIVER MESSAGES ====================
+
+  // Create a new message from a driver
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const validated = insertMessageSchema.parse(req.body);
+      const sender = await storage.getUser(validated.senderId);
+      if (!sender || sender.companyId !== validated.companyId) {
+        return res.status(403).json({ error: "Sender does not belong to this company" });
+      }
+      const message = await storage.createMessage(validated);
+      res.status(201).json(message);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get messages for a company
+  app.get("/api/manager/messages/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const limit = req.query.limit ? Number(req.query.limit) : 50;
+      const offset = req.query.offset ? Number(req.query.offset) : 0;
+      const messagesList = await storage.getMessagesByCompany(companyId, { limit, offset });
+      const safe = messagesList.map(msg => ({
+        ...msg,
+        sender: msg.sender ? { id: msg.sender.id, name: msg.sender.name, role: msg.sender.role } : undefined,
+      }));
+      res.json(safe);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get unread message count for a company
+  app.get("/api/manager/messages/:companyId/unread-count", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const count = await storage.getUnreadMessageCount(companyId);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/manager/messages/:id/read", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { companyId } = req.body;
+      if (!companyId) {
+        return res.status(400).json({ error: "companyId required" });
+      }
+      const existing = await storage.getMessageById(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      if (existing.companyId !== Number(companyId)) {
+        return res.status(403).json({ error: "Message does not belong to this company" });
+      }
+      const message = await storage.markMessageRead(id);
+      res.json(message);
+    } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });

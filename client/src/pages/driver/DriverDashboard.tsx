@@ -7,7 +7,7 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { DocumentsPopup } from "@/components/driver/DocumentsPopup";
 import { GPSTrackingStatus } from "@/components/driver/GPSTrackingStatus";
 import ClockInOut from "./ClockInOut";
-import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon } from "lucide-react";
+import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon, MessageSquare } from "lucide-react";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
@@ -41,6 +41,11 @@ export default function DriverDashboard() {
   const [manualNotes, setManualNotes] = useState("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [showAnnouncements, setShowAnnouncements] = useState(true);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageSubject, setMessageSubject] = useState("");
+  const [messageContent, setMessageContent] = useState("");
+  const [messagePriority, setMessagePriority] = useState("normal");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const { toast } = useToast();
 
   const user = session.getUser();
@@ -217,6 +222,44 @@ export default function DriverDashboard() {
         title: "Error",
         description: "Failed to add vehicle. Please try again."
       });
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!company || !user || !messageContent.trim()) return;
+    setIsSendingMessage(true);
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: company.id,
+          senderId: user.id,
+          subject: messageSubject.trim() || undefined,
+          content: messageContent.trim(),
+          priority: messagePriority,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      toast({
+        title: "Message Sent",
+        description: "Your message has been sent to your transport manager.",
+      });
+      setMessageSubject("");
+      setMessageContent("");
+      setMessagePriority("normal");
+      setShowMessageModal(false);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+      });
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -463,6 +506,24 @@ export default function DriverDashboard() {
             </motion.section>
         )}
 
+        {/* Message Transport */}
+        <div 
+          className="titan-card p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setShowMessageModal(true)}
+          data-testid="button-message-transport"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-amber-50 flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-slate-900">Message Transport</p>
+              <p className="text-xs text-slate-500">Send a message to your transport manager</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400" />
+          </div>
+        </div>
+
         {/* Activity Summary */}
         <section>
              <div className="titan-card bg-slate-900 text-white border-0 p-4">
@@ -491,6 +552,98 @@ export default function DriverDashboard() {
       {hasUnreadDocs && showDocsPopup && (
         <DocumentsPopup onClose={() => setShowDocsPopup(false)} />
       )}
+
+      {/* Send Message Modal */}
+      <Dialog open={showMessageModal} onOpenChange={setShowMessageModal}>
+        <DialogContent className="max-w-md" data-testid="dialog-send-message">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-amber-600" />
+              Message Transport
+            </DialogTitle>
+            <DialogDescription>
+              Send a message to your transport manager
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subject (optional)</label>
+              <input
+                type="text"
+                value={messageSubject}
+                onChange={(e) => setMessageSubject(e.target.value)}
+                placeholder="e.g. Vehicle issue, Schedule request..."
+                className="w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                data-testid="input-message-subject"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Message *</label>
+              <Textarea
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                placeholder="Type your message here..."
+                className="min-h-[80px]"
+                rows={3}
+                data-testid="input-message-content"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Priority</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMessagePriority("normal")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    messagePriority === "normal"
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  data-testid="button-priority-normal"
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessagePriority("urgent")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    messagePriority === "urgent"
+                      ? "bg-red-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  data-testid="button-priority-urgent"
+                >
+                  Urgent
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <TitanButton 
+              onClick={handleSendMessage}
+              className="w-full"
+              disabled={!messageContent.trim() || isSendingMessage}
+              isLoading={isSendingMessage}
+              data-testid="button-send-message"
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Send Message
+            </TitanButton>
+            <TitanButton 
+              variant="ghost" 
+              onClick={() => setShowMessageModal(false)}
+              className="w-full text-muted-foreground"
+              data-testid="button-cancel-message"
+            >
+              Cancel
+            </TitanButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Manual Vehicle Entry Modal */}
       <Dialog open={showManualEntryModal} onOpenChange={setShowManualEntryModal}>
