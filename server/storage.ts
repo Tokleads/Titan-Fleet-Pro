@@ -379,7 +379,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(users.companyId, companyId),
         eq(users.pin, pin),
-        eq(users.role, role),
+        sql`LOWER(${users.role}) = LOWER(${role})`,
         eq(users.active, true)
       ));
     return user || undefined;

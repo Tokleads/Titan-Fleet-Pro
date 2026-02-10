@@ -124,6 +124,54 @@ app.use((req, res, next) => {
     console.error('Stripe initialization error (non-fatal):', error);
   }
 
+  // Ensure demo seed data exists
+  try {
+    const { db } = await import('./db');
+    const { companies, users, vehicles } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const existing = await db.select().from(companies).where(eq(companies.companyCode, 'APEX')).limit(1);
+    if (existing.length === 0) {
+      console.log('Seeding APEX demo company...');
+      const existingAny = await db.select().from(companies).limit(1);
+      if (existingAny.length > 0 && existingAny[0].companyCode !== 'APEX') {
+        await db.update(companies).set({ companyCode: 'APEX', name: 'Apex Transport Ltd' }).where(eq(companies.id, existingAny[0].id));
+        const mgr = await db.select().from(users).where(eq(users.companyId, existingAny[0].id));
+        for (const u of mgr) {
+          if (u.role === 'manager' && !u.pin) {
+            await db.update(users).set({ pin: '0000' }).where(eq(users.id, u.id));
+          }
+        }
+        console.log('Updated existing company to APEX');
+      } else if (existingAny.length === 0) {
+        const [company] = await db.insert(companies).values({
+          companyCode: 'APEX',
+          name: 'Apex Transport Ltd',
+          primaryColor: '#2563eb',
+          licenseTier: 'core',
+          vehicleAllowance: 15,
+          graceOverage: 3,
+          enforcementMode: 'soft_block',
+          settings: { fuelEnabled: true, podEnabled: true, primaryColor: '#2563eb', brandName: 'Demo Fleet' }
+        }).returning();
+        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '0000' });
+        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '1234' });
+        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '5678' });
+        console.log('Created APEX demo company with users');
+      }
+    } else {
+      const mgr = await db.select().from(users).where(eq(users.companyId, existing[0].id));
+      for (const u of mgr) {
+        if (u.role === 'manager' && !u.pin) {
+          await db.update(users).set({ pin: '0000' }).where(eq(users.id, u.id));
+          console.log('Fixed manager PIN for APEX company');
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.error('Demo seed check (non-fatal):', seedErr);
+  }
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
   
