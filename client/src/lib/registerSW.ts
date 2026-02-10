@@ -27,14 +27,9 @@ export async function registerServiceWorker() {
 
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New service worker available
-          console.log('New service worker available');
-          
-          // Show update notification
-          if (confirm('A new version is available! Reload to update?')) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-            window.location.reload();
-          }
+          console.log('New service worker available, auto-updating...');
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+          window.location.reload();
         }
       });
     });
