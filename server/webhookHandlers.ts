@@ -3,6 +3,7 @@ import { db } from './db';
 import { accountSetupTokens } from '@shared/schema';
 import { randomBytes } from 'crypto';
 import { sendAccountSetupEmail } from './emailService';
+import { storage } from './storage';
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -71,6 +72,8 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
   
+  const referralCode = session.metadata?.referralCode || null;
+  
   await db.insert(accountSetupTokens).values({
     token,
     email: customerEmail,
@@ -78,8 +81,26 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
     stripeSubscriptionId: session.subscription as string || null,
     tier,
     maxVehicles,
+    referralCode,
     expiresAt,
   });
+  
+  if (referralCode) {
+    try {
+      const referral = await storage.getReferralByCode(referralCode);
+      if (referral && referral.status === 'pending') {
+        await storage.updateReferral(referral.id, {
+          status: 'signed_up',
+          signedUpAt: new Date(),
+        });
+        console.log(`[REFERRAL] Referral ${referralCode} marked as signed_up after checkout`);
+      } else if (referral) {
+        console.log(`[REFERRAL] Skipping update for ${referralCode} - status is already '${referral.status}'`);
+      }
+    } catch (err) {
+      console.error('[REFERRAL] Failed to update referral after checkout:', err);
+    }
+  }
   
   const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
   const baseUrl = domain ? `https://${domain}` : 'http://localhost:5000';

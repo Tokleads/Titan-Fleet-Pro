@@ -72,7 +72,7 @@ function getBestValueTier(vehicles: number): string {
   return "Scale";
 }
 
-export default function PricingSection() {
+export default function PricingSection({ referralCode }: { referralCode?: string } = {}) {
   const [vehicleCount, setVehicleCount] = useState<number>(10);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -100,7 +100,7 @@ export default function PricingSection() {
       const checkoutRes = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId, referralCode }),
       });
       
       const { url } = await checkoutRes.json();
@@ -311,6 +311,22 @@ export default function PricingSection() {
             );
           })}
         </motion.div>
+
+        {referralCode && (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="mt-6 text-center"
+            data-testid="text-referral-applied"
+          >
+            <p className="text-[#22c55e] font-medium text-sm">
+              ✨ Referral code applied — you'll both earn rewards!
+            </p>
+          </motion.div>
+        )}
 
         <motion.div
           initial="hidden"

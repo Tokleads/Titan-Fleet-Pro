@@ -5,6 +5,7 @@ import { users, companies, accountSetupTokens, passwordResetTokens } from '@shar
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';
 import { sendPasswordResetEmail } from './emailService';
+import { storage } from './storage';
 
 const router = Router();
 
@@ -105,6 +106,24 @@ router.post('/setup-account', async (req, res) => {
     await db.update(accountSetupTokens)
       .set({ used: true })
       .where(eq(accountSetupTokens.id, setupToken.id));
+    
+    if (setupToken.referralCode) {
+      try {
+        const referral = await storage.getReferralByCode(setupToken.referralCode);
+        if (referral && referral.referrerCompanyId !== company.id && referral.referredCompanyId === null) {
+          await storage.updateReferral(referral.id, {
+            referredCompanyId: company.id,
+            status: 'signed_up',
+            signedUpAt: new Date(),
+          });
+          console.log(`[REFERRAL] Referral ${setupToken.referralCode} linked to company ${company.id}`);
+        } else if (referral) {
+          console.log(`[REFERRAL] Skipping referral link: self-referral=${referral.referrerCompanyId === company.id}, already-linked=${referral.referredCompanyId !== null}`);
+        }
+      } catch (err) {
+        console.error('[REFERRAL] Failed to apply referral during account setup:', err);
+      }
+    }
     
     res.json({
       success: true,

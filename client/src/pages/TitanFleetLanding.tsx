@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import {
@@ -22,14 +23,51 @@ const staggerContainer = {
 };
 
 export default function TitanFleetLandingPage() {
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("referralCode");
+    if (stored) {
+      setReferralCode(stored);
+      const storedName = sessionStorage.getItem("referrerName");
+      if (storedName) setReferrerName(storedName);
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      fetch(`/api/referral/validate/${encodeURIComponent(ref)}`, { method: "POST" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid) {
+            sessionStorage.setItem("referralCode", data.referralCode);
+            sessionStorage.setItem("referrerName", data.referrerCompanyName);
+            setReferralCode(data.referralCode);
+            setReferrerName(data.referrerCompanyName);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="min-h-screen bg-white">
+      {referrerName && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[60] bg-[#5B6CFF] text-white text-center py-2 text-sm font-medium"
+          data-testid="banner-referral"
+        >
+          Referred by {referrerName} — your free trial awaits!
+        </div>
+      )}
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+      <header className={`fixed ${referrerName ? "top-9" : "top-0"} left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -409,7 +447,7 @@ export default function TitanFleetLandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <PricingSection />
+      <PricingSection referralCode={referralCode || undefined} />
 
       {/* Founder Section */}
       <section id="founder" className="py-16 lg:py-20 bg-white">

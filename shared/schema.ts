@@ -1082,6 +1082,7 @@ export const accountSetupTokens = pgTable("account_setup_tokens", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   tier: varchar("tier", { length: 20 }),
   maxVehicles: integer("max_vehicles"),
+  referralCode: varchar("referral_code", { length: 20 }),
   used: boolean("used").default(false),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()

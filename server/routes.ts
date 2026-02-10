@@ -77,7 +77,7 @@ export async function registerRoutes(
     try {
       const { getUncachableStripeClient } = await import('./stripeClient');
       const stripe = await getUncachableStripeClient();
-      const { priceId, companyName, companyEmail } = req.body;
+      const { priceId, companyName, companyEmail, referralCode } = req.body;
       
       if (!priceId) {
         return res.status(400).json({ error: 'Missing priceId' });
@@ -94,7 +94,9 @@ export async function registerRoutes(
         allow_promotion_codes: true,
         subscription_data: {
           trial_period_days: 14,
+          metadata: {},
         },
+        metadata: {},
         custom_text: {
           submit: {
             message: 'Cancel anytime — no lock-in contracts. Your 14-day free trial starts today.',
@@ -106,7 +108,18 @@ export async function registerRoutes(
         sessionParams.customer_email = companyEmail;
       }
       if (companyName) {
-        sessionParams.subscription_data.metadata = { companyName };
+        sessionParams.subscription_data.metadata.companyName = companyName;
+      }
+      if (referralCode) {
+        try {
+          const referral = await storage.getReferralByCode(referralCode.toUpperCase());
+          if (referral && referral.status === 'pending') {
+            sessionParams.subscription_data.metadata.referralCode = referralCode;
+            sessionParams.metadata.referralCode = referralCode;
+          }
+        } catch (err) {
+          console.error('[REFERRAL] Failed to validate referral code at checkout:', err);
+        }
       }
       
       const session = await stripe.checkout.sessions.create(sessionParams);
