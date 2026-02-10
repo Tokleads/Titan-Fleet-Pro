@@ -397,7 +397,14 @@ export async function registerRoutes(
       if (typeof body.completedAt === "string") {
         body.completedAt = new Date(body.completedAt);
       }
-      const validated = insertInspectionSchema.parse(body);
+      let validated;
+      try {
+        validated = insertInspectionSchema.parse(body);
+      } catch (parseErr: any) {
+        console.error("Inspection validation failed:", JSON.stringify(parseErr.errors || parseErr.message, null, 2));
+        console.error("Body keys:", Object.keys(body));
+        return res.status(400).json({ error: "Validation failed", details: parseErr.errors || parseErr.message });
+      }
       const inspection = await storage.createInspection(validated);
       
       // Track vehicle usage
