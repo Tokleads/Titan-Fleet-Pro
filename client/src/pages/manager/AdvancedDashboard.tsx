@@ -371,8 +371,8 @@ export default function AdvancedDashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={100}
+                    innerRadius={50}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -380,7 +380,8 @@ export default function AdvancedDashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value: number, name: string) => [`${value}`, name]} />
+                  <Legend layout="horizontal" verticalAlign="bottom" align="center" />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
