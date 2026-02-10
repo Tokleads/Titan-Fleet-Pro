@@ -118,9 +118,53 @@ Access at `/manager/login` with:
 - `GET /api/manager/deliveries/:companyId/csv` - Export deliveries as CSV
 - `GET /api/manager/deliveries/:companyId/stats` - Delivery statistics
 
+### Auth & Onboarding API Endpoints
+- `GET /api/auth/verify-setup-token?token=` - Verify account setup token
+- `POST /api/auth/setup-account` - Complete account setup (company name, password, etc.)
+- `POST /api/auth/login` - Email + password login with 2FA support
+- `POST /api/auth/forgot-password` - Request password reset email
+- `POST /api/auth/reset-password` - Reset password with token
+- `GET /api/auth/verify-reset-token?token=` - Verify password reset token
+
+### Stripe API Endpoints
+- `GET /api/stripe/publishable-key` - Get Stripe publishable key
+- `GET /api/stripe/products` - List active products with prices
+- `POST /api/stripe/checkout` - Create checkout session (14-day trial)
+- `POST /api/stripe/portal` - Create customer billing portal
+- `POST /api/stripe/webhook` - Stripe webhook receiver
+
 ## Recent Changes
 
-### 2026-02-09 (Latest)
+### 2026-02-10 (Latest)
+- **Stripe Payment Integration**: Full subscription billing system
+  - 4 tiers: Starter £59, Growth £129, Pro £249, Scale £399 (monthly, GBP)
+  - Stripe checkout with 14-day free trial on all plans
+  - Products synced to database via stripe-replit-sync
+  - Webhook handling for payment events
+  - Customer billing portal for subscription management
+  - "Start Free Trial" buttons on pricing page connected to Stripe checkout
+- **Post-Purchase Account Setup**: Automated onboarding email flow
+  - After Stripe checkout, welcome email sent from support@titanfleet.co.uk
+  - Setup link with 48-hour expiry token
+  - Account setup page: company name, contact name, password selection
+  - Auto-generates unique company code from company name
+  - Creates company + transport manager user with hashed password (bcrypt)
+  - Stripe webhook signature verification for security
+- **Password Reset System**: Full forgot/reset password flow
+  - "Forgot Password?" sends reset email from support@titanfleet.co.uk
+  - 1-hour expiry reset tokens
+  - Secure password reset page with validation
+  - Email enumeration prevention (always returns success)
+- **Email/Password Manager Login**: Alternative to PIN-based login
+  - Manager login page now has tabbed "Company Code" / "Email Login" modes
+  - Email+password login with full 2FA (TOTP) support
+  - "Forgot your password?" link on email login mode
+- **Email Service Updated**: From address changed to `Titan Fleet <support@titanfleet.co.uk>`
+  - Uses TITAN_RESEND_KEY secret
+  - Branded HTML email templates for setup and password reset
+- Files: server/authRoutes.ts, server/stripeClient.ts, server/webhookHandlers.ts, server/seedStripeProducts.ts, SetupAccount.tsx, ForgotPassword.tsx, ResetPassword.tsx
+
+### 2026-02-09
 - **Agentic Automation System**: Proactive fleet compliance automation
   - Auto-VOR: Vehicles automatically flagged as VOR when inspection fails (vorStatus, vorReason, vorStartDate set)
   - Defect Escalation: Open defects auto-escalate severity after 24h (LOW→MEDIUM→HIGH→CRITICAL) with manager notifications
