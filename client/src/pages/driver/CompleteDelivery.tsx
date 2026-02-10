@@ -24,6 +24,7 @@ export default function CompleteDelivery() {
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isLoadingVehicle, setIsLoadingVehicle] = useState(false);
+  const [recentVehicles, setRecentVehicles] = useState<Vehicle[]>([]);
 
   const [customerName, setCustomerName] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
@@ -64,8 +65,33 @@ export default function CompleteDelivery() {
     }
     if (vehicleIdParam) {
       loadVehicle(Number(vehicleIdParam));
+    } else {
+      loadRecentVehicle();
     }
   }, [vehicleIdParam]);
+
+  const loadRecentVehicle = async () => {
+    if (!user || !company) return;
+    setIsLoadingVehicle(true);
+    try {
+      const vehicles = await api.getRecentVehicles(company.id, user.id, 5);
+      setRecentVehicles(vehicles);
+      if (vehicles.length > 0) {
+        setVehicle(vehicles[0]);
+      }
+    } catch {
+      // If recent vehicles fails, try fetching all vehicles
+      try {
+        const result = await api.getVehicles(company.id);
+        if (result && result.length > 0) {
+          setRecentVehicles(result);
+          setVehicle(result[0]);
+        }
+      } catch {}
+    } finally {
+      setIsLoadingVehicle(false);
+    }
+  };
 
   useEffect(() => {
     if (!arrivedAt || departedAt) return;
@@ -301,10 +327,43 @@ export default function CompleteDelivery() {
           </div>
         </div>
 
-        {!vehicleIdParam ? (
+        {isLoadingVehicle ? (
+          <div className="titan-card p-5 flex items-center justify-center mb-4">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : vehicle ? (
+          <div className="titan-card p-4 mb-4" data-testid="card-vehicle">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <Package className="h-5 w-5 text-slate-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900" data-testid="text-vehicle-vrm">{vehicle.vrm}</p>
+                <p className="text-[13px] text-slate-500">{vehicle.make} {vehicle.model}</p>
+              </div>
+              {recentVehicles.length > 1 && (
+                <select
+                  value={vehicle.id}
+                  onChange={(e) => {
+                    const v = recentVehicles.find(rv => rv.id === Number(e.target.value));
+                    if (v) setVehicle(v);
+                  }}
+                  className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  data-testid="select-vehicle"
+                >
+                  {recentVehicles.map(rv => (
+                    <option key={rv.id} value={rv.id}>
+                      {rv.vrm} — {rv.make} {rv.model}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+        ) : (
           <div className="titan-card p-5 text-center mb-4">
             <p className="text-slate-500 text-sm" data-testid="text-no-vehicle">
-              Select a vehicle from your dashboard first
+              No recent vehicles found
             </p>
             <TitanButton
               variant="outline"
@@ -314,21 +373,7 @@ export default function CompleteDelivery() {
               Go to Dashboard
             </TitanButton>
           </div>
-        ) : isLoadingVehicle ? (
-          <div className="titan-card p-5 flex items-center justify-center mb-4">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          </div>
-        ) : vehicle ? (
-          <div className="titan-card p-4 mb-4 flex items-center gap-3" data-testid="card-vehicle">
-            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
-              <Package className="h-5 w-5 text-slate-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900" data-testid="text-vehicle-vrm">{vehicle.vrm}</p>
-              <p className="text-[13px] text-slate-500">{vehicle.make} {vehicle.model}</p>
-            </div>
-          </div>
-        ) : null}
+        )}
 
         <div className="space-y-4">
           <div className="titan-card p-4">
