@@ -629,7 +629,7 @@ export default function Deliveries() {
                     {selectedDelivery.signatureUrl ? (
                       <div className="border border-slate-200 rounded-lg p-2 bg-white">
                         <img
-                          src={selectedDelivery.signatureUrl.startsWith("/") ? `/api/objects${selectedDelivery.signatureUrl}` : `/api/objects/${selectedDelivery.signatureUrl}`}
+                          src={selectedDelivery.signatureUrl.startsWith("/objects/") ? selectedDelivery.signatureUrl : `/objects/${selectedDelivery.signatureUrl}`}
                           alt="Signature"
                           className="w-full h-32 object-contain"
                           data-testid="img-signature"
@@ -653,12 +653,19 @@ export default function Deliveries() {
                       <div className="grid grid-cols-3 gap-2">
                         {selectedDelivery.photoUrls.map((photo: any, idx: number) => {
                           const photoPath = typeof photo === "string" ? photo : photo.path || photo.objectPath;
+                          const imgSrc = photoPath?.startsWith("/objects/") ? photoPath : `/objects/${photoPath}`;
                           return (
                             <div key={idx} className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50 aspect-square flex items-center justify-center">
-                              <div className="flex flex-col items-center gap-1 text-slate-400">
-                                <Camera className="h-5 w-5" />
-                                <span className="text-xs">Photo {idx + 1}</span>
-                              </div>
+                              <img
+                                src={imgSrc}
+                                alt={`Delivery photo ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                data-testid={`img-delivery-photo-${idx}`}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="flex flex-col items-center gap-1 text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg><span class="text-xs">Photo ${idx + 1}</span></div>`;
+                                }}
+                              />
                             </div>
                           );
                         })}
