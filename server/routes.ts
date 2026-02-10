@@ -39,48 +39,34 @@ export async function registerRoutes(
 
   app.get('/api/stripe/products', async (req, res) => {
     try {
-      const { db } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const result = await db.execute(sql`
-        SELECT 
-          p.id as product_id,
-          p.name as product_name,
-          p.description as product_description,
-          p.metadata as product_metadata,
-          pr.id as price_id,
-          pr.unit_amount,
-          pr.currency,
-          pr.recurring,
-          pr.active as price_active
-        FROM stripe.products p
-        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-        WHERE p.active = true
-        ORDER BY pr.unit_amount ASC
-      `);
+      const { getUncachableStripeClient } = await import('./stripeClient');
+      const stripe = await getUncachableStripeClient();
       
-      const productsMap = new Map();
-      for (const row of result.rows) {
-        const r = row as any;
-        if (!productsMap.has(r.product_id)) {
-          productsMap.set(r.product_id, {
-            id: r.product_id,
-            name: r.product_name,
-            description: r.product_description,
-            metadata: r.product_metadata,
-            prices: []
-          });
-        }
-        if (r.price_id) {
-          productsMap.get(r.product_id).prices.push({
-            id: r.price_id,
-            unitAmount: r.unit_amount,
-            currency: r.currency,
-            recurring: r.recurring,
-          });
-        }
-      }
+      const products = await stripe.products.list({ active: true, limit: 10 });
+      const prices = await stripe.prices.list({ active: true, limit: 50 });
       
-      res.json({ products: Array.from(productsMap.values()) });
+      const result = products.data.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        metadata: product.metadata,
+        prices: prices.data
+          .filter(price => price.product === product.id)
+          .map(price => ({
+            id: price.id,
+            unitAmount: price.unit_amount,
+            currency: price.currency,
+            recurring: price.recurring,
+          }))
+      }));
+      
+      result.sort((a, b) => {
+        const aPrice = a.prices[0]?.unitAmount || 0;
+        const bPrice = b.prices[0]?.unitAmount || 0;
+        return aPrice - bPrice;
+      });
+      
+      res.json({ products: result });
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ error: 'Failed to fetch products' });
