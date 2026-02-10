@@ -277,49 +277,56 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
       </div>
 
       {/* Current Status */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Clock className="h-8 w-8 text-primary" />
-            <div>
-              <h2 className="text-xl font-semibold">
-                {activeTimesheet ? 'Clocked In' : 'Clocked Out'}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {activeTimesheet
-                  ? `Since ${formatTime(activeTimesheet.arrivalTime)}`
-                  : 'Ready to start shift'}
-              </p>
+      {activeTimesheet ? (
+        <Card className="p-0 overflow-hidden border-green-200 shadow-lg shadow-green-100/50">
+          <div className="bg-green-500 p-5 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-full p-2">
+                  <CheckCircle className="h-8 w-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Clocked In</h2>
+                  <p className="text-green-100 text-sm font-medium">
+                    Shift active since {formatTime(activeTimesheet.arrivalTime)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold tabular-nums">
+                  {formatDuration(
+                    Math.floor((Date.now() - new Date(activeTimesheet.arrivalTime).getTime()) / 60000)
+                  )}
+                </p>
+                <p className="text-green-100 text-xs">elapsed</p>
+              </div>
             </div>
           </div>
-          {activeTimesheet ? (
-            <CheckCircle className="h-12 w-12 text-green-500" />
-          ) : (
+          <div className="p-4 bg-green-50 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-green-700">Location:</span>
+              <span className="font-medium text-green-900">{activeTimesheet.depotName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-green-700">Clock In:</span>
+              <span className="font-medium text-green-900">{formatTime(activeTimesheet.arrivalTime)}</span>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="h-8 w-8 text-muted-foreground" />
+              <div>
+                <h2 className="text-xl font-semibold">Clocked Out</h2>
+                <p className="text-sm text-muted-foreground">Ready to start shift</p>
+              </div>
+            </div>
             <XCircle className="h-12 w-12 text-muted-foreground" />
-          )}
-        </div>
-
-        {activeTimesheet && (
-          <div className="bg-muted rounded-lg p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Depot:</span>
-              <span className="font-medium">{activeTimesheet.depotName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Clock In:</span>
-              <span className="font-medium">{formatTime(activeTimesheet.arrivalTime)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Duration:</span>
-              <span className="font-medium text-primary">
-                {formatDuration(
-                  Math.floor((Date.now() - new Date(activeTimesheet.arrivalTime).getTime()) / 60000)
-                )}
-              </span>
-            </div>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* Location Status */}
       <Card className="p-6">
@@ -441,29 +448,32 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
         )}
       </Card>
 
-      {/* Clock In/Out Button */}
-      <Card className="p-6">
-        {activeTimesheet ? (
-          <Button
-            size="lg"
-            className="w-full h-16 text-lg titan-btn-press"
-            variant="destructive"
-            onClick={() => clockOutMutation.mutate()}
-            disabled={!currentLocation || clockOutMutation.isPending}
-          >
-            {clockOutMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Clocking Out...
-              </>
-            ) : (
-              <>
-                <XCircle className="mr-2 h-5 w-5" />
-                Clock Out
-              </>
-            )}
-          </Button>
-        ) : (
+      {/* Clock Out Button - shown right after status when clocked in */}
+      {activeTimesheet && (
+        <Button
+          size="lg"
+          className="w-full h-16 text-lg titan-btn-press"
+          variant="destructive"
+          onClick={() => clockOutMutation.mutate()}
+          disabled={!currentLocation || clockOutMutation.isPending}
+        >
+          {clockOutMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Clocking Out...
+            </>
+          ) : (
+            <>
+              <XCircle className="mr-2 h-5 w-5" />
+              Clock Out
+            </>
+          )}
+        </Button>
+      )}
+
+      {/* Clock In Button - shown at bottom when clocked out */}
+      {!activeTimesheet && (
+        <Card className="p-6">
           <Button
             size="lg"
             className="w-full h-16 text-lg titan-btn-press"
@@ -482,33 +492,33 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
               </>
             )}
           </Button>
-        )}
 
-        {!activeTimesheet && !canClockIn && (
-          <div className="mt-3 text-center">
-            {!currentLocation ? (
-              <p className="text-sm text-muted-foreground">
-                Waiting for GPS location...
-              </p>
-            ) : !isInsideGeofence && !selectedDepotId && !hasNoDepots ? (
-              <p className="text-sm text-orange-600">
-                You're outside depot range. Select a depot manually to clock in.
-              </p>
-            ) : null}
-          </div>
-        )}
+          {!canClockIn && (
+            <div className="mt-3 text-center">
+              {!currentLocation ? (
+                <p className="text-sm text-muted-foreground">
+                  Waiting for GPS location...
+                </p>
+              ) : !isInsideGeofence && !selectedDepotId && !hasNoDepots ? (
+                <p className="text-sm text-orange-600">
+                  You're outside depot range. Select a depot manually to clock in.
+                </p>
+              ) : null}
+            </div>
+          )}
 
-        {!activeTimesheet && selectedDepotId && !isInsideGeofence && (
-          <p className="text-xs text-center text-amber-600 mt-2">
-            Manual depot selection — will be flagged for manager review
-          </p>
-        )}
-        {!activeTimesheet && isLowAccuracy && (
-          <p className="text-xs text-center text-amber-600 mt-2">
-            Low GPS accuracy — clock-in will be flagged for manager review
-          </p>
-        )}
-      </Card>
+          {selectedDepotId && !isInsideGeofence && (
+            <p className="text-xs text-center text-amber-600 mt-2">
+              Manual depot selection — will be flagged for manager review
+            </p>
+          )}
+          {isLowAccuracy && (
+            <p className="text-xs text-center text-amber-600 mt-2">
+              Low GPS accuracy — clock-in will be flagged for manager review
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Error Messages */}
       {clockInMutation.error && (
