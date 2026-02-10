@@ -48,6 +48,9 @@ import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import TitanFleetDemo from "@/pages/demo/TitanFleetDemo";
 import ProcurementFAQ from "@/pages/ProcurementFAQ";
+import SetupAccount from "@/pages/SetupAccount";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -101,6 +104,9 @@ function Router() {
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route path="/demo" component={TitanFleetDemo} />
       <Route path="/procurement-faq" component={ProcurementFAQ} />
+      <Route path="/setup-account" component={SetupAccount} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );

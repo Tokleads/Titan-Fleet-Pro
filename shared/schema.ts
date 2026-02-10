@@ -1072,3 +1072,35 @@ export const messages = pgTable("messages", {
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+// Account Setup Tokens - sent after Stripe purchase
+export const accountSetupTokens = pgTable("account_setup_tokens", {
+  id: serial("id").primaryKey(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  email: text("email").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  tier: varchar("tier", { length: 20 }),
+  maxVehicles: integer("max_vehicles"),
+  used: boolean("used").default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertAccountSetupTokenSchema = createInsertSchema(accountSetupTokens).omit({ id: true, createdAt: true });
+export type AccountSetupToken = typeof accountSetupTokens.$inferSelect;
+export type InsertAccountSetupToken = z.infer<typeof insertAccountSetupTokenSchema>;
+
+// Password Reset Tokens
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  used: boolean("used").default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true });
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;

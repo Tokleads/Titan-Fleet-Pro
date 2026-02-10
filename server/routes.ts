@@ -13,6 +13,7 @@ import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
 import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 import { registerFuelIntelligenceRoutes } from "./fuelIntelligenceRoutes";
 import driverRoutes from "./driverRoutes";
+import authRoutes from "./authRoutes";
 import { ObjectStorageService } from "./objectStorage";
 import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome, checkMOTExpiryWarnings } from "./notificationTriggers";
 
@@ -22,6 +23,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Auth routes
+  app.use('/api/auth', authRoutes);
+
   // Stripe API routes
   app.get('/api/stripe/publishable-key', async (req, res) => {
     try {

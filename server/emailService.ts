@@ -1,12 +1,12 @@
 import { Resend } from 'resend';
 
-const FROM_EMAIL = 'noreply@titanfleet.uk';
+const FROM_EMAIL = 'Titan Fleet <support@titanfleet.co.uk>';
 
 function getResendClient() {
-  const apiKey = process.env.Titanfleet_uk || process.env.RESEND_API_KEY;
+  const apiKey = process.env.TITAN_RESEND_KEY || process.env.Titanfleet_uk || process.env.RESEND_API_KEY;
   
   if (!apiKey) {
-    throw new Error('Resend API key not configured. Set Titanfleet_uk secret.');
+    throw new Error('Resend API key not configured. Set TITAN_RESEND_KEY secret.');
   }
   
   return {
@@ -152,6 +152,108 @@ export async function sendWelcomeEmail(params: {
         <div style="background: #1e293b; padding: 16px 24px; border-radius: 0 0 12px 12px; text-align: center;">
           <p style="color: #94a3b8; margin: 0; font-size: 12px;">
             Titan Fleet Management
+          </p>
+        </div>
+      </div>
+    `
+  });
+}
+
+export async function sendAccountSetupEmail(params: {
+  email: string;
+  setupUrl: string;
+  tier: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const tierDisplay = params.tier ? params.tier.charAt(0).toUpperCase() + params.tier.slice(1) : 'Fleet';
+  
+  return sendEmail({
+    to: params.email,
+    subject: `Set Up Your Titan Fleet Account — ${tierDisplay} Plan`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 32px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Arial Black', sans-serif;">TITAN FLEET</h1>
+          <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px;">Fleet Compliance, Simplified</p>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+          <h2 style="color: #1e293b; margin: 0 0 16px 0;">Welcome to Titan Fleet!</h2>
+          
+          <p style="color: #475569; line-height: 1.6; margin: 0 0 16px 0;">
+            Thank you for choosing the <strong>${tierDisplay} Plan</strong>. Your 14-day free trial has started.
+          </p>
+          
+          <p style="color: #475569; line-height: 1.6; margin: 0 0 24px 0;">
+            Click the button below to set up your account — choose your company name, create your password, and get started.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${params.setupUrl}" style="background: #3b82f6; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold; font-size: 16px;">
+              Set Up My Account
+            </a>
+          </div>
+          
+          <p style="color: #94a3b8; font-size: 13px; margin: 24px 0 0 0;">
+            This link expires in 48 hours. If you didn't purchase a Titan Fleet subscription, you can safely ignore this email.
+          </p>
+        </div>
+        
+        <div style="background: #1e293b; padding: 20px 24px; border-radius: 0 0 12px 12px; text-align: center;">
+          <p style="color: #94a3b8; margin: 0; font-size: 12px;">
+            Titan Fleet Management &bull; Built by a Class 1 Driver
+          </p>
+          <p style="color: #64748b; margin: 8px 0 0 0; font-size: 11px;">
+            support@titanfleet.co.uk
+          </p>
+        </div>
+      </div>
+    `
+  });
+}
+
+export async function sendPasswordResetEmail(params: {
+  email: string;
+  name: string;
+  resetUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+  return sendEmail({
+    to: params.email,
+    subject: 'Reset Your Titan Fleet Password',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 32px; border-radius: 12px 12px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Arial Black', sans-serif;">TITAN FLEET</h1>
+          <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px;">Fleet Compliance, Simplified</p>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+          <h2 style="color: #1e293b; margin: 0 0 16px 0;">Password Reset</h2>
+          
+          <p style="color: #475569; line-height: 1.6; margin: 0 0 16px 0;">
+            Hi ${params.name}, we received a request to reset your password.
+          </p>
+          
+          <p style="color: #475569; line-height: 1.6; margin: 0 0 24px 0;">
+            Click the button below to choose a new password. This link expires in 1 hour.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${params.resetUrl}" style="background: #3b82f6; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold; font-size: 16px;">
+              Reset Password
+            </a>
+          </div>
+          
+          <p style="color: #94a3b8; font-size: 13px; margin: 24px 0 0 0;">
+            If you didn't request this, you can safely ignore this email — your password won't change.
+          </p>
+        </div>
+        
+        <div style="background: #1e293b; padding: 20px 24px; border-radius: 0 0 12px 12px; text-align: center;">
+          <p style="color: #94a3b8; margin: 0; font-size: 12px;">
+            Titan Fleet Management &bull; Built by a Class 1 Driver
+          </p>
+          <p style="color: #64748b; margin: 8px 0 0 0; font-size: 11px;">
+            support@titanfleet.co.uk
           </p>
         </div>
       </div>

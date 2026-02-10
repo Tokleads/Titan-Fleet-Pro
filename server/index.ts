@@ -29,6 +29,14 @@ app.post(
     try {
       const sig = Array.isArray(signature) ? signature[0] : signature;
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      
+      try {
+        const { handlePostCheckout } = await import('./webhookHandlers');
+        await handlePostCheckout(req.body as Buffer, sig);
+      } catch (err) {
+        console.error('Post-checkout handler error:', err);
+      }
+      
       res.status(200).json({ received: true });
     } catch (error: any) {
       console.error('Webhook error:', error.message);
