@@ -375,7 +375,7 @@ export const timesheets = pgTable("timesheets", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").references(() => companies.id).notNull(),
   driverId: integer("driver_id").references(() => users.id).notNull(),
-  depotId: integer("depot_id").references(() => geofences.id).notNull(),
+  depotId: integer("depot_id").references(() => geofences.id),
   depotName: varchar("depot_name", { length: 100 }).notNull(),
   arrivalTime: timestamp("arrival_time").notNull(),
   departureTime: timestamp("departure_time"),
