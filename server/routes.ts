@@ -95,6 +95,11 @@ export async function registerRoutes(
         subscription_data: {
           trial_period_days: 14,
         },
+        custom_text: {
+          submit: {
+            message: 'Cancel anytime — no lock-in contracts. Your 14-day free trial starts today.',
+          },
+        },
       };
       
       if (companyEmail) {
