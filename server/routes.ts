@@ -3734,7 +3734,13 @@ export async function registerRoutes(
       if (!body.completedAt) {
         body.completedAt = new Date();
       }
-      const validated = insertDeliverySchema.parse(body);
+      let validated;
+      try {
+        validated = insertDeliverySchema.parse(body);
+      } catch (parseErr: any) {
+        console.error("Delivery validation failed:", JSON.stringify(parseErr.errors || parseErr.message, null, 2));
+        return res.status(400).json({ error: "Validation failed", details: parseErr.errors || parseErr.message });
+      }
       const delivery = await storage.createDelivery(validated);
       try {
         const { triggerDeliveryCompleted } = await import('./notificationTriggers');
