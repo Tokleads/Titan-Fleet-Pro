@@ -356,45 +356,6 @@ export default function DriverDashboard() {
           </div>
         )}
 
-        {/* Delivery Actions - only shown if POD is enabled for this company */}
-        {(company?.settings as any)?.podEnabled !== false && (
-        <div className="space-y-3">
-          <div 
-            className="titan-card titan-btn-press p-4 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setLocation("/driver/complete-delivery")}
-            data-testid="button-complete-delivery"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-[#5B6CFF]/10 flex items-center justify-center">
-                <Package className="h-5 w-5 text-[#5B6CFF]" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-slate-900">Complete Delivery<HelpTooltip term="POD" /></p>
-                <p className="text-xs text-slate-500">Capture proof of delivery with photos & signature</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-400" />
-            </div>
-          </div>
-
-          <div 
-            className="titan-card titan-btn-press p-4 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setLocation("/driver/deliveries")}
-            data-testid="button-my-deliveries"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileTextIcon className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-slate-900">My Deliveries</p>
-                <p className="text-xs text-slate-500">View your completed delivery records</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-400" />
-            </div>
-          </div>
-        </div>
-        )}
-
         {/* GPS Tracking - runs silently in background */}
         {user?.id && (
           <GPSTrackingStatus 
@@ -404,10 +365,10 @@ export default function DriverDashboard() {
           />
         )}
 
-        {/* Primary Workflow: Search Vehicle */}
+        {/* Primary Workflow: Start Inspection */}
         <section>
             <div className="titan-card p-4 space-y-3">
-                <div className="titan-section-label">Find Vehicle</div>
+                <div className="titan-section-label">Start Inspection</div>
                 <div className="flex gap-3">
                     <input 
                         placeholder="Enter VRM (e.g. KX65ABC)" 
@@ -548,6 +509,46 @@ export default function DriverDashboard() {
                 </div>
              </div>
         </section>
+
+        {/* Delivery Actions - at bottom, only shown if POD is enabled */}
+        {(company?.settings as any)?.podEnabled !== false && (
+        <div className="space-y-3 pb-4">
+          <div className="titan-section-label ml-1">Deliveries</div>
+          <div 
+            className="titan-card titan-btn-press p-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setLocation("/driver/complete-delivery")}
+            data-testid="button-complete-delivery"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-[#5B6CFF]/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-[#5B6CFF]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900">Complete Delivery<HelpTooltip term="POD" /></p>
+                <p className="text-xs text-slate-500">Capture proof of delivery with photos & signature</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </div>
+          </div>
+
+          <div 
+            className="titan-card titan-btn-press p-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setLocation("/driver/deliveries")}
+            data-testid="button-my-deliveries"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <FileTextIcon className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-slate-900">My Deliveries</p>
+                <p className="text-xs text-slate-500">View your completed delivery records</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400" />
+            </div>
+          </div>
+        </div>
+        )}
       </div>
 
       {hasUnreadDocs && showDocsPopup && (
