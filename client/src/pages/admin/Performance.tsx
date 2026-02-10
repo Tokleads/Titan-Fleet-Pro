@@ -117,7 +117,7 @@ export default function Performance() {
   }
 
   // Prepare chart data for endpoint performance
-  const endpointChartData = Object.entries(stats.endpointStats)
+  const endpointChartData = Object.entries(stats.endpointStats || {})
     .map(([endpoint, data]) => ({
       endpoint: endpoint.length > 30 ? endpoint.substring(0, 30) + "..." : endpoint,
       avgDuration: Math.round(data.avgDuration),
@@ -128,7 +128,7 @@ export default function Performance() {
     .slice(0, 10);
 
   // Prepare chart data for recent requests
-  const recentRequestsChartData = stats.recentRequests
+  const recentRequestsChartData = (stats.recentRequests || [])
     .slice()
     .reverse()
     .map((req, idx) => ({
