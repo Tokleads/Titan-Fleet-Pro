@@ -1052,28 +1052,80 @@ function CheckItemRow({
   onTap: () => void;
   onLongPress: () => void;
 }) {
-  const triggerHaptic = () => {
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const didLongPressRef = useRef(false);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  const triggerHaptic = (intensity: number = 10) => {
     if ('vibrate' in navigator) {
-      navigator.vibrate(10);
+      navigator.vibrate(intensity);
     }
   };
 
-  const handleRowClick = () => {
-    triggerHaptic();
-    onTap();
+  const startPress = (x: number, y: number) => {
+    didLongPressRef.current = false;
+    touchStartPos.current = { x, y };
+
+    pressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+      triggerHaptic(30);
+      onLongPress();
+    }, 1500);
   };
 
-  const handleDefectClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    triggerHaptic();
-    onLongPress();
+  const endPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    if (!didLongPressRef.current) {
+      triggerHaptic(10);
+      onTap();
+    }
+    didLongPressRef.current = false;
+    touchStartPos.current = null;
   };
 
-  const showDefectButton = item.status === 'unchecked' || item.status === 'pass';
+  const cancelPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    didLongPressRef.current = false;
+    touchStartPos.current = null;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    startPress(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+    if (dx > 10 || dy > 10) {
+      cancelPress();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    endPress();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    startPress(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    endPress();
+  };
 
   const helperText = (() => {
     if (item.status === 'unchecked') {
-      return item.allowNA ? 'Tap to mark OK · Tap again for N/A' : 'Tap to mark OK';
+      return item.allowNA ? 'Tap OK · Again for N/A · Hold 1.5s for defect' : 'Tap to mark OK · Hold 1.5s for defect';
     }
     if (item.status === 'pass') {
       return item.allowNA ? 'Tap for N/A' : 'Passed ✓';
@@ -1085,7 +1137,13 @@ function CheckItemRow({
 
   return (
     <div
-      onClick={handleRowClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={cancelPress}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={cancelPress}
       className={`
         titan-tap-target rounded-2xl border px-4 py-3 flex items-center gap-3 cursor-pointer select-none transition-all active:scale-[0.98]
         ${item.status === 'pass' ? 'titan-check-pass' : ''}
@@ -1123,17 +1181,6 @@ function CheckItemRow({
           </p>
         )}
       </div>
-
-      {showDefectButton && (
-        <button
-          onClick={handleDefectClick}
-          className="shrink-0 h-10 w-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center active:scale-95 active:bg-amber-100 transition-all"
-          aria-label="Report defect"
-          data-testid={`defect-button-${item.id}`}
-        >
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-        </button>
-      )}
     </div>
   );
 }
