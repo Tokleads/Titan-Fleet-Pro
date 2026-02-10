@@ -2697,10 +2697,7 @@ export async function registerRoutes(
   app.get("/api/timesheets/active/:driverId", async (req, res) => {
     try {
       const timesheet = await storage.getActiveTimesheet(Number(req.params.driverId));
-      if (!timesheet) {
-        return res.json({ timesheet: null });
-      }
-      res.json(timesheet);
+      res.json({ timesheet: timesheet || null });
     } catch (error) {
       console.error("Error fetching active timesheet:", error);
       res.status(500).json({ error: "Failed to fetch active timesheet" });

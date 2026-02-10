@@ -196,7 +196,6 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   // Clock out mutation
   const clockOutMutation = useMutation({
     mutationFn: async () => {
-      if (!currentLocation) throw new Error('Location not available');
       if (!activeTimesheet) throw new Error('No active timesheet');
 
       const response = await fetch('/api/timesheets/clock-out', {
@@ -204,8 +203,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           timesheetId: activeTimesheet.id,
-          latitude: currentLocation.lat.toString(),
-          longitude: currentLocation.lng.toString(),
+          latitude: currentLocation?.lat?.toString() || null,
+          longitude: currentLocation?.lng?.toString() || null,
           accuracy: gpsAccuracy
         })
       });
@@ -307,7 +306,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                 size="lg"
                 className="w-full h-14 text-lg font-bold titan-btn-press bg-red-600 hover:bg-red-700 text-white shadow-md"
                 onClick={() => clockOutMutation.mutate()}
-                disabled={!currentLocation || clockOutMutation.isPending}
+                disabled={clockOutMutation.isPending}
                 data-testid="button-clock-out"
               >
                 {clockOutMutation.isPending ? (
