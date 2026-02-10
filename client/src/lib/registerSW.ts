@@ -7,48 +7,22 @@ export async function registerServiceWorker() {
   }
 
   try {
-    // Register service worker
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/'
-    });
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+      console.log('Unregistered old service worker');
+    }
 
-    console.log('Service Worker registered:', registration.scope);
+    const cacheNames = await caches.keys();
+    for (const cacheName of cacheNames) {
+      await caches.delete(cacheName);
+      console.log('Deleted cache:', cacheName);
+    }
 
-    // Check for updates every hour
-    setInterval(() => {
-      registration.update();
-    }, 60 * 60 * 1000);
-
-    // Handle updates
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      
-      if (!newWorker) return;
-
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log('New service worker available, auto-updating...');
-          newWorker.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload();
-        }
-      });
-    });
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('Service Worker controller changed, reloading...');
-      window.location.reload();
-    });
-
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'SW_UPDATED') {
-        console.log('Service worker updated to:', event.data.version);
-        window.location.reload();
-      }
-    });
-
-    return registration;
+    console.log('Service workers disabled - all caches cleared');
+    return null;
   } catch (error) {
-    console.error('Service Worker registration failed:', error);
+    console.error('Service Worker cleanup failed:', error);
     return null;
   }
 }
