@@ -1,36 +1,31 @@
 // Titan Fleet Service Worker
 // Provides offline support, caching, and PWA functionality
 
-const CACHE_NAME = 'titan-fleet-v8';
-const RUNTIME_CACHE = 'titan-fleet-runtime-v8';
+const CACHE_NAME = 'titan-fleet-v9';
+const RUNTIME_CACHE = 'titan-fleet-runtime-v9';
 
-// Assets to cache on install
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
   '/offline.html',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
-// Install event - cache core assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  console.log('[SW] Installing service worker v9...');
   
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Precaching core assets');
+        console.log('[SW] Precaching assets');
         return cache.addAll(PRECACHE_ASSETS);
       })
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  console.log('[SW] Activating service worker v9...');
   
   event.waitUntil(
     caches.keys()
@@ -47,76 +42,96 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => self.clients.claim())
+      .then(() => {
+        return self.clients.matchAll({ type: 'window' });
+      })
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
+        });
+      })
   );
 });
 
-// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
 
-  // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) {
     return;
   }
 
-  // API requests - network first, cache fallback
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return caches.match('/offline.html') || new Response('Offline', { status: 503 });
+      })
+    );
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone response before caching
           const responseToCache = response.clone();
-          
           caches.open(RUNTIME_CACHE).then((cache) => {
             cache.put(request, responseToCache);
           });
-          
           return response;
         })
         .catch(() => {
-          // Return cached response if available
           return caches.match(request);
         })
     );
     return;
   }
 
-  // Static assets - network first, cache fallback (ensures fresh code)
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (!response || response.status !== 200) {
+            return response;
+          }
+          const responseToCache = response.clone();
+          caches.open(RUNTIME_CACHE).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            return cached || new Response('Offline', { status: 503 });
+          });
+        })
+    );
+    return;
+  }
+
   event.respondWith(
-    fetch(request)
-      .then((response) => {
+    caches.match(request).then((cached) => {
+      if (cached) {
+        return cached;
+      }
+      return fetch(request).then((response) => {
         if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
-
         const responseToCache = response.clone();
         caches.open(RUNTIME_CACHE).then((cache) => {
           cache.put(request, responseToCache);
         });
-
         return response;
-      })
-      .catch(() => {
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          if (request.mode === 'navigate') {
-            return caches.match('/offline.html');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
+      });
+    })
   );
 });
 
-// Background sync for offline GPS updates
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync:', event.tag);
   
@@ -125,17 +140,14 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Sync GPS locations from offline queue
 async function syncGPSLocations() {
   try {
-    // Get offline queue from IndexedDB or localStorage
     const queue = await getOfflineQueue();
     
     if (queue.length === 0) {
       return;
     }
 
-    // Send batch update
     const response = await fetch('/api/driver/location/batch', {
       method: 'POST',
       headers: {
@@ -145,17 +157,15 @@ async function syncGPSLocations() {
     });
 
     if (response.ok) {
-      // Clear queue on success
       await clearOfflineQueue();
       console.log('[SW] GPS locations synced:', queue.length);
     }
   } catch (error) {
     console.error('[SW] Failed to sync GPS locations:', error);
-    throw error; // Retry on failure
+    throw error;
   }
 }
 
-// Get offline queue (placeholder - actual implementation in GPS service)
 async function getOfflineQueue() {
   try {
     const stored = localStorage.getItem('gps_offline_queue');
@@ -165,7 +175,6 @@ async function getOfflineQueue() {
   }
 }
 
-// Clear offline queue
 async function clearOfflineQueue() {
   try {
     localStorage.removeItem('gps_offline_queue');
@@ -174,7 +183,6 @@ async function clearOfflineQueue() {
   }
 }
 
-// Push notification handler
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
@@ -182,13 +190,11 @@ self.addEventListener('push', (event) => {
   const title = data.notification?.title || data.title || 'Titan Fleet';
   const body = data.notification?.body || data.body || 'You have a new notification';
   
-  // Parse notification data
   const notificationData = {
     ...data.data,
     clickAction: data.notification?.clickAction || data.clickAction || '/'
   };
   
-  // Build notification options
   const options = {
     body: body,
     icon: data.notification?.icon || '/icons/icon-192x192.png',
@@ -219,29 +225,23 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification click handler
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event.action);
   
   event.notification.close();
 
-  // Handle different actions
   if (event.action === 'dismiss') {
-    // Just close the notification
     return;
   }
 
-  // Determine URL to open
   let urlToOpen = event.notification.data?.clickAction || '/';
   
-  // Handle special actions
   if (event.action === 'call') {
     urlToOpen = event.notification.data?.phoneNumber || 'tel:+441234567890';
   } else if (event.action === 'open') {
     urlToOpen = event.notification.data?.clickAction || '/';
   }
 
-  // Handle tel: links (open phone dialer)
   if (urlToOpen.startsWith('tel:')) {
     event.waitUntil(
       clients.openWindow(urlToOpen)
@@ -249,18 +249,15 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  // Handle regular URLs
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Focus existing window if available
         for (const client of clientList) {
           if (client.url.includes(urlToOpen) && 'focus' in client) {
             return client.focus();
           }
         }
         
-        // Open new window
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
@@ -268,7 +265,6 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Message handler for communication with app
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
   
@@ -287,4 +283,4 @@ self.addEventListener('message', (event) => {
   }
 });
 
-console.log('[SW] Service worker loaded');
+console.log('[SW] Service worker v9 loaded');

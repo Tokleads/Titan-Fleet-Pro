@@ -34,9 +34,16 @@ export async function registerServiceWorker() {
       });
     });
 
-    // Handle controller change
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('Service Worker controller changed');
+      console.log('Service Worker controller changed, reloading...');
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SW_UPDATED') {
+        console.log('Service worker updated to:', event.data.version);
+        window.location.reload();
+      }
     });
 
     return registration;
