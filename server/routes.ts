@@ -390,7 +390,14 @@ export async function registerRoutes(
   // Create inspection
   app.post("/api/inspections", async (req, res) => {
     try {
-      const validated = insertInspectionSchema.parse(req.body);
+      const body = { ...req.body };
+      if (typeof body.startedAt === "string") {
+        body.startedAt = new Date(body.startedAt);
+      }
+      if (typeof body.completedAt === "string") {
+        body.completedAt = new Date(body.completedAt);
+      }
+      const validated = insertInspectionSchema.parse(body);
       const inspection = await storage.createInspection(validated);
       
       // Track vehicle usage
