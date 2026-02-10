@@ -78,6 +78,7 @@ function Router() {
       <Route path="/driver/notifications" component={NotificationCenter} />
       <Route path="/manager/login" component={ManagerLogin} />
       <Route path="/manager" component={ManagerDashboard} />
+      <Route path="/manager/advanced-dashboard" component={ManagerDashboard} />
       <Route path="/manager/inspections" component={ManagerInspections} />
       <Route path="/manager/defects" component={ManagerDefects} />
       <Route path="/manager/fuel" component={ManagerFuelLog} />
