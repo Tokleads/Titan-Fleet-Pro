@@ -161,8 +161,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     mutationFn: async () => {
       if (!currentLocation) throw new Error('Location not available');
       
-      const depot = getSelectedDepot();
-      const isManualSelection = !isInsideGeofence && (selectedDepotId !== null || hasNoDepots);
+      const depot = getSelectedDepot() || (nearestDepot ? nearestDepot.geofence : null);
+      const isManualSelection = !isInsideGeofence;
 
       const response = await fetch('/api/timesheets/clock-in', {
         method: 'POST',
@@ -236,8 +236,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   };
 
   const hasNoDepots = geofences.filter(g => g.isActive).length === 0;
-  // Can clock in if: location available AND (inside geofence OR manual selection OR no depots configured)
-  const canClockIn = currentLocation && isAccuracyValid && (isInsideGeofence || selectedDepotId !== null || hasNoDepots);
+  // Can clock in if: location available (always allow, flags for review if outside geofence)
+  const canClockIn = currentLocation && isAccuracyValid;
 
   // Handle policy acceptance
   const handleAcceptPolicy = () => {
@@ -355,14 +355,9 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                 )}
               </Button>
 
-              {!canClockIn && currentLocation && !isInsideGeofence && !selectedDepotId && !hasNoDepots && (
-                <p className="text-sm text-orange-600">
-                  You're outside depot range. Select a depot below to clock in.
-                </p>
-              )}
-              {selectedDepotId && !isInsideGeofence && (
+              {currentLocation && !isInsideGeofence && !hasNoDepots && (
                 <p className="text-xs text-amber-600">
-                  Manual depot selection — will be flagged for manager review
+                  You're outside depot range — clock-in will be flagged for manager review
                 </p>
               )}
               {isLowAccuracy && (
