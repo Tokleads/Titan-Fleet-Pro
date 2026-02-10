@@ -139,7 +139,7 @@ app.use((req, res, next) => {
         const mgr = await db.select().from(users).where(eq(users.companyId, existingAny[0].id));
         for (const u of mgr) {
           if (u.role === 'manager' && !u.pin) {
-            await db.update(users).set({ pin: '0000' }).where(eq(users.id, u.id));
+            await db.update(users).set({ pin: '8472' }).where(eq(users.id, u.id));
           }
         }
         console.log('Updated existing company to APEX');
@@ -156,16 +156,16 @@ app.use((req, res, next) => {
         }).returning();
         const bcrypt = await import('bcrypt');
         const hashedPw = await bcrypt.default.hash('1234TF', 10);
-        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '0000', password: hashedPw });
-        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '1234', password: hashedPw });
-        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '5678', password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '8472', password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '7391', password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '6258', password: hashedPw });
         console.log('Created APEX demo company with users');
       }
     } else {
       const mgr = await db.select().from(users).where(eq(users.companyId, existing[0].id));
       for (const u of mgr) {
         if (u.role === 'manager' && !u.pin) {
-          await db.update(users).set({ pin: '0000' }).where(eq(users.id, u.id));
+          await db.update(users).set({ pin: '8472' }).where(eq(users.id, u.id));
           console.log('Fixed manager PIN for APEX company');
         }
       }
