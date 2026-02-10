@@ -298,24 +298,27 @@ export default function VehicleInspection() {
   };
 
   const handleItemTap = (sectionId: string, itemId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    const item = section?.items.find(i => i.id === itemId);
+    if (item?.status === "fail") {
+      handleItemLongPress(sectionId, itemId);
+      return;
+    }
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
       return {
         ...s,
         items: s.items.map(item => {
           if (item.id !== itemId) return item;
-          // Tap cycles depend on allowNA
           if (item.allowNA) {
-            // For items that allow N/A: unchecked -> pass -> na -> unchecked
             if (item.status === "unchecked") return { ...item, status: "pass" as CheckStatus };
             if (item.status === "pass") return { ...item, status: "na" as CheckStatus };
             if (item.status === "na") return { ...item, status: "unchecked" as CheckStatus };
           } else {
-            // Standard: unchecked -> pass -> unchecked
             if (item.status === "unchecked") return { ...item, status: "pass" as CheckStatus };
             if (item.status === "pass") return { ...item, status: "unchecked" as CheckStatus };
           }
-          return item; // fail stays fail until cleared via sheet
+          return item;
         })
       };
     }));
@@ -1038,7 +1041,6 @@ export default function VehicleInspection() {
   );
 }
 
-// Check Item Row - Industrial Checklist Plate with Hold Indicator
 function CheckItemRow({ 
   item, 
   isLast, 
@@ -1050,136 +1052,88 @@ function CheckItemRow({
   onTap: () => void;
   onLongPress: () => void;
 }) {
-  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isPressed, setIsPressed] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const holdAnimationRef = useState<number | null>(null);
-
   const triggerHaptic = () => {
     if ('vibrate' in navigator) {
       navigator.vibrate(10);
     }
   };
 
-  const handleTouchStart = () => {
-    setIsPressed(true);
-    setHoldProgress(0);
-    
-    const startTime = Date.now();
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / 500, 1);
-      setHoldProgress(progress);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    requestAnimationFrame(animate);
-    
-    const timer = setTimeout(() => {
-      triggerHaptic();
-      onLongPress();
-      setIsPressed(false);
-      setHoldProgress(0);
-    }, 500);
-    setPressTimer(timer);
+  const handleRowClick = () => {
+    triggerHaptic();
+    onTap();
   };
 
-  const handleTouchEnd = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      if (isPressed && holdProgress < 1) {
-        triggerHaptic();
-        onTap();
-      }
+  const handleDefectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic();
+    onLongPress();
+  };
+
+  const showDefectButton = item.status === 'unchecked' || item.status === 'pass';
+
+  const helperText = (() => {
+    if (item.status === 'unchecked') {
+      return item.allowNA ? 'Tap to mark OK · Tap again for N/A' : 'Tap to mark OK';
     }
-    setIsPressed(false);
-    setHoldProgress(0);
-    setPressTimer(null);
-  };
-
-  const handleTouchCancel = () => {
-    if (pressTimer) clearTimeout(pressTimer);
-    setIsPressed(false);
-    setHoldProgress(0);
-    setPressTimer(null);
-  };
+    if (item.status === 'pass') {
+      return item.allowNA ? 'Tap for N/A' : 'Passed ✓';
+    }
+    if (item.status === 'na') return 'Not Applicable';
+    if (item.status === 'fail') return 'Tap to edit defect';
+    return '';
+  })();
 
   return (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchCancel}
-      onMouseDown={handleTouchStart}
-      onMouseUp={handleTouchEnd}
-      onMouseLeave={handleTouchCancel}
+      onClick={handleRowClick}
       className={`
-        titan-tap-target rounded-2xl border px-4 py-3 flex items-center gap-3 cursor-pointer select-none transition-all
-        ${isPressed ? 'scale-[0.98] bg-slate-50' : ''}
+        titan-tap-target rounded-2xl border px-4 py-3 flex items-center gap-3 cursor-pointer select-none transition-all active:scale-[0.98]
         ${item.status === 'pass' ? 'titan-check-pass' : ''}
         ${item.status === 'fail' ? 'titan-check-fail' : ''}
         ${item.status === 'na' ? 'bg-slate-50 border-slate-300' : ''}
         ${item.status === 'unchecked' ? 'titan-check-unchecked' : ''}
       `}
+      data-testid={`check-item-${item.id}`}
     >
-      <div className="relative">
-        <div className={`
-          h-11 w-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all
-          ${item.status === 'pass' ? 'bg-emerald-500 text-white shadow-sm' : ''}
-          ${item.status === 'fail' ? 'bg-amber-500 text-white shadow-sm' : ''}
-          ${item.status === 'na' ? 'bg-slate-400 text-white shadow-sm' : ''}
-          ${item.status === 'unchecked' ? 'bg-slate-100 text-slate-400 border-2 border-dashed border-slate-300' : ''}
-        `}>
-          {item.status === 'pass' && <Check className="h-5 w-5" />}
-          {item.status === 'fail' && <AlertTriangle className="h-5 w-5" />}
-          {item.status === 'na' && <span className="text-xs">N/A</span>}
-          {item.status === 'unchecked' && '?'}
-        </div>
-        
-        {/* Hold Progress Ring */}
-        {isPressed && holdProgress > 0 && item.status === 'unchecked' && (
-          <svg className="absolute -inset-1 w-[52px] h-[52px]" viewBox="0 0 52 52">
-            <circle
-              cx="26"
-              cy="26"
-              r="23"
-              fill="none"
-              stroke="hsl(0 84% 60%)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={`${holdProgress * 144.5} 144.5`}
-              transform="rotate(-90 26 26)"
-              className="transition-none"
-            />
-          </svg>
-        )}
+      <div className={`
+        h-11 w-11 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 transition-all
+        ${item.status === 'pass' ? 'bg-emerald-500 text-white shadow-sm' : ''}
+        ${item.status === 'fail' ? 'bg-amber-500 text-white shadow-sm' : ''}
+        ${item.status === 'na' ? 'bg-slate-400 text-white shadow-sm' : ''}
+        ${item.status === 'unchecked' ? 'bg-slate-100 text-slate-400 border-2 border-dashed border-slate-300' : ''}
+      `}>
+        {item.status === 'pass' && <Check className="h-5 w-5" />}
+        {item.status === 'fail' && <AlertTriangle className="h-5 w-5" />}
+        {item.status === 'na' && <span className="text-xs">N/A</span>}
+        {item.status === 'unchecked' && '?'}
       </div>
       
       <div className="flex-1 min-w-0">
         <p className={`titan-body font-medium ${item.status === 'unchecked' ? 'text-slate-800' : item.status === 'pass' ? 'text-emerald-900' : item.status === 'na' ? 'text-slate-700' : 'text-amber-900'}`}>
           {item.label}
         </p>
-        {item.status === 'unchecked' && (
-          <p className="titan-micro mt-0.5">
-            {item.allowNA ? 'Tap to pass · Tap again for N/A · Hold for defect' : 'Tap to pass · Hold to log defect'}
-          </p>
-        )}
-        {item.status === 'pass' && (
-          <p className="titan-micro text-emerald-600 font-medium mt-0.5">
-            {item.allowNA ? 'Passed · Tap for N/A' : 'Passed'}
-          </p>
-        )}
-        {item.status === 'na' && (
-          <p className="titan-micro text-slate-500 font-medium mt-0.5">Not Applicable (no load)</p>
-        )}
-        {item.status === 'fail' && (
+        {item.status === 'fail' ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="titan-pill titan-pill-warn">Defect logged</span>
             {item.defectNote && <span className="titan-micro text-amber-700 truncate">{item.defectNote}</span>}
           </div>
+        ) : (
+          <p className={`titan-micro mt-0.5 ${item.status === 'pass' ? 'text-emerald-600 font-medium' : item.status === 'na' ? 'text-slate-500 font-medium' : ''}`}>
+            {helperText}
+          </p>
         )}
       </div>
+
+      {showDefectButton && (
+        <button
+          onClick={handleDefectClick}
+          className="shrink-0 h-10 w-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center active:scale-95 active:bg-amber-100 transition-all"
+          aria-label="Report defect"
+          data-testid={`defect-button-${item.id}`}
+        >
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+        </button>
+      )}
     </div>
   );
 }
