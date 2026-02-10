@@ -74,10 +74,46 @@ function getBestValueTier(vehicles: number): string {
 
 export default function PricingSection() {
   const [vehicleCount, setVehicleCount] = useState<number>(10);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const calculatedPrice = useMemo(() => calculateOveragePrice(vehicleCount), [vehicleCount]);
   const bestValueTier = useMemo(() => getBestValueTier(vehicleCount), [vehicleCount]);
   const overageVehicles = vehicleCount > 10 ? vehicleCount - 10 : 0;
+
+  const handleCheckout = async (tierName: string) => {
+    setCheckoutLoading(tierName);
+    try {
+      const productsRes = await fetch('/api/stripe/products');
+      const { products } = await productsRes.json();
+      
+      const product = products?.find((p: any) => 
+        p.name?.toLowerCase() === tierName.toLowerCase() ||
+        p.metadata?.tier === tierName.toLowerCase()
+      );
+      
+      if (!product || !product.prices?.length) {
+        alert('This plan is not yet available. Please contact us.');
+        return;
+      }
+      
+      const priceId = product.prices[0].id;
+      const checkoutRes = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId }),
+      });
+      
+      const { url } = await checkoutRes.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   return (
     <section id="pricing" className="py-20 lg:py-28 bg-[#0f172a]">
@@ -259,14 +295,16 @@ export default function PricingSection() {
 
                 <div className="mt-auto w-full">
                   <button
+                    onClick={() => handleCheckout(tier.name)}
+                    disabled={checkoutLoading === tier.name}
                     className={`w-full h-12 font-semibold rounded-xl transition-colors ${
                       isHighlighted
                         ? "bg-[#0f172a] text-white hover:bg-slate-800"
                         : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
-                    }`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                     data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
                   >
-                    Start Free Trial
+                    {checkoutLoading === tier.name ? 'Loading...' : 'Start Free Trial'}
                   </button>
                 </div>
               </motion.div>

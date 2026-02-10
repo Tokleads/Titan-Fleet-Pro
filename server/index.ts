@@ -4,6 +4,9 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startScheduler } from "./scheduler";
 import adminRoutes from "./adminRoutes";
+import { runMigrations } from 'stripe-replit-sync';
+import { getStripeSync } from './stripeClient';
+import { WebhookHandlers } from './webhookHandlers';
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,6 +16,26 @@ declare module "http" {
     rawBody: unknown;
   }
 }
+
+// Stripe webhook route - MUST be before express.json()
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature' });
+    }
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
 
 app.use(
   express.json({
@@ -62,6 +85,37 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Stripe
+  try {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      console.log('Initializing Stripe schema...');
+      await runMigrations({ databaseUrl, schema: 'stripe' });
+      console.log('Stripe schema ready');
+
+      const stripeSync = await getStripeSync();
+
+      const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+      if (domain) {
+        const webhookBaseUrl = `https://${domain}`;
+        try {
+          const result = await stripeSync.findOrCreateManagedWebhook(
+            `${webhookBaseUrl}/api/stripe/webhook`
+          );
+          console.log(`Stripe webhook configured: ${result?.webhook?.url || 'OK'}`);
+        } catch (webhookErr) {
+          console.log('Stripe webhook setup deferred (will work after deployment)');
+        }
+      }
+
+      stripeSync.syncBackfill()
+        .then(() => console.log('Stripe data synced'))
+        .catch((err: any) => console.error('Error syncing Stripe data:', err));
+    }
+  } catch (error) {
+    console.error('Stripe initialization error (non-fatal):', error);
+  }
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
   

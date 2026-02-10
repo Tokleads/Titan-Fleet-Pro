@@ -22,6 +22,129 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Stripe API routes
+  app.get('/api/stripe/publishable-key', async (req, res) => {
+    try {
+      const { getStripePublishableKey } = await import('./stripeClient');
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get Stripe key' });
+    }
+  });
+
+  app.get('/api/stripe/products', async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const result = await db.execute(sql`
+        SELECT 
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring,
+          pr.active as price_active
+        FROM stripe.products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        WHERE p.active = true
+        ORDER BY pr.unit_amount ASC
+      `);
+      
+      const productsMap = new Map();
+      for (const row of result.rows) {
+        const r = row as any;
+        if (!productsMap.has(r.product_id)) {
+          productsMap.set(r.product_id, {
+            id: r.product_id,
+            name: r.product_name,
+            description: r.product_description,
+            metadata: r.product_metadata,
+            prices: []
+          });
+        }
+        if (r.price_id) {
+          productsMap.get(r.product_id).prices.push({
+            id: r.price_id,
+            unitAmount: r.unit_amount,
+            currency: r.currency,
+            recurring: r.recurring,
+          });
+        }
+      }
+      
+      res.json({ products: Array.from(productsMap.values()) });
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  });
+
+  app.post('/api/stripe/checkout', async (req, res) => {
+    try {
+      const { getUncachableStripeClient } = await import('./stripeClient');
+      const stripe = await getUncachableStripeClient();
+      const { priceId, companyName, companyEmail } = req.body;
+      
+      if (!priceId) {
+        return res.status(400).json({ error: 'Missing priceId' });
+      }
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      const sessionParams: any = {
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/?checkout=success`,
+        cancel_url: `${baseUrl}/?checkout=cancelled`,
+        allow_promotion_codes: true,
+        subscription_data: {
+          trial_period_days: 14,
+        },
+      };
+      
+      if (companyEmail) {
+        sessionParams.customer_email = companyEmail;
+      }
+      if (companyName) {
+        sessionParams.subscription_data.metadata = { companyName };
+      }
+      
+      const session = await stripe.checkout.sessions.create(sessionParams);
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+
+  app.post('/api/stripe/portal', async (req, res) => {
+    try {
+      const { getUncachableStripeClient } = await import('./stripeClient');
+      const stripe = await getUncachableStripeClient();
+      const { customerId } = req.body;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: 'Missing customerId' });
+      }
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${baseUrl}/manager/settings`,
+      });
+      
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('Portal error:', error);
+      res.status(500).json({ error: 'Failed to create portal session' });
+    }
+  });
+
   // Fuel Intelligence routes
   registerFuelIntelligenceRoutes(app);
   
