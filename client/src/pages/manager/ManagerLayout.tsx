@@ -24,7 +24,6 @@ import {
   BarChart3,
   Users,
   FolderOpen,
-  Activity,
   PoundSterling,
   TrendingUp,
   Gift
@@ -56,7 +55,6 @@ const navItems = [
   { path: "/manager/license", icon: Shield, label: "License" },
   { path: "/manager/referrals", icon: Gift, label: "Referrals" },
   { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log" },
-  { path: "/admin/performance", icon: Activity, label: "Performance" },
   { path: "/manager/settings", icon: Settings, label: "Settings" },
 ];
 

@@ -40,7 +40,6 @@ import FuelIntelligence from './pages/manager/FuelIntelligence';
 import Drivers from './pages/manager/Drivers';
 import Referrals from './pages/manager/Referrals';
 import Deliveries from './pages/manager/Deliveries';
-import Performance from "@/pages/admin/Performance";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCompanies from "@/pages/admin/Companies";
@@ -104,7 +103,6 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/companies" component={AdminCompanies} />
-      <Route path="/admin/performance" component={Performance} />
       <Route path="/demo/dc-european" component={DCEuropeanDemo} />
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route path="/demo" component={TitanFleetDemo} />
