@@ -147,7 +147,7 @@ export interface IStorage {
   // Timesheet operations
   getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string): Promise<(Timesheet & { driver?: User })[]>;
   getActiveTimesheet(driverId: number): Promise<Timesheet | undefined>;
-  clockIn(companyId: number, driverId: number, depotId: number, latitude: string, longitude: string): Promise<Timesheet>;
+  clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet>;
   clockOut(timesheetId: number, latitude: string, longitude: string): Promise<Timesheet>;
   updateTimesheet(id: number, updates: Partial<Timesheet>): Promise<Timesheet | undefined>;
   generateTimesheetCSV(timesheets: (Timesheet & { driver?: User })[]): Promise<string>;
@@ -1157,33 +1157,34 @@ export class DatabaseStorage implements IStorage {
     return active || undefined;
   }
   
-  async clockIn(companyId: number, driverId: number, depotId: number, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet> {
+  async clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet> {
     // Check if driver already has an active timesheet
     const existing = await this.getActiveTimesheet(driverId);
     if (existing) {
       throw new Error('Driver already clocked in');
     }
     
-    // Get depot info
-    const depot = await db.select().from(geofences)
-      .where(eq(geofences.id, depotId))
-      .limit(1);
-    
-    if (!depot[0]) {
-      throw new Error('Depot not found');
+    let depotName = 'GPS Location';
+    if (depotId) {
+      const depot = await db.select().from(geofences)
+        .where(eq(geofences.id, depotId))
+        .limit(1);
+      if (depot[0]) {
+        depotName = depot[0].name;
+      }
     }
     
     // Create new timesheet
     const [timesheet] = await db.insert(timesheets).values({
       companyId,
       driverId,
-      depotId,
-      depotName: depot[0].name,
+      depotId: depotId ?? null,
+      depotName,
       arrivalTime: new Date(),
       arrivalLatitude: latitude,
       arrivalLongitude: longitude,
       arrivalAccuracy: arrivalAccuracy ?? null,
-      manualDepotSelection: manualDepotSelection ?? false,
+      manualDepotSelection: manualDepotSelection ?? !depotId,
       status: 'ACTIVE',
       departureTime: null,
       totalMinutes: null,

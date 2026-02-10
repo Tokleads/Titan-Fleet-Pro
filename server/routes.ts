@@ -2710,20 +2710,20 @@ export async function registerRoutes(
   // Clock in
   app.post("/api/timesheets/clock-in", async (req, res) => {
     try {
-      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection } = req.body;
+      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy } = req.body;
       
-      if (!companyId || !driverId || !depotId || !latitude || !longitude) {
+      if (!companyId || !driverId || !latitude || !longitude) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
       const timesheet = await storage.clockIn(
         Number(companyId),
         Number(driverId),
-        Number(depotId),
+        depotId ? Number(depotId) : null,
         latitude,
         longitude,
         accuracy ? Math.round(Number(accuracy)) : null,
-        manualSelection === true
+        manualSelection === true || lowAccuracy === true
       );
       
       res.json(timesheet);

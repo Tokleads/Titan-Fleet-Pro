@@ -161,9 +161,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
       if (!currentLocation) throw new Error('Location not available');
       
       const depot = getSelectedDepot();
-      if (!depot) throw new Error('No depot selected');
-
-      const isManualSelection = !isInsideGeofence && selectedDepotId !== null;
+      const isManualSelection = !isInsideGeofence && (selectedDepotId !== null || hasNoDepots);
 
       const response = await fetch('/api/timesheets/clock-in', {
         method: 'POST',
@@ -171,7 +169,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
         body: JSON.stringify({
           companyId,
           driverId,
-          depotId: depot.id,
+          depotId: depot?.id || null,
           latitude: currentLocation.lat.toString(),
           longitude: currentLocation.lng.toString(),
           accuracy: gpsAccuracy,
@@ -237,8 +235,9 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     });
   };
 
-  // Can clock in if: location available, accuracy valid, and either inside geofence OR manual selection made
-  const canClockIn = currentLocation && isAccuracyValid && (isInsideGeofence || selectedDepotId !== null);
+  const hasNoDepots = geofences.filter(g => g.isActive).length === 0;
+  // Can clock in if: location available AND (inside geofence OR manual selection OR no depots configured)
+  const canClockIn = currentLocation && isAccuracyValid && (isInsideGeofence || selectedDepotId !== null || hasNoDepots);
 
   // Handle policy acceptance
   const handleAcceptPolicy = () => {
@@ -491,7 +490,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
               <p className="text-sm text-muted-foreground">
                 Waiting for GPS location...
               </p>
-            ) : !isInsideGeofence && !selectedDepotId ? (
+            ) : !isInsideGeofence && !selectedDepotId && !hasNoDepots ? (
               <p className="text-sm text-orange-600">
                 You're outside depot range. Select a depot manually to clock in.
               </p>
