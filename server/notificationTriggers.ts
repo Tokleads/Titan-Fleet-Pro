@@ -339,6 +339,53 @@ export async function checkFuelAnomalies(): Promise<{ checked: number; flagged: 
   }
 }
 
+export async function triggerDeliveryCompleted(params: {
+  companyId: number;
+  driverId: number;
+  vehicleId: number | null;
+  customerName: string;
+  deliveryId: number;
+  referenceNumber?: string;
+}) {
+  try {
+    const driver = await storage.getUser(params.driverId);
+    const vehicle = params.vehicleId ? await storage.getVehicleById(params.vehicleId) : null;
+
+    if (!driver) {
+      console.error('triggerDeliveryCompleted: Driver not found');
+      return;
+    }
+
+    const managers = await getManagersByCompany(params.companyId);
+    if (managers.length === 0) {
+      console.log('triggerDeliveryCompleted: No managers to notify');
+      return;
+    }
+
+    const driverName = driver.name || 'Unknown driver';
+    const vrm = vehicle?.vrm;
+    const title = vrm
+      ? `Delivery Completed - ${params.customerName} (${vrm})`
+      : `Delivery Completed - ${params.customerName}`;
+    const message = `${driverName} completed delivery to ${params.customerName}${params.referenceNumber ? ' (Ref: ' + params.referenceNumber + ')' : ''}. POD with signature and photos available.`;
+
+    for (const manager of managers) {
+      await createNotificationHelper({
+        companyId: params.companyId,
+        senderId: params.driverId,
+        recipientId: manager.id,
+        title,
+        message,
+        priority: 'NORMAL',
+      });
+    }
+
+    console.log(`Delivery completed notification sent to ${managers.length} manager(s)`);
+  } catch (error) {
+    console.error('triggerDeliveryCompleted error:', error);
+  }
+}
+
 export const notificationTriggers = {
   defectReported: triggerDefectReported,
   inspectionFailed: triggerInspectionFailed,
@@ -346,4 +393,5 @@ export const notificationTriggers = {
   checkMOTExpiry: checkMOTExpiryWarnings,
   checkDefectEscalation,
   checkFuelAnomalies,
+  deliveryCompleted: triggerDeliveryCompleted,
 };

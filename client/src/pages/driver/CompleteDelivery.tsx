@@ -289,8 +289,8 @@ export default function CompleteDelivery() {
       if (!res.ok) throw new Error("Failed to submit delivery");
 
       toast({
-        title: "Delivery completed successfully",
-        description: `${customerName} - delivery recorded`,
+        title: "Delivery Sent to Manager",
+        description: `POD for ${customerName} sent. Your manager has been notified and can download the PDF.`,
         className: "border-green-500 bg-green-50",
       });
       setLocation("/driver");
@@ -629,11 +629,11 @@ export default function CompleteDelivery() {
                     ? "Add at least 1 photo"
                     : !signatureObjectPath
                       ? "Capture signature"
-                      : "Complete Delivery"}
+                      : "Submit to Manager"}
             </TitanButton>
             {canSubmit && (
               <p className="text-center text-[12px] text-slate-500">
-                Proof of delivery will be recorded
+                POD will be sent to your transport manager
               </p>
             )}
           </div>

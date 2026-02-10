@@ -3722,6 +3722,19 @@ export async function registerRoutes(
       }
       const validated = insertDeliverySchema.parse(body);
       const delivery = await storage.createDelivery(validated);
+      try {
+        const { triggerDeliveryCompleted } = await import('./notificationTriggers');
+        await triggerDeliveryCompleted({
+          companyId: delivery.companyId,
+          driverId: delivery.driverId,
+          vehicleId: delivery.vehicleId,
+          customerName: delivery.customerName,
+          deliveryId: delivery.id,
+          referenceNumber: delivery.referenceNumber || undefined,
+        });
+      } catch (notifErr) {
+        console.error('Failed to send delivery notification:', notifErr);
+      }
       res.status(201).json(delivery);
     } catch (error) {
       if (error instanceof z.ZodError) {
