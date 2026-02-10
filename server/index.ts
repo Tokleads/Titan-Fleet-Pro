@@ -154,9 +154,11 @@ app.use((req, res, next) => {
           enforcementMode: 'soft_block',
           settings: { fuelEnabled: true, podEnabled: true, primaryColor: '#2563eb', brandName: 'Demo Fleet' }
         }).returning();
-        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '0000' });
-        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '1234' });
-        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '5678' });
+        const bcrypt = await import('bcrypt');
+        const hashedPw = await bcrypt.default.hash('1234TF', 10);
+        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '0000', password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '1234', password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '5678', password: hashedPw });
         console.log('Created APEX demo company with users');
       }
     } else {
