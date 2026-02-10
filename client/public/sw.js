@@ -1,8 +1,8 @@
 // Titan Fleet Service Worker
 // Provides offline support, caching, and PWA functionality
 
-const CACHE_NAME = 'titan-fleet-v3';
-const RUNTIME_CACHE = 'titan-fleet-runtime-v3';
+const CACHE_NAME = 'titan-fleet-v4';
+const RUNTIME_CACHE = 'titan-fleet-runtime-v4';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -87,36 +87,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - cache first, network fallback
+  // Static assets - network first, cache fallback (ensures fresh code)
   event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
+    fetch(request)
+      .then((response) => {
+        if (!response || response.status !== 200 || response.type === 'error') {
+          return response;
         }
 
-        return fetch(request)
-          .then((response) => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type === 'error') {
-              return response;
-            }
+        const responseToCache = response.clone();
+        caches.open(RUNTIME_CACHE).then((cache) => {
+          cache.put(request, responseToCache);
+        });
 
-            // Clone response before caching
-            const responseToCache = response.clone();
-
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseToCache);
-            });
-
-            return response;
-          })
-          .catch(() => {
-            // Return offline page for navigation requests
-            if (request.mode === 'navigate') {
-              return caches.match('/offline.html');
-            }
-          });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (request.mode === 'navigate') {
+            return caches.match('/offline.html');
+          }
+          return new Response('Offline', { status: 503 });
+        });
       })
   );
 });
