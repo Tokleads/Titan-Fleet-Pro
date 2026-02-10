@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown, Signal, Shield, FileText } from 'lucide-react';
+import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown, ChevronRight, Signal, Shield, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -41,6 +41,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   const [matchingGeofences, setMatchingGeofences] = useState<Geofence[]>([]);
   const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [showManualSelection, setShowManualSelection] = useState(false);
+  const [locationExpanded, setLocationExpanded] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(() => {
     // Check if policy was accepted today
@@ -297,34 +298,32 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                 </div>
               </div>
             </div>
-            <div className="p-4 bg-green-50 space-y-2">
+            <div className="p-4 bg-green-50 space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-green-700">Location:</span>
                 <span className="font-medium text-green-900">{activeTimesheet.depotName}</span>
               </div>
+              <Button
+                size="lg"
+                className="w-full h-14 text-lg font-bold titan-btn-press bg-red-600 hover:bg-red-700 text-white shadow-md"
+                onClick={() => clockOutMutation.mutate()}
+                disabled={!currentLocation || clockOutMutation.isPending}
+                data-testid="button-clock-out"
+              >
+                {clockOutMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Clocking Out...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="mr-2 h-6 w-6" />
+                    Clock Out
+                  </>
+                )}
+              </Button>
             </div>
           </Card>
-
-          <Button
-            size="lg"
-            className="w-full h-14 text-lg titan-btn-press"
-            variant="destructive"
-            onClick={() => clockOutMutation.mutate()}
-            disabled={!currentLocation || clockOutMutation.isPending}
-            data-testid="button-clock-out"
-          >
-            {clockOutMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Clocking Out...
-              </>
-            ) : (
-              <>
-                <XCircle className="mr-2 h-5 w-5" />
-                Clock Out
-              </>
-            )}
-          </Button>
         </>
       ) : (
         <>
@@ -375,118 +374,160 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
             </div>
           </Card>
 
-          {/* Location details - collapsed below Clock In */}
-          <Card className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-primary mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">Your Location</h3>
+          {/* Location details - collapsible summary */}
+          <Card className="p-0 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setLocationExpanded(!locationExpanded)}
+              className="w-full px-4 py-3 flex items-center gap-2 text-left hover:bg-muted/50 transition-colors"
+              data-testid="button-toggle-location"
+            >
+              <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1 text-sm truncate">
                 {locationError ? (
-                  <div className="flex items-center gap-2 text-destructive mt-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-xs">{locationError}</span>
-                  </div>
-                ) : currentLocation ? (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
-                  </p>
+                  <span className="text-destructive">{locationError}</span>
+                ) : !currentLocation ? (
+                  <span className="text-muted-foreground">Getting location...</span>
+                ) : isInsideGeofence && nearestDepot ? (
+                  <span className="text-green-600 font-medium">At depot · {nearestDepot.geofence.name}</span>
+                ) : nearestDepot ? (
+                  <span className="text-orange-600 font-medium">
+                    Outside depot range · {nearestDepot.geofence.name} {nearestDepot.distance >= 1000 
+                      ? `${(nearestDepot.distance / 1000).toFixed(1)}km` 
+                      : `${nearestDepot.distance.toFixed(0)}m`}
+                  </span>
+                ) : hasNoDepots ? (
+                  <span className="text-muted-foreground">No depots configured</span>
                 ) : (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span className="text-xs text-muted-foreground">Getting location...</span>
+                  <span className="text-muted-foreground">Checking depot proximity...</span>
+                )}
+              </span>
+              {gpsAccuracy !== null && (
+                <span className={`text-[11px] ${accuracyStatus.color} flex-shrink-0`}>
+                  ±{Math.round(gpsAccuracy)}m
+                </span>
+              )}
+              {locationExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              )}
+            </button>
+
+            {locationExpanded && (
+              <div className="px-4 pb-4 space-y-3 border-t border-slate-100 pt-3">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Your Location</h3>
+                    {locationError ? (
+                      <div className="flex items-center gap-2 text-destructive mt-1">
+                        <AlertCircle className="h-4 w-4" />
+                        <span className="text-xs">{locationError}</span>
+                      </div>
+                    ) : currentLocation ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+                      </p>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="text-xs text-muted-foreground">Getting location...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {gpsAccuracy !== null && (
+                  <div className={`flex items-center gap-3 p-2.5 rounded-lg ${accuracyStatus.bg}`}>
+                    <Signal className={`h-4 w-4 ${accuracyStatus.color}`} />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs font-medium ${accuracyStatus.color}`}>
+                          GPS Accuracy: {accuracyStatus.label}
+                        </span>
+                        <span className={`text-xs ${accuracyStatus.color}`}>
+                          ±{Math.round(gpsAccuracy)}m
+                        </span>
+                      </div>
+                      {isLowAccuracy && (
+                        <p className="text-[11px] text-amber-600 mt-0.5">
+                          Low GPS accuracy — your clock-in will be flagged for manager review.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {gpsAccuracy !== null && (
-              <div className={`flex items-center gap-3 p-2.5 rounded-lg ${accuracyStatus.bg}`}>
-                <Signal className={`h-4 w-4 ${accuracyStatus.color}`} />
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs font-medium ${accuracyStatus.color}`}>
-                      GPS Accuracy: {accuracyStatus.label}
-                    </span>
-                    <span className={`text-xs ${accuracyStatus.color}`}>
-                      ±{Math.round(gpsAccuracy)}m
-                    </span>
+                {nearestDepot && (
+                  <div className="bg-muted rounded-lg p-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-muted-foreground">Nearest Depot:</span>
+                      <span className="text-xs font-medium">{nearestDepot.geofence.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-muted-foreground">Distance:</span>
+                      <span className={`text-xs font-medium ${isInsideGeofence ? 'text-green-600' : 'text-orange-600'}`}>
+                        {nearestDepot.distance.toFixed(0)}m
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">Status:</span>
+                      {isInsideGeofence ? (
+                        <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                          <CheckCircle className="h-3 w-3" />
+                          At Depot
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-orange-600 text-xs font-medium">
+                          <AlertCircle className="h-3 w-3" />
+                          Outside Range
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {isLowAccuracy && (
-                    <p className="text-[11px] text-amber-600 mt-0.5">
-                      Low GPS accuracy — your clock-in will be flagged for manager review.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+                )}
 
-            {nearestDepot && (
-              <div className="bg-muted rounded-lg p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-xs text-muted-foreground">Nearest Depot:</span>
-                  <span className="text-xs font-medium">{nearestDepot.geofence.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-muted-foreground">Distance:</span>
-                  <span className={`text-xs font-medium ${isInsideGeofence ? 'text-green-600' : 'text-orange-600'}`}>
-                    {nearestDepot.distance.toFixed(0)}m
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Status:</span>
-                  {isInsideGeofence ? (
-                    <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
-                      <CheckCircle className="h-3 w-3" />
-                      At Depot
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-orange-600 text-xs font-medium">
-                      <AlertCircle className="h-3 w-3" />
-                      Outside Range
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {!isInsideGeofence && geofences.length > 0 && (
-              <div className="pt-2 border-t border-slate-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-slate-700">Manual Depot Selection</span>
-                  <button
-                    onClick={() => setShowManualSelection(!showManualSelection)}
-                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    {showManualSelection ? 'Hide' : 'Select depot'}
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showManualSelection ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-                
-                {showManualSelection && (
-                  <div className="space-y-2">
-                    <p className="text-[11px] text-amber-600">
-                      Manual selection will be flagged for review.
-                    </p>
-                    <select
-                      value={selectedDepotId || ''}
-                      onChange={(e) => setSelectedDepotId(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select a depot...</option>
-                      {geofences.filter(g => g.isActive).map(depot => (
-                        <option key={depot.id} value={depot.id}>
-                          {depot.name} ({nearestDepot && depot.id === nearestDepot.geofence.id 
-                            ? `${nearestDepot.distance.toFixed(0)}m away` 
-                            : calculateDistance(
-                                currentLocation?.lat || 0,
-                                currentLocation?.lng || 0,
-                                parseFloat(depot.latitude),
-                                parseFloat(depot.longitude)
-                              ).toFixed(0) + 'm away'
-                          })
-                        </option>
-                      ))}
-                    </select>
+                {!isInsideGeofence && geofences.length > 0 && (
+                  <div className="pt-2 border-t border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-slate-700">Manual Depot Selection</span>
+                      <button
+                        onClick={() => setShowManualSelection(!showManualSelection)}
+                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      >
+                        {showManualSelection ? 'Hide' : 'Select depot'}
+                        <ChevronDown className={`h-3 w-3 transition-transform ${showManualSelection ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    
+                    {showManualSelection && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-amber-600">
+                          Manual selection will be flagged for review.
+                        </p>
+                        <select
+                          value={selectedDepotId || ''}
+                          onChange={(e) => setSelectedDepotId(e.target.value ? Number(e.target.value) : null)}
+                          className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select a depot...</option>
+                          {geofences.filter(g => g.isActive).map(depot => (
+                            <option key={depot.id} value={depot.id}>
+                              {depot.name} ({nearestDepot && depot.id === nearestDepot.geofence.id 
+                                ? `${nearestDepot.distance.toFixed(0)}m away` 
+                                : calculateDistance(
+                                    currentLocation?.lat || 0,
+                                    currentLocation?.lng || 0,
+                                    parseFloat(depot.latitude),
+                                    parseFloat(depot.longitude)
+                                  ).toFixed(0) + 'm away'
+                              })
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
