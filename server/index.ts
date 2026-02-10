@@ -62,6 +62,47 @@ app.use('/sw.js', (_req, res, next) => {
   next();
 });
 
+app.get('/clear-cache', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clearing Cache...</title>
+<style>body{font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f1f5f9;color:#1e293b}
+.box{text-align:center;padding:2rem;background:#fff;border-radius:1rem;box-shadow:0 4px 24px rgba(0,0,0,0.08);max-width:400px;width:90%}
+h2{margin:0 0 0.5rem}p{color:#64748b;margin:0.5rem 0}
+.spin{display:inline-block;width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:#5B6CFF;border-radius:50%;animation:s 0.8s linear infinite;margin-bottom:1rem}
+@keyframes s{to{transform:rotate(360deg)}}
+.done{color:#16a34a;font-weight:600;display:none}
+</style></head><body><div class="box">
+<div class="spin" id="spinner"></div>
+<h2>Updating Titan Fleet</h2>
+<p id="status">Clearing cached data...</p>
+<p class="done" id="done">Done! Redirecting...</p>
+<script>
+(async function(){
+  var status=document.getElementById('status');
+  try{
+    if('serviceWorker' in navigator){
+      var regs=await navigator.serviceWorker.getRegistrations();
+      for(var r of regs){await r.unregister();}
+      status.textContent='Service worker removed...';
+    }
+    var names=await caches.keys();
+    for(var n of names){await caches.delete(n);}
+    status.textContent='Caches cleared...';
+    localStorage.setItem('titan_sw_version','v9');
+  }catch(e){
+    status.textContent='Error: '+e.message;
+  }
+  document.getElementById('spinner').style.display='none';
+  document.getElementById('done').style.display='block';
+  status.style.display='none';
+  setTimeout(function(){window.location.href='/';},1500);
+})();
+</script></div></body></html>`);
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",

@@ -30,6 +30,35 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function() {
+        var SW_VERSION = 'v9';
+        var KEY = 'titan_sw_version';
+        var stored = localStorage.getItem(KEY);
+        if (stored !== SW_VERSION) {
+          localStorage.setItem(KEY, SW_VERSION);
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              var promises = regs.map(function(r) { return r.unregister(); });
+              return Promise.all(promises);
+            }).then(function() {
+              return caches.keys();
+            }).then(function(names) {
+              return Promise.all(names.map(function(n) { return caches.delete(n); }));
+            }).then(function() {
+              window.location.reload();
+            });
+          } else {
+            caches.keys().then(function(names) {
+              return Promise.all(names.map(function(n) { return caches.delete(n); }));
+            }).then(function() {
+              window.location.reload();
+            });
+          }
+          return;
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
