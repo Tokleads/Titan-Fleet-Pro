@@ -305,7 +305,7 @@ export default function CompleteDelivery() {
 
   return (
     <DriverLayout>
-      <div className="pb-28 titan-page-enter">
+      <div className="pb-40 titan-page-enter">
         <div className="flex items-center gap-3 mb-4">
           <TitanButton
             variant="ghost"
@@ -611,7 +611,7 @@ export default function CompleteDelivery() {
           </div>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/60 bg-white/85 backdrop-blur px-4 py-3 pb-safe">
+        <div className="fixed inset-x-0 bottom-16 z-40 border-t border-slate-200/60 bg-white/85 backdrop-blur px-4 py-3">
           <div className="max-w-md mx-auto space-y-2">
             <TitanButton
               size="lg"
