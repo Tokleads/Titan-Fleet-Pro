@@ -137,11 +137,12 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     if (accuracy <= 30) return { color: 'text-green-500', bg: 'bg-green-50', label: 'Good', valid: true };
     if (accuracy <= 50) return { color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Fair', valid: true };
     if (accuracy <= 100) return { color: 'text-orange-600', bg: 'bg-orange-100', label: 'Poor', valid: true };
-    return { color: 'text-red-600', bg: 'bg-red-100', label: 'Too Low', valid: false };
+    return { color: 'text-red-600', bg: 'bg-red-100', label: 'Low', valid: true };
   };
 
   const accuracyStatus = getAccuracyStatus(gpsAccuracy);
-  const isAccuracyValid = gpsAccuracy !== null && gpsAccuracy <= 100;
+  const isAccuracyValid = gpsAccuracy !== null;
+  const isLowAccuracy = gpsAccuracy !== null && gpsAccuracy > 100;
 
   // Determine which depot to use for clock in
   const getSelectedDepot = (): Geofence | null => {
@@ -174,7 +175,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           latitude: currentLocation.lat.toString(),
           longitude: currentLocation.lng.toString(),
           accuracy: gpsAccuracy,
-          manualSelection: isManualSelection
+          manualSelection: isManualSelection,
+          lowAccuracy: isLowAccuracy
         })
       });
 
@@ -357,9 +359,9 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                   ±{Math.round(gpsAccuracy)}m
                 </span>
               </div>
-              {!isAccuracyValid && (
-                <p className="text-xs text-red-600 mt-1">
-                  GPS accuracy must be within 100m to clock in. Move to an open area.
+              {isLowAccuracy && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Low GPS accuracy — your clock-in will be flagged for manager review.
                 </p>
               )}
             </div>
@@ -489,10 +491,6 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
               <p className="text-sm text-muted-foreground">
                 Waiting for GPS location...
               </p>
-            ) : !isAccuracyValid ? (
-              <p className="text-sm text-red-600">
-                GPS accuracy too low (±{Math.round(gpsAccuracy || 0)}m). Move to an open area.
-              </p>
             ) : !isInsideGeofence && !selectedDepotId ? (
               <p className="text-sm text-orange-600">
                 You're outside depot range. Select a depot manually to clock in.
@@ -503,7 +501,12 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
 
         {!activeTimesheet && selectedDepotId && !isInsideGeofence && (
           <p className="text-xs text-center text-amber-600 mt-2">
-            Manual depot selection - will be flagged for manager review
+            Manual depot selection — will be flagged for manager review
+          </p>
+        )}
+        {!activeTimesheet && isLowAccuracy && (
+          <p className="text-xs text-center text-amber-600 mt-2">
+            Low GPS accuracy — clock-in will be flagged for manager review
           </p>
         )}
       </Card>
