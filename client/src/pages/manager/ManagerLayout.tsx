@@ -25,7 +25,7 @@ import {
   Users,
   FolderOpen,
   Activity,
-  DollarSign,
+  PoundSterling,
   TrendingUp,
   Gift
 } from "lucide-react";
@@ -40,7 +40,7 @@ const navItems = [
   { path: "/manager/live-tracking", icon: Navigation, label: "Live Tracking" },
   { path: "/manager/drivers", icon: Users, label: "Drivers" },
   { path: "/manager/timesheets", icon: Clock, label: "Timesheets" },
-  { path: "/manager/pay-rates", icon: DollarSign, label: "Pay Rates" },
+  { path: "/manager/pay-rates", icon: PoundSterling, label: "Pay Rates" },
   { path: "/manager/fuel-intelligence", icon: TrendingUp, label: "Fuel Intelligence" },
   { path: "/manager/titan-command", icon: Radio, label: "Titan Command" },
   { path: "/manager/geofences", icon: MapPin, label: "Geofences" },
