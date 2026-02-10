@@ -48,6 +48,9 @@ import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import TitanFleetDemo from "@/pages/demo/TitanFleetDemo";
 import ProcurementFAQ from "@/pages/ProcurementFAQ";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsAndConditions from "@/pages/TermsAndConditions";
+import RefundPolicy from "@/pages/RefundPolicy";
 import SetupAccount from "@/pages/SetupAccount";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -104,6 +107,9 @@ function Router() {
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route path="/demo" component={TitanFleetDemo} />
       <Route path="/procurement-faq" component={ProcurementFAQ} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsAndConditions} />
+      <Route path="/refund-policy" component={RefundPolicy} />
       <Route path="/setup-account" component={SetupAccount} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />

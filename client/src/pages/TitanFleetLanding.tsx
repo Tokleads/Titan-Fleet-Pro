@@ -517,9 +517,9 @@ export default function TitanFleetLandingPage() {
 
           <div className="pt-8 border-t border-slate-800 text-center space-y-4">
             <div className="flex justify-center gap-6 text-sm">
-              <a href="mailto:support@titanfleet.co.uk?subject=Privacy%20Policy" className="hover:text-white transition-colors cursor-pointer">Privacy Policy</a>
-              <a href="mailto:support@titanfleet.co.uk?subject=Terms%20%26%20Conditions" className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</a>
-              <a href="mailto:support@titanfleet.co.uk?subject=Refund%20Policy" className="hover:text-white transition-colors">Refund Policy</a>
+              <Link href="/privacy-policy"><span className="hover:text-white transition-colors cursor-pointer" data-testid="link-privacy-policy">Privacy Policy</span></Link>
+              <Link href="/terms"><span className="hover:text-white transition-colors cursor-pointer" data-testid="link-terms">Terms & Conditions</span></Link>
+              <Link href="/refund-policy"><span className="hover:text-white transition-colors cursor-pointer" data-testid="link-refund-policy">Refund Policy</span></Link>
             </div>
             <p className="text-sm text-slate-400">
               &copy; 2026 <span className="text-white font-medium">Titan</span> Fleet. All rights reserved.
