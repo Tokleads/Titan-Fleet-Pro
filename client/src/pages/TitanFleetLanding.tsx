@@ -49,6 +49,9 @@ export default function TitanFleetLandingPage() {
               <a href="#pricing" className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium">
                 Pricing
               </a>
+              <a href="/help" className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium">
+                Help
+              </a>
             </nav>
 
             <div className="flex items-center gap-4">
@@ -490,6 +493,7 @@ export default function TitanFleetLandingPage() {
               <ul className="space-y-3">
                 <li><a href="#features" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}>Features</a></li>
                 <li><a href="#pricing" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>Pricing</a></li>
+                <li><Link href="/help"><span className="text-sm hover:text-white transition-colors cursor-pointer">Help Centre</span></Link></li>
                 <li><a href="/procurement-faq" className="text-sm hover:text-white transition-colors">FAQs</a></li>
               </ul>
             </div>

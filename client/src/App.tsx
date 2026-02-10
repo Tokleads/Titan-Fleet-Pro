@@ -54,6 +54,7 @@ import RefundPolicy from "@/pages/RefundPolicy";
 import SetupAccount from "@/pages/SetupAccount";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import HelpCenter from "@/pages/HelpCenter";
 import NotFound from "@/pages/not-found";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -113,6 +114,7 @@ function Router() {
       <Route path="/setup-account" component={SetupAccount} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/help" component={HelpCenter} />
       <Route component={NotFound} />
     </Switch>
   );
