@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Truck, MapPin, Clock, Shield, Headphones, Code, Building2, Palette, ChevronDown } from "lucide-react";
+import { Check, Truck, MapPin } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 const fadeUp = {
@@ -20,80 +20,38 @@ interface PricingTier {
   name: string;
   price: number;
   maxVehicles: number;
-  features: string[];
   popular?: boolean;
 }
 
 const pricingTiers: PricingTier[] = [
-  {
-    name: "Starter",
-    price: 59,
-    maxVehicles: 10,
-    features: [
-      "Up to 10 vehicles",
-      "DVSA-compliant daily checks",
-      "Photo defect reporting",
-      "Defect tracking & management",
-      "Fuel & AdBlue logging",
-      "Driver PIN authentication",
-      "Unlimited drivers",
-      "Email notifications",
-      "Email support",
-    ],
-  },
-  {
-    name: "Growth",
-    price: 129,
-    maxVehicles: 25,
-    popular: true,
-    features: [
-      "Up to 25 vehicles",
-      "Everything in Starter, plus:",
-      "Live GPS tracking",
-      "Driver clock in/out & timesheets",
-      "Geofence-based auto clock",
-      "Proof of Delivery (POD) with signatures",
-      "In-app driver-to-manager messaging",
-      "Compliance score dashboard",
-      "Auto-VOR on failed inspections",
-      "Fleet analytics & reports",
-      "Priority support",
-    ],
-  },
-  {
-    name: "Pro",
-    price: 249,
-    maxVehicles: 50,
-    features: [
-      "Up to 50 vehicles",
-      "Everything in Growth, plus:",
-      "Automated defect escalation",
-      "Fuel anomaly detection",
-      "MOT/Tax/Service auto-alerts",
-      "Bulk delivery status updates",
-      "CSV & PDF export",
-      "Advanced compliance automation",
-      "Multi-depot support",
-      "API access",
-      "Custom reports",
-    ],
-  },
-  {
-    name: "Scale",
-    price: 399,
-    maxVehicles: 100,
-    features: [
-      "Up to 100 vehicles",
-      "Everything in Pro, plus:",
-      "Full white-label branding",
-      "Google Drive auto-upload",
-      "Role-based access control",
-      "Super Admin panel",
-      "Notification preference controls",
-      "Audit log & history",
-      "Dedicated phone support",
-    ],
-  },
+  { name: "Starter", price: 59, maxVehicles: 10 },
+  { name: "Growth", price: 129, maxVehicles: 25, popular: true },
+  { name: "Pro", price: 249, maxVehicles: 50 },
+  { name: "Scale", price: 399, maxVehicles: 100 },
+];
+
+const allFeatures = [
+  "DVSA-compliant daily checks",
+  "Photo defect reporting",
+  "Defect tracking & management",
+  "Fuel & AdBlue logging",
+  "Driver PIN authentication",
+  "Unlimited drivers",
+  "Live GPS tracking",
+  "Driver clock in/out & timesheets",
+  "Geofence auto clock",
+  "Proof of Delivery (POD)",
+  "Digital signatures & photos",
+  "Driver-to-manager messaging",
+  "Compliance score dashboard",
+  "Auto-VOR on failed inspections",
+  "Fleet analytics & reports",
+  "Automated defect escalation",
+  "Fuel anomaly detection",
+  "MOT/Tax/Service auto-alerts",
+  "CSV & PDF export",
+  "White-label branding",
+  "Email notifications",
 ];
 
 function calculateOveragePrice(vehicles: number): number {
@@ -112,108 +70,6 @@ function getBestValueTier(vehicles: number): string {
   if (vehicles <= 25) return "Growth";
   if (vehicles <= 50) return "Pro";
   return "Scale";
-}
-
-function PricingCard({
-  tier,
-  index,
-  isHighlighted,
-  isMostPopular,
-  mobileVisibleCount,
-  hasMoreFeatures,
-}: {
-  tier: PricingTier;
-  index: number;
-  isHighlighted: boolean;
-  isMostPopular?: boolean;
-  mobileVisibleCount: number;
-  hasMoreFeatures: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <motion.div
-      variants={fadeUp}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className={`relative rounded-2xl p-6 sm:p-8 transition-all duration-300 ${
-        isHighlighted
-          ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
-          : "bg-slate-800 border border-slate-700"
-      }`}
-      data-testid={`pricing-card-${tier.name.toLowerCase()}`}
-    >
-      {isMostPopular && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#0f172a] text-[#22c55e] text-xs font-bold px-4 py-1.5 rounded-full border border-[#22c55e]">
-          MOST POPULAR
-        </div>
-      )}
-
-      <div className="mb-6">
-        <h3 className={`text-lg font-bold mb-1 ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
-          {tier.name}
-        </h3>
-        <p className={`text-sm ${isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}`}>
-          Up to {tier.maxVehicles} vehicles
-        </p>
-      </div>
-
-      <div className="mb-2">
-        <span className={`text-4xl font-bold ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
-          £{tier.price}
-        </span>
-        <span className={isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
-      </div>
-      <p className={`text-xs mb-6 ${isHighlighted ? "text-[#0f172a]/60" : "text-slate-500"}`}>
-        Per month · Prices exclude VAT
-      </p>
-
-      <ul className="space-y-3 mb-4">
-        {tier.features.map((feature, i) => {
-          const isHiddenOnMobile = !expanded && hasMoreFeatures && i >= mobileVisibleCount;
-          return (
-            <li
-              key={i}
-              className={`flex items-start gap-2 ${isHiddenOnMobile ? "hidden sm:flex" : ""}`}
-            >
-              <Check className={`h-5 w-5 shrink-0 mt-0.5 ${isHighlighted ? "text-[#0f172a]" : "text-[#22c55e]"}`} />
-              <span className={`text-sm ${isHighlighted ? "text-[#0f172a]" : "text-slate-300"}`}>
-                {feature}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      {hasMoreFeatures && !expanded && (
-        <button
-          onClick={() => setExpanded(true)}
-          className={`flex sm:hidden items-center gap-1 text-xs font-medium mb-6 transition-colors ${
-            isHighlighted
-              ? "text-[#0f172a]/70 hover:text-[#0f172a]"
-              : "text-slate-400 hover:text-white"
-          }`}
-          data-testid={`button-expand-${tier.name.toLowerCase()}`}
-        >
-          <ChevronDown className="h-3.5 w-3.5" />
-          +{tier.features.length - mobileVisibleCount} more features
-        </button>
-      )}
-
-      {(!hasMoreFeatures || expanded) && <div className="mb-4 sm:hidden" />}
-      <div className="hidden sm:block mb-4" />
-
-      <button
-        className={`w-full h-12 font-semibold rounded-xl transition-colors ${
-          isHighlighted
-            ? "bg-[#0f172a] text-white hover:bg-slate-800"
-            : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
-        }`}
-        data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
-      >
-        Start Free Trial
-      </button>
-    </motion.div>
-  );
 }
 
 export default function PricingSection() {
@@ -245,7 +101,7 @@ export default function PricingSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-300 max-w-2xl mx-auto"
           >
-            One subscription. No hidden fees. Cancel anytime.
+            Every plan includes all features. The only difference is the number of vehicles.
           </motion.p>
         </motion.div>
 
@@ -366,20 +222,54 @@ export default function PricingSection() {
         >
           {pricingTiers.map((tier, index) => {
             const isHighlighted = tier.name === bestValueTier;
-            const isMostPopular = tier.popular;
-            const MOBILE_VISIBLE_COUNT = 4;
-            const hasMoreFeatures = tier.features.length > MOBILE_VISIBLE_COUNT;
-
             return (
-              <PricingCard
+              <motion.div
                 key={tier.name}
-                tier={tier}
-                index={index}
-                isHighlighted={isHighlighted}
-                isMostPopular={isMostPopular}
-                mobileVisibleCount={MOBILE_VISIBLE_COUNT}
-                hasMoreFeatures={hasMoreFeatures}
-              />
+                variants={fadeUp}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`relative rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center transition-all duration-300 ${
+                  isHighlighted
+                    ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
+                    : "bg-slate-800 border border-slate-700"
+                }`}
+                data-testid={`pricing-card-${tier.name.toLowerCase()}`}
+              >
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#0f172a] text-[#22c55e] text-xs font-bold px-4 py-1.5 rounded-full border border-[#22c55e]">
+                    MOST POPULAR
+                  </div>
+                )}
+
+                <h3 className={`text-lg font-bold mb-1 ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
+                  {tier.name}
+                </h3>
+                <p className={`text-sm mb-4 ${isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}`}>
+                  Up to {tier.maxVehicles} vehicles
+                </p>
+
+                <div className="mb-1">
+                  <span className={`text-4xl font-bold ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
+                    £{tier.price}
+                  </span>
+                  <span className={isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
+                </div>
+                <p className={`text-xs mb-6 ${isHighlighted ? "text-[#0f172a]/60" : "text-slate-500"}`}>
+                  Per month · Prices exclude VAT
+                </p>
+
+                <div className="mt-auto w-full">
+                  <button
+                    className={`w-full h-12 font-semibold rounded-xl transition-colors ${
+                      isHighlighted
+                        ? "bg-[#0f172a] text-white hover:bg-slate-800"
+                        : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
+                    }`}
+                    data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
+                  >
+                    Start Free Trial
+                  </button>
+                </div>
+              </motion.div>
             );
           })}
         </motion.div>
@@ -390,141 +280,25 @@ export default function PricingSection() {
           viewport={{ once: true }}
           variants={fadeUp}
           transition={{ duration: 0.5 }}
-          className="mt-16"
+          className="mt-14"
         >
-          <div className="bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-700">
-            <div className="text-center py-8 border-b border-slate-700">
-              <h3 className="text-xl font-bold text-white mb-2">
-                Compare All Features
+          <div className="bg-slate-800/50 rounded-2xl p-6 sm:p-10 border border-slate-700">
+            <div className="text-center mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                Everything included in every plan
               </h3>
               <p className="text-slate-400 text-sm">
-                Every plan includes the essentials — scale adds capacity
+                No feature gates. No upsells. Every plan gets everything.
               </p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-4 px-6 text-sm font-medium text-slate-400"></th>
-                    {pricingTiers.map((tier) => (
-                      <th
-                        key={tier.name}
-                        className={`py-4 px-4 text-sm font-medium text-center ${
-                          tier.name === bestValueTier
-                            ? "text-[#22c55e] bg-[#22c55e]/10"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {tier.name}
-                        {tier.popular && (
-                          <span className="block text-xs text-[#22c55e] mt-1">★ Popular</span>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: "DVSA-compliant daily checks", all: true },
-                    { feature: "Photo defect reporting", all: true },
-                    { feature: "Defect tracking & management", all: true },
-                    { feature: "Fuel & AdBlue logging", all: true },
-                    { feature: "Driver PIN authentication", all: true },
-                    { feature: "Unlimited drivers", all: true },
-                    { feature: "Email notifications", all: true },
-                    { feature: "Branded driver app", all: true },
-                    { feature: "Vehicle limit", values: ["10", "25", "50", "100"] },
-                    { feature: "Live GPS tracking", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Driver timesheets & clock in/out", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Geofence auto clock", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Proof of Delivery (POD)", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Digital signatures & photos", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Driver-to-manager messaging", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Compliance score dashboard", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Auto-VOR on failed inspections", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Fleet analytics", starter: false, growth: true, pro: true, scale: true },
-                    { feature: "Automated defect escalation", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "Fuel anomaly detection", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "MOT/Tax/Service auto-alerts", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "CSV & PDF export", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "API access", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "Multi-depot", starter: false, growth: false, pro: true, scale: true },
-                    { feature: "White-label branding", starter: false, growth: false, pro: false, scale: true },
-                    { feature: "Google Drive auto-upload", starter: false, growth: false, pro: false, scale: true },
-                    { feature: "Role-based access control", starter: false, growth: false, pro: false, scale: true },
-                    { feature: "Super Admin panel", starter: false, growth: false, pro: false, scale: true },
-                    { feature: "Audit log & history", starter: false, growth: false, pro: false, scale: true },
-                    { feature: "Notification preference controls", starter: false, growth: false, pro: false, scale: true },
-                  ].map((row, i) => (
-                    <tr key={i} className="border-b border-slate-700/50">
-                      <td className="py-4 px-6 text-sm text-slate-300">{row.feature}</td>
-                      {row.all !== undefined ? (
-                        pricingTiers.map((tier) => (
-                          <td
-                            key={tier.name}
-                            className={`py-4 px-4 text-center ${
-                              tier.name === bestValueTier ? "bg-[#22c55e]/10" : ""
-                            }`}
-                          >
-                            <Check className="h-5 w-5 text-[#22c55e] mx-auto" />
-                          </td>
-                        ))
-                      ) : row.values ? (
-                        row.values.map((value, idx) => (
-                          <td
-                            key={idx}
-                            className={`py-4 px-4 text-center text-sm font-medium ${
-                              pricingTiers[idx].name === bestValueTier
-                                ? "bg-[#22c55e]/10 text-[#22c55e]"
-                                : "text-white"
-                            }`}
-                          >
-                            {value}
-                          </td>
-                        ))
-                      ) : (
-                        <>
-                          <td className={`py-4 px-4 text-center ${pricingTiers[0].name === bestValueTier ? "bg-[#22c55e]/10" : ""}`}>
-                            {row.starter ? (
-                              <Check className="h-5 w-5 text-[#22c55e] mx-auto" />
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                          <td className={`py-4 px-4 text-center ${pricingTiers[1].name === bestValueTier ? "bg-[#22c55e]/10" : ""}`}>
-                            {row.growth ? (
-                              <Check className="h-5 w-5 text-[#22c55e] mx-auto" />
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                          <td className={`py-4 px-4 text-center ${pricingTiers[2].name === bestValueTier ? "bg-[#22c55e]/10" : ""}`}>
-                            {row.pro ? (
-                              <Check className="h-5 w-5 text-[#22c55e] mx-auto" />
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                          <td className={`py-4 px-4 text-center ${pricingTiers[3].name === bestValueTier ? "bg-[#22c55e]/10" : ""}`}>
-                            {row.scale ? (
-                              <Check className="h-5 w-5 text-[#22c55e] mx-auto" />
-                            ) : (
-                              <span className="text-slate-600">—</span>
-                            )}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="text-center py-6 border-t border-slate-700">
-              <p className="text-sm text-[#22c55e]">
-                Pay monthly. Cancel anytime. Full data export available.
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+              {allFeatures.map((feature) => (
+                <div key={feature} className="flex items-center gap-2.5 py-1.5">
+                  <Check className="h-5 w-5 shrink-0 text-[#22c55e]" />
+                  <span className="text-sm text-slate-300">{feature}</span>
+                </div>
+              ))}
             </div>
           </div>
         </motion.div>
@@ -535,9 +309,12 @@ export default function PricingSection() {
           viewport={{ once: true }}
           variants={fadeUp}
           transition={{ duration: 0.5 }}
-          className="text-center mt-12 space-y-4"
+          className="text-center mt-10"
         >
-          <p className="text-slate-400 text-sm">Pay securely by card or mobile wallet</p>
+          <p className="text-sm text-[#22c55e] font-medium mb-6">
+            Pay monthly. Cancel anytime. Full data export available.
+          </p>
+          <p className="text-slate-400 text-sm mb-3">Pay securely by card or mobile wallet</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">VISA</div>
             <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">Mastercard</div>
