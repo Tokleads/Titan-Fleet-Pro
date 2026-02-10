@@ -229,34 +229,27 @@ export default function ManagerLicense() {
 
             <div className="bg-slate-50 rounded-2xl border border-slate-200/60 p-6">
               <h3 className="font-semibold text-slate-900 mb-4">Available Plans</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className={`p-4 rounded-xl border-2 ${license.tier === 'core' ? 'border-blue-500 bg-white' : 'border-slate-200 bg-white'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-slate-900">Core</span>
-                    {license.tier === 'core' && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Current</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">Up to 15 vehicles</p>
-                </div>
-                <div className={`p-4 rounded-xl border-2 ${license.tier === 'pro' ? 'border-blue-500 bg-white' : 'border-slate-200 bg-white'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-slate-900">Pro</span>
-                    {license.tier === 'pro' && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Current</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">Up to 30 vehicles</p>
-                </div>
-                <div className={`p-4 rounded-xl border-2 ${license.tier === 'operator' ? 'border-blue-500 bg-white' : 'border-slate-200 bg-white'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-slate-900">Operator</span>
-                    {license.tier === 'operator' && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Current</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">Unlimited vehicles</p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { key: 'starter', name: 'Starter', price: '£59', vehicles: 'Up to 10 vehicles', aliases: ['core'] },
+                  { key: 'growth', name: 'Growth', price: '£129', vehicles: 'Up to 25 vehicles', aliases: [] },
+                  { key: 'pro', name: 'Pro', price: '£249', vehicles: 'Up to 50 vehicles', aliases: [] },
+                  { key: 'scale', name: 'Scale', price: '£399', vehicles: 'Unlimited vehicles', aliases: ['operator'] },
+                ].map((plan) => {
+                  const isCurrent = license.tier === plan.key || plan.aliases.includes(license.tier);
+                  return (
+                    <div key={plan.key} className={`p-4 rounded-xl border-2 ${isCurrent ? 'border-blue-500 bg-white' : 'border-slate-200 bg-white'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-slate-900">{plan.name}</span>
+                        {isCurrent && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Current</span>
+                        )}
+                      </div>
+                      <p className="text-lg font-bold text-slate-900">{plan.price}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+                      <p className="text-sm text-slate-500 mt-1">{plan.vehicles}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>

@@ -1732,7 +1732,7 @@ export async function registerRoutes(
       
       res.json({
         tier: company.licenseTier,
-        tierDisplay: company.licenseTier === 'core' ? 'Core' : company.licenseTier === 'pro' ? 'Pro' : 'Operator',
+        tierDisplay: company.licenseTier === 'starter' ? 'Starter' : company.licenseTier === 'growth' ? 'Growth' : company.licenseTier === 'pro' ? 'Pro' : company.licenseTier === 'scale' ? 'Scale' : company.licenseTier === 'core' ? 'Starter' : company.licenseTier === 'operator' ? 'Scale' : company.licenseTier,
         ...usage
       });
     } catch (error) {
