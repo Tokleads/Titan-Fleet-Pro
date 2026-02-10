@@ -1,8 +1,8 @@
 // Titan Fleet Service Worker
 // Provides offline support, caching, and PWA functionality
 
-const CACHE_NAME = 'titan-fleet-v5';
-const RUNTIME_CACHE = 'titan-fleet-runtime-v5';
+const CACHE_NAME = 'titan-fleet-v6';
+const RUNTIME_CACHE = 'titan-fleet-runtime-v6';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
