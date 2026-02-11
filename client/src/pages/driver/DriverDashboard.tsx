@@ -7,7 +7,7 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { DocumentsPopup } from "@/components/driver/DocumentsPopup";
 import { GPSTrackingStatus } from "@/components/driver/GPSTrackingStatus";
 import ClockInOut from "./ClockInOut";
-import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon, MessageSquare } from "lucide-react";
+import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon, MessageSquare, ClipboardCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
@@ -377,6 +377,32 @@ export default function DriverDashboard() {
             hidden={true}
           />
         )}
+
+        {/* End of Shift Inspection - always visible */}
+        <button
+          onClick={() => {
+            if (recentVehicles.length > 0) {
+              setLocation(`/driver/end-of-shift/${recentVehicles[0].id}`);
+            } else {
+              toast({
+                title: "No vehicle assigned",
+                description: "Please search for your vehicle first, then try again.",
+                variant: "destructive",
+              });
+            }
+          }}
+          className="w-full titan-card p-4 flex items-center gap-4 active:scale-[0.98] transition-transform"
+          data-testid="button-end-of-shift-inspection"
+        >
+          <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+            <ClipboardCheck className="h-6 w-6 text-orange-600" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="font-semibold text-slate-900">End of Shift Inspection</div>
+            <div className="text-sm text-slate-500">Complete your vehicle walk-around check</div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-400 shrink-0" />
+        </button>
 
         {/* Primary Workflow: Start Inspection */}
         <section>
