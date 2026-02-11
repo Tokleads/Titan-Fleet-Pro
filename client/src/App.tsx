@@ -17,7 +17,8 @@ import DriverQueue from "@/pages/driver/DriverQueue";
 import DriverSettings from "@/pages/driver/DriverSettings";
 import NotificationCenter from "@/pages/driver/NotificationCenter";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
-import ManagerDashboard from "@/pages/manager/AdvancedDashboard";
+import ManagerDashboardOps from "@/pages/manager/Dashboard";
+import AdvancedDashboard from "@/pages/manager/AdvancedDashboard";
 import ManagerInspections from "@/pages/manager/Inspections";
 import ManagerDefects from "@/pages/manager/Defects";
 import ManagerFuelLog from "@/pages/manager/FuelLog";
@@ -76,8 +77,8 @@ function Router() {
       <Route path="/driver/settings" component={DriverSettings} />
       <Route path="/driver/notifications" component={NotificationCenter} />
       <Route path="/manager/login" component={ManagerLogin} />
-      <Route path="/manager" component={ManagerDashboard} />
-      <Route path="/manager/advanced-dashboard" component={ManagerDashboard} />
+      <Route path="/manager" component={ManagerDashboardOps} />
+      <Route path="/manager/advanced-dashboard" component={AdvancedDashboard} />
       <Route path="/manager/inspections" component={ManagerInspections} />
       <Route path="/manager/defects" component={ManagerDefects} />
       <Route path="/manager/fuel" component={ManagerFuelLog} />
