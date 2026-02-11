@@ -28,7 +28,7 @@ export default function ManagerFuelLog() {
     enabled: !!companyId,
   });
 
-  const { data: vehicles } = useQuery({
+  const { data: vehiclesData } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/vehicles?companyId=${companyId}`);
@@ -37,6 +37,8 @@ export default function ManagerFuelLog() {
     },
     enabled: !!companyId,
   });
+
+  const vehicles = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData?.vehicles || []);
 
   const { data: users } = useQuery({
     queryKey: ["users", companyId],

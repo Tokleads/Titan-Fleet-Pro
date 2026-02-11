@@ -66,7 +66,7 @@ export default function ManagerDefects() {
     enabled: !!companyId,
   });
 
-  const { data: vehicles } = useQuery({
+  const { data: vehiclesData } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/vehicles?companyId=${companyId}`);
@@ -75,6 +75,8 @@ export default function ManagerDefects() {
     },
     enabled: !!companyId,
   });
+
+  const vehicles = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData?.vehicles || []);
 
   const updateDefectMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {

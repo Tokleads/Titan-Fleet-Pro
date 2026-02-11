@@ -10,15 +10,17 @@ interface ComplianceCountdownWidgetProps {
 export function ComplianceCountdownWidget({ companyId }: ComplianceCountdownWidgetProps) {
   const [, navigate] = useLocation();
 
-  const { data: vehicles, isLoading } = useQuery({
+  const { data: vehiclesData, isLoading } = useQuery({
     queryKey: ['vehicles', companyId],
     queryFn: async () => {
       const res = await fetch(`/api/manager/vehicles?companyId=${companyId}`);
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
-    refetchInterval: 60000 // Refresh every minute
+    refetchInterval: 60000
   });
+
+  const vehicles = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData?.vehicles || []);
 
   if (isLoading) {
     return (
