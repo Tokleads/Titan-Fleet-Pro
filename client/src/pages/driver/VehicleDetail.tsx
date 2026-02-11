@@ -6,7 +6,7 @@ import { useLocation, useRoute } from "wouter";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection } from "@shared/schema";
-import { ChevronLeft, Truck, FileText, Fuel, AlertOctagon, ChevronRight, X, Check, Square } from "lucide-react";
+import { ChevronLeft, Truck, FileText, Fuel, AlertOctagon, ChevronRight, X, Check, Square, ClipboardCheck } from "lucide-react";
 import { SkeletonCard } from "@/components/titan-ui/Skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -163,10 +163,17 @@ export default function VehicleDetail() {
           <ActionCard 
             icon={<FileText className="h-5 w-5 text-blue-600" />}
             title="Start inspection"
-            subtitle="Daily check or end of shift"
+            subtitle="Daily walkaround check"
             onClick={handleStartInspection}
             primary
             testId="action-start-inspection"
+          />
+          <ActionCard 
+            icon={<ClipboardCheck className="h-5 w-5 text-indigo-600" />}
+            title="End of shift inspection"
+            subtitle="Return vehicle check"
+            onClick={() => setLocation(`/driver/end-of-shift/${vehicle.id}`)}
+            testId="action-end-of-shift"
           />
           <ActionCard 
             icon={<Fuel className="h-5 w-5 text-emerald-600" />}
