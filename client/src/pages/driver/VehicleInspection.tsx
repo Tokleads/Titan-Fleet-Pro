@@ -647,7 +647,7 @@ export default function VehicleInspection() {
 
   return (
     <DriverLayout>
-      <div className="pb-28">
+      <div className="pb-40">
         {/* Sticky Header with Progress and Timer */}
         <div className="sticky top-0 bg-white/95 backdrop-blur z-30 -mx-4 px-4 pt-2 pb-3 border-b border-slate-200/60">
           <div className="flex items-center gap-3 mb-3">
@@ -917,7 +917,7 @@ export default function VehicleInspection() {
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6 pb-8 shadow-2xl"
+                className="fixed bottom-16 left-0 right-0 bg-white rounded-t-3xl z-50 p-6 pb-8 shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-900">Report Defect</h3>
@@ -1011,7 +1011,7 @@ export default function VehicleInspection() {
         </AnimatePresence>
 
         {/* Premium Bottom Submit Bar */}
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/60 bg-white/85 backdrop-blur px-4 py-3 pb-safe">
+        <div className="fixed inset-x-0 bottom-16 z-40 border-t border-slate-200/60 bg-white/85 backdrop-blur px-4 py-3 pb-safe">
           <div className="max-w-md mx-auto space-y-2">
             <TitanButton 
               size="lg" 
