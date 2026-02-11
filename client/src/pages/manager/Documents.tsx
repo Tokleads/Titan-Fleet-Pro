@@ -233,7 +233,7 @@ export default function ManagerDocuments() {
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <TitanCard className="w-full max-w-lg p-6">
+          <div className="w-full max-w-lg p-6 bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-slate-900">New Document</h2>
               <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-slate-100 rounded">
@@ -387,7 +387,7 @@ export default function ManagerDocuments() {
                 ) : createMutation.isPending ? "Creating..." : "Create Document"}
               </TitanButton>
             </div>
-          </TitanCard>
+          </div>
         </div>
       )}
     </ManagerLayout>
