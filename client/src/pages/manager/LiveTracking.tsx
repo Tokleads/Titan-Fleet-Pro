@@ -63,6 +63,17 @@ export default function LiveTracking() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  const { data: onShiftDrivers } = useQuery<Array<{ driverId: number; driverName: string; depotName: string; latitude: string; longitude: string; arrivalTime: string }>>({
+    queryKey: ["on-shift-drivers", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/on-shift/${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
   // Fetch active stagnation alerts
   const { data: alerts } = useQuery<StagnationAlert[]>({
     queryKey: ["stagnation-alerts", companyId],
@@ -184,7 +195,8 @@ export default function LiveTracking() {
     }
   }, [locations]);
 
-  const activeDrivers = locations?.filter(l => !l.isStagnant).length || 0;
+  const onShiftCount = onShiftDrivers?.length || 0;
+  const activeDrivers = Math.max(locations?.filter(l => !l.isStagnant).length || 0, onShiftCount);
   const stagnantDrivers = locations?.filter(l => l.isStagnant).length || 0;
   const avgSpeed = locations && locations.length > 0
     ? Math.round(locations.reduce((sum, l) => sum + l.speed, 0) / locations.length)
@@ -214,6 +226,9 @@ export default function LiveTracking() {
               <div>
                 <p className="text-sm font-medium text-slate-500">Active Drivers</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">{activeDrivers}</p>
+                {onShiftCount > (locations?.filter(l => !l.isStagnant).length || 0) && (
+                  <p className="text-xs text-slate-400 mt-0.5">({onShiftCount} clocked in)</p>
+                )}
               </div>
               <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <Navigation className="h-6 w-6 text-emerald-600" />

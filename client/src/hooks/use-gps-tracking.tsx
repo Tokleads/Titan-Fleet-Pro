@@ -4,6 +4,7 @@ import { gpsTrackingService, type TrackingStatus } from '@/services/gpsTracking'
 export interface UseGPSTrackingOptions {
   driverId: number;
   vehicleId?: number | null;
+  companyId?: number;
   autoStart?: boolean;
 }
 
@@ -23,7 +24,7 @@ export interface UseGPSTrackingReturn {
  * Provides easy integration of GPS tracking into driver components
  */
 export function useGPSTracking(options: UseGPSTrackingOptions): UseGPSTrackingReturn {
-  const { driverId, vehicleId = null, autoStart = false } = options;
+  const { driverId, vehicleId = null, companyId, autoStart = false } = options;
   
   const [status, setStatus] = useState<TrackingStatus>(() => 
     gpsTrackingService.getStatus()
@@ -38,7 +39,7 @@ export function useGPSTracking(options: UseGPSTrackingOptions): UseGPSTrackingRe
   // Auto-start tracking if enabled
   useEffect(() => {
     if (autoStart && driverId) {
-      gpsTrackingService.startTracking(driverId, vehicleId);
+      gpsTrackingService.startTracking(driverId, vehicleId, companyId);
     }
 
     // Cleanup on unmount
@@ -47,11 +48,11 @@ export function useGPSTracking(options: UseGPSTrackingOptions): UseGPSTrackingRe
         gpsTrackingService.stopTracking();
       }
     };
-  }, [driverId, vehicleId, autoStart]);
+  }, [driverId, vehicleId, companyId, autoStart]);
 
   const startTracking = useCallback(() => {
-    gpsTrackingService.startTracking(driverId, vehicleId);
-  }, [driverId, vehicleId]);
+    gpsTrackingService.startTracking(driverId, vehicleId, companyId);
+  }, [driverId, vehicleId, companyId]);
 
   const stopTracking = useCallback(() => {
     gpsTrackingService.stopTracking();

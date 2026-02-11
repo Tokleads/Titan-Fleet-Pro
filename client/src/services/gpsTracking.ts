@@ -12,6 +12,7 @@ export interface LocationData {
   timestamp: number;
   driverId: number;
   vehicleId: number | null;
+  companyId: number;
 }
 
 export interface TrackingConfig {
@@ -107,7 +108,8 @@ class GPSTrackingService {
       this.stopTracking();
       this.startTracking(
         this.lastLocation?.driverId || 0,
-        this.lastLocation?.vehicleId || null
+        this.lastLocation?.vehicleId || null,
+        this.lastLocation?.companyId
       );
     }
   }
@@ -115,7 +117,7 @@ class GPSTrackingService {
   /**
    * Start GPS tracking
    */
-  public startTracking(driverId: number, vehicleId: number | null): boolean {
+  public startTracking(driverId: number, vehicleId: number | null, companyId?: number): boolean {
     if (this.watchId !== null) {
       console.warn('GPS tracking already active');
       return false;
@@ -128,7 +130,7 @@ class GPSTrackingService {
 
     // Start watching position
     this.watchId = navigator.geolocation.watchPosition(
-      (position) => this.handleLocationUpdate(position, driverId, vehicleId),
+      (position) => this.handleLocationUpdate(position, driverId, vehicleId, companyId),
       (error) => this.handleLocationError(error),
       {
         enableHighAccuracy: this.config.highAccuracy,
@@ -172,7 +174,8 @@ class GPSTrackingService {
   private handleLocationUpdate(
     position: GeolocationPosition,
     driverId: number,
-    vehicleId: number | null
+    vehicleId: number | null,
+    companyId?: number
   ): void {
     const locationData: LocationData = {
       latitude: position.coords.latitude,
@@ -183,6 +186,7 @@ class GPSTrackingService {
       timestamp: position.timestamp,
       driverId,
       vehicleId,
+      companyId: companyId ?? 0,
     };
 
     // Check if location has changed significantly
@@ -283,7 +287,7 @@ class GPSTrackingService {
           heading: this.lastLocation.heading,
           timestamp: this.lastLocation.timestamp,
           driverId: this.lastLocation.driverId,
-          companyId: 1, // TODO: Get from session
+          companyId: this.lastLocation.companyId,
           vehicleId: this.lastLocation.vehicleId,
         }),
       });
@@ -453,8 +457,9 @@ class GPSTrackingService {
     if (this.watchId !== null) {
       const driverId = this.lastLocation?.driverId || 0;
       const vehicleId = this.lastLocation?.vehicleId || null;
+      const companyId = this.lastLocation?.companyId;
       this.stopTracking();
-      this.startTracking(driverId, vehicleId);
+      this.startTracking(driverId, vehicleId, companyId);
     }
   }
 

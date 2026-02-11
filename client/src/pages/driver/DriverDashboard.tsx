@@ -52,6 +52,18 @@ export default function DriverDashboard() {
   const user = session.getUser();
   const company = session.getCompany();
 
+  const { data: activeTimesheetData } = useQuery({
+    queryKey: ["active-timesheet", user?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/timesheets/active/${user?.id}`);
+      if (!response.ok) throw new Error("Failed to fetch active timesheet");
+      const data = await response.json();
+      return data.timesheet || null;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  });
+
   // Redirect to login if not logged in
   useEffect(() => {
     if (!user || !company) {
@@ -360,7 +372,8 @@ export default function DriverDashboard() {
         {user?.id && (
           <GPSTrackingStatus 
             driverId={user.id} 
-            autoStart={true}
+            companyId={company?.id}
+            autoStart={!!activeTimesheetData}
             hidden={true}
           />
         )}

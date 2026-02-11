@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface GPSTrackingStatusProps {
   driverId: number;
   vehicleId?: number | null;
+  companyId?: number;
   autoStart?: boolean;
   compact?: boolean;
   hidden?: boolean;
@@ -29,6 +30,7 @@ interface GPSTrackingStatusProps {
 export function GPSTrackingStatus({ 
   driverId, 
   vehicleId, 
+  companyId,
   autoStart = true,
   compact = false,
   hidden = false
@@ -41,7 +43,7 @@ export function GPSTrackingStatus({
     queueSize,
     batteryLevel,
     error,
-  } = useGPSTracking({ driverId, vehicleId, autoStart });
+  } = useGPSTracking({ driverId, vehicleId, companyId, autoStart });
 
   const getBatteryIcon = () => {
     if (batteryLevel === null) return <Battery className="h-4 w-4" />;
