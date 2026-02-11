@@ -2790,14 +2790,14 @@ export async function registerRoutes(
     try {
       const { timesheetId, latitude, longitude, accuracy } = req.body;
       
-      if (!timesheetId || !latitude || !longitude) {
+      if (!timesheetId) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
       const timesheet = await storage.clockOut(
         Number(timesheetId),
-        latitude,
-        longitude,
+        latitude || null,
+        longitude || null,
         accuracy ? Math.round(Number(accuracy)) : null
       );
       
