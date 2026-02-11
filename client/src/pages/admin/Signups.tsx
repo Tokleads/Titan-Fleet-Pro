@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AdminLayout } from "./AdminLayout";
-import { TitanCard } from "@/components/titan-ui/Card";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserPlus, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
@@ -114,14 +114,14 @@ export default function AdminSignups() {
             <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
           </div>
         ) : error ? (
-          <TitanCard className="p-6 bg-red-900/20 border-red-800">
+          <motion.div className="p-6 bg-red-900/20 rounded-2xl border border-red-800">
             <p className="text-red-400" data-testid="text-signups-error">{error}</p>
-          </TitanCard>
+          </motion.div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {summaryCards.map((card) => (
-                <TitanCard key={card.title} className={`p-6 bg-slate-900/50 border ${card.borderColor}`}>
+                <motion.div key={card.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14 }} className={`p-6 bg-slate-900/50 rounded-2xl border ${card.borderColor}`}>
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-slate-400" data-testid={`text-label-${card.title.toLowerCase().replace(/\s/g, "-")}`}>{card.title}</p>
@@ -131,11 +131,11 @@ export default function AdminSignups() {
                       <card.icon className={`h-6 w-6 ${card.color}`} />
                     </div>
                   </div>
-                </TitanCard>
+                </motion.div>
               ))}
             </div>
 
-            <TitanCard className="p-6 bg-slate-900/50 border border-slate-800">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14 }} className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -185,7 +185,7 @@ export default function AdminSignups() {
                   </TableBody>
                 </Table>
               </div>
-            </TitanCard>
+            </motion.div>
           </>
         )}
       </div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AdminLayout } from "./AdminLayout";
-import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -318,7 +317,7 @@ export default function Companies() {
           </TitanButton>
         </div>
 
-        <TitanCard className="p-6 bg-slate-900/50 border border-slate-800">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.14 }} className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
           <div className="mb-4">
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -460,7 +459,7 @@ export default function Companies() {
               )}
             </>
           )}
-        </TitanCard>
+        </motion.div>
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

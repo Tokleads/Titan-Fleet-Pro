@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { AdminLayout } from "./AdminLayout";
-import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion } from "framer-motion";
 import { 
@@ -151,9 +150,9 @@ export default function AdminDashboard() {
             ))}
           </div>
         ) : error ? (
-          <TitanCard className="p-6 bg-red-900/20 border-red-800">
+          <motion.div className="p-6 bg-red-900/20 rounded-2xl border border-red-800">
             <p className="text-red-400">{error}</p>
-          </TitanCard>
+          </motion.div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -164,7 +163,7 @@ export default function AdminDashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <TitanCard className={`p-6 bg-slate-900/50 border ${card.borderColor} hover:border-opacity-50 transition-all`}>
+                  <div className={`p-6 bg-slate-900/50 rounded-2xl border ${card.borderColor} hover:border-opacity-50 transition-all`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-400">{card.title}</p>
@@ -174,7 +173,7 @@ export default function AdminDashboard() {
                         <card.icon className={`h-6 w-6 ${card.color}`} />
                       </div>
                     </div>
-                  </TitanCard>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -186,7 +185,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.4 }}
                 className="lg:col-span-1"
               >
-                <TitanCard className="p-6 bg-slate-900/50 border border-slate-800">
+                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center">
                       <DollarSign className="h-5 w-5 text-green-400" />
@@ -224,7 +223,7 @@ export default function AdminDashboard() {
                       );
                     })}
                   </div>
-                </TitanCard>
+                </div>
               </motion.div>
 
               <motion.div
@@ -233,7 +232,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.5 }}
                 className="lg:col-span-2"
               >
-                <TitanCard className="p-6 bg-slate-900/50 border border-slate-800 h-full">
+                <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 h-full">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
                       <TrendingUp className="h-5 w-5 text-purple-400" />
@@ -275,7 +274,7 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </div>
-                </TitanCard>
+                </div>
               </motion.div>
             </div>
           </>
