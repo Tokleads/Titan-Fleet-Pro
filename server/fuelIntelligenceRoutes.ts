@@ -7,6 +7,12 @@
 import type { Express, Request, Response } from "express";
 import * as fuelAnalytics from "./fuelAnalyticsService";
 
+function endOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
 export function registerFuelIntelligenceRoutes(app: Express) {
   /**
    * GET /api/fuel-intelligence/summary
@@ -25,7 +31,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const summary = await fuelAnalytics.getFleetSummary(companyId, start, end);
       res.json(summary);
@@ -52,7 +58,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const performance = await fuelAnalytics.getDriverPerformanceRankings(companyId, start, end);
       res.json(performance);
@@ -79,7 +85,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const performance = await fuelAnalytics.getVehiclePerformanceRankings(companyId, start, end);
       res.json(performance);
@@ -106,7 +112,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const anomalies = await fuelAnalytics.detectFuelAnomalies(companyId, start, end);
       res.json(anomalies);
@@ -133,7 +139,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const opportunities = await fuelAnalytics.generateCostSavingOpportunities(companyId, start, end);
       res.json(opportunities);
@@ -161,7 +167,7 @@ export function registerFuelIntelligenceRoutes(app: Express) {
       }
 
       const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      const end = endOfDay(new Date(endDate as string));
 
       const efficiency = await fuelAnalytics.getVehicleFuelEfficiency(companyId, vehicleId, start, end);
       

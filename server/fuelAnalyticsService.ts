@@ -10,7 +10,7 @@
  */
 
 import { db } from "./db";
-import { fuelEntries, vehicles, users, companies } from "../shared/schema";
+import { fuelEntries, vehicles, users, companies } from "@shared/schema";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 // Constants

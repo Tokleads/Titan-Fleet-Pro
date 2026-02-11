@@ -184,6 +184,10 @@ app.use((req, res, next) => {
 
   // Register admin routes
   app.use("/api/admin", adminRoutes);
+
+  // Register fuel intelligence routes
+  const { registerFuelIntelligenceRoutes } = await import("./fuelIntelligenceRoutes");
+  registerFuelIntelligenceRoutes(app);
   
   await registerRoutes(httpServer, app);
 

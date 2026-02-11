@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { session } from "@/lib/session";
+import { ManagerLayout } from "./ManagerLayout";
 
 // Date range selector component
 function DateRangeSelector({ 
@@ -157,6 +158,7 @@ export default function FuelIntelligence() {
   const totalSavings = opportunities?.reduce((sum: number, opp: any) => sum + opp.potentialSavingsPerYear, 0) || 0;
 
   return (
+    <ManagerLayout>
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex justify-between items-start">
@@ -464,5 +466,6 @@ export default function FuelIntelligence() {
         </TabsContent>
       </Tabs>
     </div>
+    </ManagerLayout>
   );
 }
