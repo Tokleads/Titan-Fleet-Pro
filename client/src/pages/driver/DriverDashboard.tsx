@@ -502,7 +502,7 @@ export default function DriverDashboard() {
         {/* Activity Summary - only show when there's data */}
         {(inspections.length > 0 || fuelEntries.length > 0) && (
         <section>
-             <div className="titan-card bg-slate-900 text-white border-0 p-4">
+             <div className="rounded-2xl bg-slate-900 text-white p-4 shadow-md">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold">My Activity</h3>
                     <span className="text-[11px] bg-white/10 px-2 py-1 rounded text-white/80">Last 7 days</span>
