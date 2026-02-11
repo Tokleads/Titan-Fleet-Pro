@@ -35,7 +35,8 @@ export default function FuelEntry() {
       try {
         const res = await fetch(`/api/vehicles?companyId=${company.id}`);
         if (res.ok) {
-          const vehicles: Vehicle[] = await res.json();
+          const data = await res.json();
+          const vehicles: Vehicle[] = Array.isArray(data) ? data : (data.vehicles || []);
           const found = vehicles.find(v => v.id === Number(params.id));
           setVehicle(found || null);
         }
@@ -76,7 +77,7 @@ export default function FuelEntry() {
 
       toast({
         title: "Fuel Entry Saved",
-        description: `${litres ? litres + "L " : ""}${fuelType.charAt(0) + fuelType.slice(1).toLowerCase()} recorded for ${vehicle.registration}`,
+        description: `${litres ? litres + "L " : ""}${fuelType.charAt(0) + fuelType.slice(1).toLowerCase()} recorded for ${vehicle.vrm}`,
         className: "border-green-500 bg-green-50",
       });
       setLocation("/driver");
@@ -123,7 +124,7 @@ export default function FuelEntry() {
           </TitanButton>
           <div>
             <h2 className="font-heading font-bold text-xl">Fuel Entry</h2>
-            <p className="text-sm text-slate-500">{vehicle.registration} &middot; {vehicle.make} {vehicle.model}</p>
+            <p className="text-sm text-slate-500">{vehicle.vrm} &middot; {vehicle.make} {vehicle.model}</p>
           </div>
         </div>
 
