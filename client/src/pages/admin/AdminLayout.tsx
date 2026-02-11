@@ -7,12 +7,18 @@ import {
   LogOut,
   Shield,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  UserPlus,
+  Gift
 } from "lucide-react";
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/admin/companies", icon: Building2, label: "Companies" },
+  { path: "/admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
+  { path: "/admin/signups", icon: UserPlus, label: "Signups" },
+  { path: "/admin/referrals", icon: Gift, label: "Referrals" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 

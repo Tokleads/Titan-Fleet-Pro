@@ -24,9 +24,10 @@ interface AdminStats {
   totalVehicles: number;
   monthlyRevenue: number;
   tierBreakdown: {
-    core: number;
+    starter: number;
+    growth: number;
     pro: number;
-    operator: number;
+    scale: number;
   };
   recentActivity: {
     type: string;
@@ -114,15 +115,17 @@ export default function AdminDashboard() {
   ];
 
   const tierIcons: Record<string, React.ElementType> = {
-    core: Shield,
+    starter: Shield,
+    growth: TrendingUp,
     pro: Zap,
-    operator: Crown
+    scale: Crown
   };
 
   const tierColors: Record<string, string> = {
-    core: "text-slate-400",
-    pro: "text-blue-400",
-    operator: "text-amber-400"
+    starter: "text-slate-400",
+    growth: "text-blue-400",
+    pro: "text-purple-400",
+    scale: "text-amber-400"
   };
 
   return (
@@ -205,7 +208,7 @@ export default function AdminDashboard() {
                     {Object.entries(stats?.tierBreakdown || {}).map(([tier, count]) => {
                       const Icon = tierIcons[tier] || Shield;
                       const color = tierColors[tier] || "text-slate-400";
-                      const pricing: Record<string, number> = { core: 49, pro: 149, operator: 349 };
+                      const pricing: Record<string, number> = { starter: 59, growth: 129, pro: 249, scale: 399 };
                       
                       return (
                         <div key={tier} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">

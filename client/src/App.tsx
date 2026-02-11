@@ -44,6 +44,9 @@ import Deliveries from './pages/manager/Deliveries';
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCompanies from "@/pages/admin/Companies";
+import AdminSubscriptions from "@/pages/admin/Subscriptions";
+import AdminSignups from "@/pages/admin/Signups";
+import AdminReferrals from "@/pages/admin/AdminReferrals";
 import DCEuropeanDemo from "@/pages/demo/DCEuropeanDemo";
 import TruckerTimDemo from "@/pages/demo/TruckerTimDemo";
 import TitanFleetDemo from "@/pages/demo/TitanFleetDemo";
@@ -104,6 +107,9 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/companies" component={AdminCompanies} />
+      <Route path="/admin/subscriptions" component={AdminSubscriptions} />
+      <Route path="/admin/signups" component={AdminSignups} />
+      <Route path="/admin/referrals" component={AdminReferrals} />
       <Route path="/demo/dc-european" component={DCEuropeanDemo} />
       <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
       <Route path="/demo" component={TitanFleetDemo} />
