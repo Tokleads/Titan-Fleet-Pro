@@ -1,5 +1,5 @@
 // DVSA (Driver and Vehicle Standards Agency) API Integration
-// Uses OAuth2 client credentials flow to access the Trade API
+// Uses OAuth2 client credentials flow to access the MOT History API
 
 interface DVSAToken {
   access_token: string;
@@ -13,7 +13,9 @@ interface MOTTest {
   expiryDate: string;
   odometerValue: string;
   odometerUnit: string;
+  odometerResultType: string;
   motTestNumber: string;
+  dataSource: string;
   defects?: {
     text: string;
     type: string;
@@ -27,9 +29,11 @@ export interface DVSAVehicle {
   model: string;
   primaryColour: string;
   fuelType: string;
+  firstUsedDate: string;
   registrationDate: string;
   manufactureDate: string;
   engineSize: string;
+  hasOutstandingRecall: string;
   motTests: MOTTest[];
 }
 
@@ -62,7 +66,6 @@ class DVSAService {
   }
 
   private async getAccessToken(): Promise<string> {
-    // Return cached token if still valid
     if (this.token && this.tokenExpiry && new Date() < this.tokenExpiry) {
       return this.token;
     }
@@ -94,7 +97,6 @@ class DVSAService {
 
     const data: DVSAToken = await response.json();
     this.token = data.access_token;
-    // Set expiry 5 minutes before actual expiry for safety
     this.tokenExpiry = new Date(Date.now() + (data.expires_in - 300) * 1000);
 
     return this.token;
@@ -111,12 +113,11 @@ class DVSAService {
       const normalizedReg = registration.replace(/\s/g, "").toUpperCase();
 
       const response = await fetch(
-        `https://beta.check-mot.service.gov.uk/trade/vehicles/mot-tests?registration=${normalizedReg}`,
+        `https://history.mot.api.gov.uk/v1/trade/vehicles/registration/${normalizedReg}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "x-api-key": this.apiKey,
-            Accept: "application/json",
+            "X-API-Key": this.apiKey,
           },
         }
       );
@@ -131,8 +132,8 @@ class DVSAService {
         throw new Error(`DVSA API error: ${response.status}`);
       }
 
-      const vehicles: DVSAVehicle[] = await response.json();
-      return vehicles.length > 0 ? vehicles[0] : null;
+      const vehicle: DVSAVehicle = await response.json();
+      return vehicle || null;
     } catch (error) {
       console.error("DVSA lookup failed:", error);
       return null;
@@ -145,19 +146,42 @@ class DVSAService {
     lastTestDate: string | null;
     lastTestResult: string | null;
     lastOdometer: number | null;
+    make: string | null;
+    model: string | null;
+    hasOutstandingRecall: string | null;
   } | null> {
     const vehicle = await this.getVehicleByRegistration(registration);
-    if (!vehicle || !vehicle.motTests || vehicle.motTests.length === 0) {
+    if (!vehicle) {
       return null;
     }
 
+    if (!vehicle.motTests || vehicle.motTests.length === 0) {
+      return {
+        valid: false,
+        expiryDate: null,
+        lastTestDate: null,
+        lastTestResult: null,
+        lastOdometer: null,
+        make: vehicle.make || null,
+        model: vehicle.model || null,
+        hasOutstandingRecall: vehicle.hasOutstandingRecall || null,
+      };
+    }
+
     const latestTest = vehicle.motTests[0];
+    const expiryDate = latestTest.expiryDate || null;
+    const isValid = latestTest.testResult === "PASSED" && 
+      (expiryDate ? new Date(expiryDate) > new Date() : false);
+
     return {
-      valid: latestTest.testResult === "PASSED",
-      expiryDate: latestTest.expiryDate || null,
+      valid: isValid,
+      expiryDate,
       lastTestDate: latestTest.completedDate || null,
       lastTestResult: latestTest.testResult || null,
       lastOdometer: latestTest.odometerValue ? parseInt(latestTest.odometerValue, 10) : null,
+      make: vehicle.make || null,
+      model: vehicle.model || null,
+      hasOutstandingRecall: vehicle.hasOutstandingRecall || null,
     };
   }
 }
