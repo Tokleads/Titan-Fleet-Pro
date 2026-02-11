@@ -282,9 +282,9 @@ export default function ManagerDashboard() {
             <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-drivers-active">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-500">Drivers Active</p>
-                  <p className="text-3xl font-bold text-slate-900">{activeDrivers}</p>
-                  <p className="text-xs text-slate-400">{totalDrivers} total drivers</p>
+                  <p className="text-sm font-medium text-slate-500">Registered Drivers</p>
+                  <p className="text-3xl font-bold text-slate-900">{totalDrivers}</p>
+                  <p className="text-xs text-slate-400">{activeDrivers} active accounts</p>
                 </div>
                 <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-blue-100 shadow-sm">
                   <Users className="h-6 w-6 text-blue-600" />
@@ -347,7 +347,7 @@ export default function ManagerDashboard() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-500">VOR Vehicles</p>
                   <p className="text-3xl font-bold text-slate-900">{vorVehicles}</p>
-                  <p className="text-xs text-slate-400">{activeVehicles} active in fleet</p>
+                  <p className="text-xs text-slate-400">{vehiclesList.length} vehicles in fleet</p>
                 </div>
                 <div className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-sm ${vorVehicles > 0 ? 'bg-red-100' : 'bg-emerald-100'}`}>
                   <Truck className={`h-6 w-6 ${vorVehicles > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
