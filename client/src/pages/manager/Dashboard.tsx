@@ -198,31 +198,36 @@ export default function ManagerDashboard() {
     }
   }
 
-  const activeVehicles = vehicles?.filter((v: any) => v.isActive).length || 0;
-  const vorVehicles = vehicles?.filter((v: any) => v.vorStatus === 'VOR' || v.vorStatus === 'vor').length || 0;
-  const activeDrivers = users?.filter((u: any) => u.role === 'driver' && u.active).length || 0;
-  const totalDrivers = users?.filter((u: any) => u.role === 'driver').length || 0;
+  const vehiclesList: any[] = Array.isArray(vehicles) ? vehicles : (vehicles?.vehicles || []);
+  const inspectionsList: any[] = Array.isArray(inspections) ? inspections : (inspections?.inspections || []);
+  const usersList: any[] = Array.isArray(users) ? users : (users || []);
+  const defectsList: Defect[] = Array.isArray(defects) ? defects : (defects || []);
 
-  const todayInspections = inspections?.filter((i: any) => isToday(i.createdAt)) || [];
-  const todayPassed = todayInspections.filter((i: any) => i.result === 'PASS').length;
-  const todayFailed = todayInspections.filter((i: any) => i.result === 'FAIL').length;
+  const activeVehicles = vehiclesList.filter((v: any) => v.active).length;
+  const vorVehicles = vehiclesList.filter((v: any) => v.vorStatus === true || v.vorStatus === 'VOR' || v.vorStatus === 'vor').length;
+  const activeDrivers = usersList.filter((u: any) => (u.role === 'driver' || u.role === 'DRIVER') && u.active).length;
+  const totalDrivers = usersList.filter((u: any) => u.role === 'driver' || u.role === 'DRIVER').length;
 
-  const openDefects = defects?.filter((d: Defect) => d.status === 'OPEN' || d.status === 'open') || [];
+  const todayInspections = inspectionsList.filter((i: any) => isToday(i.createdAt));
+  const todayPassed = todayInspections.filter((i: any) => i.result === 'PASS' || i.status === 'PASS').length;
+  const todayFailed = todayInspections.filter((i: any) => i.result === 'FAIL' || i.status === 'FAIL').length;
+
+  const openDefects = defectsList.filter((d: Defect) => d.status?.toUpperCase() === 'OPEN');
   const criticalDefects = openDefects.filter((d: Defect) => d.severity?.toUpperCase() === 'CRITICAL');
   const highDefects = openDefects.filter((d: Defect) => d.severity?.toUpperCase() === 'HIGH');
 
   const inspectedVrms = new Set(todayInspections.map((i: any) => i.vrm?.toUpperCase()));
-  const activeVehiclesList = vehicles?.filter((v: any) => v.isActive) || [];
-  const missedInspections = activeVehiclesList.filter((v: any) => !inspectedVrms.has(v.registration?.toUpperCase()));
+  const activeVehiclesList = vehiclesList.filter((v: any) => v.active);
+  const missedInspections = activeVehiclesList.filter((v: any) => !inspectedVrms.has(v.vrm?.toUpperCase()));
 
   const now = new Date();
   const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-  const expiringVehicles = vehicles?.filter((v: any) => {
-    const motExpiry = v.motExpiry ? new Date(v.motExpiry) : null;
-    const taxExpiry = v.taxExpiry ? new Date(v.taxExpiry) : null;
+  const expiringVehicles = vehiclesList.filter((v: any) => {
+    const motExpiry = v.motDue ? new Date(v.motDue) : null;
+    const taxExpiry = v.taxDue ? new Date(v.taxDue) : null;
     return (motExpiry && motExpiry <= fourteenDaysFromNow && motExpiry >= now) ||
            (taxExpiry && taxExpiry <= fourteenDaysFromNow && taxExpiry >= now);
-  }) || [];
+  });
 
   const score = complianceScore?.score || 0;
   const fleetStatusColor = score >= 80 ? 'emerald' : score >= 60 ? 'amber' : 'red';
@@ -373,7 +378,7 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 line-clamp-2">
-                    {missedInspections.slice(0, 3).map((v: any) => v.registration).join(', ')}
+                    {missedInspections.slice(0, 3).map((v: any) => v.vrm).join(', ')}
                     {missedInspections.length > 3 && ` +${missedInspections.length - 3} more`}
                   </p>
                 </div>
@@ -429,7 +434,7 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 line-clamp-2">
-                    {expiringVehicles.slice(0, 3).map((v: any) => v.registration).join(', ')}
+                    {expiringVehicles.slice(0, 3).map((v: any) => v.vrm).join(', ')}
                     {expiringVehicles.length > 3 && ` +${expiringVehicles.length - 3} more`}
                   </p>
                 </div>
