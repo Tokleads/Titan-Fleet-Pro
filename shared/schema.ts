@@ -35,6 +35,10 @@ export const companies = pgTable("companies", {
     fuelAnomalyThreshold: 2.0
   }),
   
+  // Stripe billing
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  
   // Contact and status
   contactEmail: text("contact_email"),
   isActive: boolean("is_active").default(true),

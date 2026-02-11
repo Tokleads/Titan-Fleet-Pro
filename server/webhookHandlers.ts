@@ -1,6 +1,7 @@
 import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { db } from './db';
 import { accountSetupTokens } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { sendAccountSetupEmail } from './emailService';
 import { storage } from './storage';
@@ -117,4 +118,97 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
   } else {
     console.error(`Failed to send setup email to ${customerEmail}:`, result.error);
   }
+}
+
+export async function handleInvoicePaid(payload: Buffer, signature: string): Promise<void> {
+  const stripe = await getUncachableStripeClient();
+  const sync = await getStripeSync();
+  const webhookSecret = sync.webhookSecret;
+  
+  let event;
+  try {
+    if (webhookSecret) {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } else {
+      event = JSON.parse(payload.toString());
+    }
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message);
+    return;
+  }
+  
+  if (event.type !== 'invoice.paid') return;
+  
+  const invoice = event.data.object;
+  if (!invoice.subscription || invoice.amount_paid === 0) return;
+  if (invoice.billing_reason !== 'subscription_cycle' && invoice.billing_reason !== 'subscription_create') return;
+  
+  try {
+    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+    const referralCode = subscription.metadata?.referralCode;
+    
+    if (!referralCode) {
+      const referralFromDb = await findReferralByStripeSubscription(invoice.subscription as string);
+      if (!referralFromDb) return;
+      await processReferralReward(stripe, referralFromDb);
+      return;
+    }
+    
+    const referral = await storage.getReferralByCode(referralCode);
+    if (!referral) {
+      console.log(`[REFERRAL] No referral found for code ${referralCode}`);
+      return;
+    }
+    
+    await processReferralReward(stripe, referral);
+  } catch (err) {
+    console.error('[REFERRAL] Failed to process referral reward:', err);
+  }
+}
+
+async function findReferralByStripeSubscription(subscriptionId: string): Promise<any> {
+  const [token] = await db.select()
+    .from(accountSetupTokens)
+    .where(eq(accountSetupTokens.stripeSubscriptionId, subscriptionId));
+  
+  if (!token?.referralCode) return null;
+  return storage.getReferralByCode(token.referralCode);
+}
+
+async function processReferralReward(stripe: any, referral: any): Promise<void> {
+  if (referral.status === 'rewarded' || referral.status === 'converted') {
+    console.log(`[REFERRAL] Already processed ${referral.referralCode} - status: ${referral.status}`);
+    return;
+  }
+  
+  const referrerCompany = await storage.getCompanyById(referral.referrerCompanyId);
+  if (!referrerCompany || !referrerCompany.stripeSubscriptionId) {
+    console.log(`[REFERRAL] Referrer company ${referral.referrerCompanyId} has no Stripe subscription`);
+    await storage.updateReferral(referral.id, {
+      status: 'converted',
+      convertedAt: new Date(),
+    });
+    return;
+  }
+  
+  const coupon = await stripe.coupons.create({
+    percent_off: 100,
+    duration: 'once',
+    name: `Referral Reward - 1 Month Free (${referral.referralCode})`,
+    metadata: { referralCode: referral.referralCode, referrerCompanyId: String(referral.referrerCompanyId) },
+  });
+  
+  await stripe.subscriptions.update(referrerCompany.stripeSubscriptionId, {
+    coupon: coupon.id,
+  });
+  
+  await storage.updateReferral(referral.id, {
+    status: 'rewarded',
+    rewardType: 'free_month',
+    rewardValue: 1,
+    rewardClaimed: true,
+    convertedAt: new Date(),
+  });
+  
+  console.log(`[REFERRAL] Successfully applied 1 month free to referrer company ${referral.referrerCompanyId} for code ${referral.referralCode}`);
 }

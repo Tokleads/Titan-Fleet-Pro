@@ -31,8 +31,9 @@ app.post(
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
       
       try {
-        const { handlePostCheckout } = await import('./webhookHandlers');
+        const { handlePostCheckout, handleInvoicePaid } = await import('./webhookHandlers');
         await handlePostCheckout(req.body as Buffer, sig);
+        await handleInvoicePaid(req.body as Buffer, sig);
       } catch (err) {
         console.error('Post-checkout handler error:', err);
       }

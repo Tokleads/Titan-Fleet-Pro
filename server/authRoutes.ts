@@ -92,6 +92,8 @@ router.post('/setup-account', async (req, res) => {
       contactEmail: normalizedEmail,
       licenseTier: setupToken.tier || 'starter',
       vehicleAllowance: setupToken.maxVehicles || 10,
+      stripeCustomerId: setupToken.stripeCustomerId || null,
+      stripeSubscriptionId: setupToken.stripeSubscriptionId || null,
     }).returning();
     
     const [user] = await db.insert(users).values({
