@@ -5,24 +5,25 @@ import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanInput } from "@/components/titan-ui/Input";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowRight, Lock } from "lucide-react";
+import { Shield, ArrowRight, Lock, Mail } from "lucide-react";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (!email || !password) return;
 
     setIsLoading(true);
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -44,7 +45,7 @@ export default function AdminLogin() {
     } catch (error) {
       toast({
         title: "Authentication failed",
-        description: error instanceof Error ? error.message : "Invalid admin token",
+        description: error instanceof Error ? error.message : "Invalid email or password",
         variant: "destructive",
       });
     } finally {
@@ -79,26 +80,38 @@ export default function AdminLogin() {
               </div>
               <h2 className="text-lg font-semibold text-white">Admin Authentication</h2>
               <p className="text-sm text-slate-400 mt-1">
-                Enter your admin token to access the super admin dashboard
+                Sign in to your owner dashboard
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Admin Token</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+              <TitanInput
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@titanfleet.co.uk"
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                data-testid="input-admin-email"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
               <TitanInput
                 type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="Enter admin token"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
-                data-testid="input-admin-token"
+                data-testid="input-admin-password"
               />
             </div>
 
             <TitanButton 
               type="submit" 
               className="w-full bg-amber-600 hover:bg-amber-700 text-white" 
-              disabled={!token || isLoading}
+              disabled={!email || !password || isLoading}
               data-testid="button-admin-login"
             >
               {isLoading ? "Authenticating..." : "Access Admin Panel"}

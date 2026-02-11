@@ -20,20 +20,27 @@ export function verifyAdminToken(req: Request, res: Response, next: NextFunction
 
 router.post("/login", async (req: Request, res: Response) => {
   try {
-    const { token } = req.body;
+    const { email, password } = req.body;
     
-    if (!token) {
-      return res.status(400).json({ error: "Token is required" });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
     }
     
-    if (token !== ADMIN_TOKEN) {
-      return res.status(401).json({ error: "Invalid admin token" });
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      return res.status(500).json({ error: "Admin credentials not configured" });
+    }
+    
+    if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
     
     res.json({ 
       success: true, 
       message: "Admin authentication successful",
-      adminToken: token
+      adminToken: ADMIN_TOKEN
     });
   } catch (error) {
     console.error("Admin login error:", error);
