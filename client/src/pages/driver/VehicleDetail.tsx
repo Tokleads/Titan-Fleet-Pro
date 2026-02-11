@@ -71,9 +71,12 @@ export default function VehicleDetail() {
 
   const handleSelectChecksheet = (type: "safety" | "end_of_shift") => {
     setDialogState("none");
-    // Navigate to inspection with trailer info
-    const trailerParam = hasTrailer ? "&trailer=true" : "";
-    setLocation(`/driver/inspection/${vehicle?.id}?type=${type}${trailerParam}`);
+    if (type === "end_of_shift") {
+      setLocation(`/driver/end-of-shift/${vehicle?.id}`);
+    } else {
+      const trailerParam = hasTrailer ? "&trailer=true" : "";
+      setLocation(`/driver/inspection/${vehicle?.id}?type=${type}${trailerParam}`);
+    }
   };
 
   if (isLoading) {

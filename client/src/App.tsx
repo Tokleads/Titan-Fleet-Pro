@@ -16,6 +16,7 @@ import DriverHistory from "@/pages/driver/DriverHistory";
 import DriverQueue from "@/pages/driver/DriverQueue";
 import DriverSettings from "@/pages/driver/DriverSettings";
 import NotificationCenter from "@/pages/driver/NotificationCenter";
+import EndOfShiftCheck from "@/pages/driver/EndOfShiftCheck";
 import ManagerLogin from "@/pages/manager/ManagerLogin";
 import ManagerDashboardOps from "@/pages/manager/Dashboard";
 import AdvancedDashboard from "@/pages/manager/AdvancedDashboard";
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/driver/queue" component={DriverQueue} />
       <Route path="/driver/settings" component={DriverSettings} />
       <Route path="/driver/notifications" component={NotificationCenter} />
+      <Route path="/driver/end-of-shift/:vehicleId" component={EndOfShiftCheck} />
       <Route path="/manager/login" component={ManagerLogin} />
       <Route path="/manager" component={ManagerDashboardOps} />
       <Route path="/manager/advanced-dashboard" component={AdvancedDashboard} />

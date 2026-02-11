@@ -2108,7 +2108,7 @@ export async function registerRoutes(
     try {
       const { companyId, driverId, vehicleId, timesheetId } = req.body;
       
-      if (!companyId || !driverId || !vehicleId || !timesheetId) {
+      if (!companyId || !driverId || !vehicleId) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
@@ -2116,7 +2116,7 @@ export async function registerRoutes(
         Number(companyId),
         Number(driverId),
         Number(vehicleId),
-        Number(timesheetId)
+        timesheetId ? Number(timesheetId) : null
       );
       
       res.json(shiftCheck);

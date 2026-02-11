@@ -1,472 +1,482 @@
-import { useState, useRef } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Camera, Check, X, Loader2, CheckCircle2, AlertCircle, 
-  ClipboardCheck, Fuel, Droplet, CreditCard, Hash, Car 
-} from 'lucide-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState, useRef, useEffect } from "react";
+import { useRoute, useLocation } from "wouter";
+import { DriverLayout } from "@/components/layout/AppShell";
+import { TitanCard } from "@/components/titan-ui/Card";
+import { TitanButton } from "@/components/titan-ui/Button";
+import { session } from "@/lib/session";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Camera, Check, ChevronLeft, Loader2, CheckCircle2, AlertCircle, ClipboardCheck, X, Filter } from "lucide-react";
+import { motion } from "framer-motion";
+import type { Vehicle } from "@shared/schema";
 
-interface CheckItem {
+type CheckItemType = 'pass_fail' | 'photo' | 'checkbox_photo' | 'text';
+
+interface CheckItemDef {
   id: string;
   label: string;
-  required: boolean;
-  requiresPhoto: boolean;
-  type: 'pass_fail' | 'numeric' | 'percentage';
-  minValue?: number;
-  icon: React.ReactNode;
+  type: CheckItemType;
 }
 
-interface CheckItemState {
-  status: 'pending' | 'passed' | 'failed';
-  value?: string;
-  notes?: string;
-  photoFile?: File;
-  photoPreview?: string;
-}
-
-interface EndOfShiftCheckProps {
-  companyId: number;
-  driverId: number;
-  vehicleId: number;
-  timesheetId: number;
-  onComplete: () => void;
-}
-
-const DEFAULT_CHECK_ITEMS: CheckItem[] = [
-  {
-    id: 'cab_cleanliness',
-    label: 'Cab Cleanliness',
-    required: true,
-    requiresPhoto: true,
-    type: 'pass_fail',
-    icon: <Car className="h-5 w-5" />
-  },
-  {
-    id: 'number_plate',
-    label: 'Number Plate in Door Pocket',
-    required: true,
-    requiresPhoto: true,
-    type: 'pass_fail',
-    icon: <Hash className="h-5 w-5" />
-  },
-  {
-    id: 'mileage',
-    label: 'Mileage Reading',
-    required: true,
-    requiresPhoto: true,
-    type: 'numeric',
-    icon: <ClipboardCheck className="h-5 w-5" />
-  },
-  {
-    id: 'fuel_level',
-    label: 'Fuel Level (%)',
-    required: true,
-    requiresPhoto: true,
-    type: 'percentage',
-    minValue: 0,
-    icon: <Fuel className="h-5 w-5" />
-  },
-  {
-    id: 'adblue_level',
-    label: 'AdBlue Level (%)',
-    required: true,
-    requiresPhoto: true,
-    type: 'percentage',
-    minValue: 0,
-    icon: <Droplet className="h-5 w-5" />
-  },
-  {
-    id: 'fuel_card',
-    label: 'Fuel Card Present',
-    required: true,
-    requiresPhoto: true,
-    type: 'pass_fail',
-    icon: <CreditCard className="h-5 w-5" />
-  }
+const END_OF_SHIFT_ITEMS: CheckItemDef[] = [
+  { id: "cab_clean", label: "Is the cab clean and tidy?", type: "pass_fail" },
+  { id: "no_litter", label: "Are there no litter or dirt on the dashboard or floor?", type: "pass_fail" },
+  { id: "floor_mats", label: "Are the floor mats clean?", type: "pass_fail" },
+  { id: "cab_interior_1", label: "Upload photo(s) of cab interior", type: "photo" },
+  { id: "cab_interior_2", label: "Upload photo(s) of cab interior", type: "photo" },
+  { id: "door_pocket_1", label: "Door pocket picture", type: "photo" },
+  { id: "door_pocket_2", label: "Door pocket picture", type: "photo" },
+  { id: "cab_interior_3", label: "Upload photo(s) of cab interior", type: "photo" },
+  { id: "adblue_level", label: "Ad blue level", type: "photo" },
+  { id: "reg_plate_in_cab", label: "Is there a registration plate inside the cab? Take a picture", type: "checkbox_photo" },
+  { id: "fuel_card_photo", label: "Photo of Fuel Card", type: "photo" },
+  { id: "driver_comments", label: "Driver comments", type: "text" },
+  { id: "outside_right", label: "Outside picture - right side", type: "photo" },
+  { id: "outside_front", label: "Outside picture - front", type: "photo" },
+  { id: "outside_left", label: "Outside picture - left side", type: "photo" },
+  { id: "outside_back", label: "Outside picture - back", type: "photo" },
 ];
 
-export default function EndOfShiftCheck({ 
-  companyId, 
-  driverId, 
-  vehicleId, 
-  timesheetId,
-  onComplete 
-}: EndOfShiftCheckProps) {
-  const [checkItems, setCheckItems] = useState<Record<string, CheckItemState>>({});
-  const [currentItemId, setCurrentItemId] = useState<string | null>(null);
+interface AnswerState {
+  passFail?: 'pass' | 'fail';
+  checked?: boolean;
+  photo?: string;
+  photoFile?: File;
+  text?: string;
+}
+
+export default function EndOfShiftCheck() {
+  const [, params] = useRoute("/driver/end-of-shift/:vehicleId");
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const [step, setStep] = useState<'instructions' | 'checklist'>('instructions');
+  const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Create shift check
-  const createCheckMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/shift-checks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId,
-          driverId,
-          vehicleId,
-          timesheetId
+  const company = session.getCompany();
+  const user = session.getUser();
+  const vehicleId = params?.vehicleId ? Number(params.vehicleId) : null;
+
+  useEffect(() => {
+    if (vehicleId) {
+      setIsLoading(true);
+      api.getVehicle(vehicleId)
+        .then((v) => setVehicle(v))
+        .catch((err) => {
+          console.error("Failed to load vehicle:", err);
+          toast({ variant: "destructive", title: "Error", description: "Failed to load vehicle data" });
         })
-      });
-      if (!response.ok) throw new Error('Failed to create shift check');
-      return response.json();
+        .finally(() => setIsLoading(false));
     }
-  });
+  }, [vehicleId]);
 
-  // Complete shift check and clock out
-  const completeCheckMutation = useMutation({
-    mutationFn: async (shiftCheckId: number) => {
-      // Upload all photos and check items
-      for (const item of DEFAULT_CHECK_ITEMS) {
-        const itemState = checkItems[item.id];
-        if (!itemState) continue;
-
-        const formData = new FormData();
-        formData.append('shiftCheckId', shiftCheckId.toString());
-        formData.append('itemId', item.id);
-        formData.append('label', item.label);
-        formData.append('itemType', item.type);
-        formData.append('status', itemState.status);
-        
-        if (itemState.value) {
-          formData.append('value', itemState.value);
-        }
-        if (itemState.notes) {
-          formData.append('notes', itemState.notes);
-        }
-        if (itemState.photoFile) {
-          formData.append('photo', itemState.photoFile);
-        }
-
-        const response = await fetch(`/api/shift-checks/${shiftCheckId}/item`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to upload check item: ${item.label}`);
-        }
-      }
-
-      // Complete check and trigger clock-out
-      const response = await fetch(`/api/shift-checks/${shiftCheckId}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latitude: await getCurrentLatitude(),
-          longitude: await getCurrentLongitude()
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to complete shift check');
-      return response.json();
-    },
-    onSuccess: () => {
-      onComplete();
-    }
-  });
-
-  const getCurrentLatitude = async (): Promise<string> => {
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve(position.coords.latitude.toString()),
-        () => resolve('0')
-      );
-    });
-  };
-
-  const getCurrentLongitude = async (): Promise<string> => {
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve(position.coords.longitude.toString()),
-        () => resolve('0')
-      );
-    });
+  const updateAnswer = (id: string, patch: Partial<AnswerState>) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], ...patch },
+    }));
   };
 
   const handlePhotoCapture = (itemId: string, file: File) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      setCheckItems(prev => ({
-        ...prev,
-        [itemId]: {
-          ...prev[itemId],
-          photoFile: file,
-          photoPreview: reader.result as string
-        }
-      }));
+      updateAnswer(itemId, { photo: reader.result as string, photoFile: file });
     };
     reader.readAsDataURL(file);
   };
 
-  const handleStatusChange = (itemId: string, status: 'passed' | 'failed') => {
-    setCheckItems(prev => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        status
-      }
-    }));
-  };
+  const handleSubmit = async (isDraft: boolean) => {
+    if (!company || !user || !vehicleId) {
+      toast({ variant: "destructive", title: "Error", description: "Session expired. Please log in again." });
+      return;
+    }
 
-  const handleValueChange = (itemId: string, value: string) => {
-    setCheckItems(prev => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        value
-      }
-    }));
-  };
-
-  const handleNotesChange = (itemId: string, notes: string) => {
-    setCheckItems(prev => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        notes
-      }
-    }));
-  };
-
-  const isItemComplete = (item: CheckItem): boolean => {
-    const itemState = checkItems[item.id];
-    if (!itemState) return false;
-
-    // Check if photo is required and present
-    if (item.requiresPhoto && !itemState.photoFile) return false;
-
-    // Check if status is set
-    if (item.type === 'pass_fail' && itemState.status === 'pending') return false;
-
-    // Check if value is required and present
-    if ((item.type === 'numeric' || item.type === 'percentage') && !itemState.value) return false;
-
-    return true;
-  };
-
-  const completedCount = DEFAULT_CHECK_ITEMS.filter(isItemComplete).length;
-  const totalCount = DEFAULT_CHECK_ITEMS.length;
-  const allComplete = completedCount === totalCount;
-  const progressPercent = (completedCount / totalCount) * 100;
-
-  const handleSubmit = async () => {
-    if (!allComplete) return;
-
+    setIsSubmitting(true);
     try {
-      // Create shift check
-      const shiftCheck = await createCheckMutation.mutateAsync();
-      
-      // Complete check and clock out
-      await completeCheckMutation.mutateAsync(shiftCheck.id);
+      const shiftCheckRes = await fetch("/api/shift-checks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: company.id,
+          driverId: user.id,
+          vehicleId,
+          type: "end_of_shift",
+        }),
+      });
+
+      if (!shiftCheckRes.ok) throw new Error("Failed to create shift check");
+      const shiftCheck = await shiftCheckRes.json();
+
+      for (const item of END_OF_SHIFT_ITEMS) {
+        const answer = answers[item.id];
+        if (!answer) continue;
+
+        const formData = new FormData();
+        formData.append("shiftCheckId", shiftCheck.id.toString());
+        formData.append("itemId", item.id);
+        formData.append("label", item.label);
+        formData.append("itemType", item.type);
+
+        if (item.type === "pass_fail") {
+          formData.append("status", answer.passFail === "pass" ? "passed" : answer.passFail === "fail" ? "failed" : "pending");
+        }
+        if (item.type === "checkbox_photo") {
+          formData.append("status", answer.checked ? "passed" : "pending");
+        }
+        if (answer.text) {
+          formData.append("notes", answer.text);
+        }
+        if (answer.photoFile) {
+          formData.append("photo", answer.photoFile);
+        }
+
+        const itemRes = await fetch(`/api/shift-checks/${shiftCheck.id}/item`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!itemRes.ok) {
+          console.error(`Failed to save item ${item.id}`);
+        }
+      }
+
+      if (!isDraft) {
+        let latitude = "0";
+        let longitude = "0";
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+          );
+          latitude = pos.coords.latitude.toString();
+          longitude = pos.coords.longitude.toString();
+        } catch {}
+
+        await fetch(`/api/shift-checks/${shiftCheck.id}/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude, longitude }),
+        });
+      }
+
+      toast({
+        title: isDraft ? "Draft Saved" : "Inspection Submitted",
+        description: isDraft ? "Your inspection has been saved as a draft." : "End of shift inspection completed successfully.",
+      });
+
+      setLocation("/driver");
     } catch (error) {
-      console.error('Error completing shift check:', error);
-      alert('Failed to complete shift check. Please try again.');
+      console.error("Failed to submit:", error);
+      toast({ variant: "destructive", title: "Submission Failed", description: "Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const isSubmitting = createCheckMutation.isPending || completeCheckMutation.isPending;
+  if (isLoading) {
+    return (
+      <DriverLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DriverLayout>
+    );
+  }
+
+  if (step === "instructions") {
+    return (
+      <DriverLayout>
+        <div className="flex flex-col min-h-[calc(100vh-12rem)]">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setLocation("/driver")}
+              className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors"
+              data-testid="button-back-instructions"
+            >
+              <ChevronLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <h1 className="text-lg font-bold text-slate-900" data-testid="text-instructions-header">Inspection Instructions</h1>
+          </div>
+
+          <TitanCard className="p-5 flex-1">
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-slate-900">Before you begin</h2>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line" data-testid="text-instructions-body">
+              Drivers must complete this checklist after each shift, following these steps:
+            </p>
+            <ul className="mt-3 space-y-2">
+              <li className="flex items-start gap-2 text-sm text-slate-600">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>Inspect the cab area.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>Answer all questions below.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>Upload photos showing the current condition.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>Add comments if any issues or damage are found.</span>
+              </li>
+            </ul>
+          </TitanCard>
+
+          <div className="fixed bottom-20 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-30">
+            <div className="max-w-md mx-auto flex gap-3">
+              <TitanButton
+                variant="outline"
+                className="flex-1"
+                onClick={() => setLocation("/driver")}
+                data-testid="button-instructions-back"
+              >
+                Back
+              </TitanButton>
+              <TitanButton
+                className="flex-1"
+                onClick={() => setStep("checklist")}
+                data-testid="button-instructions-next"
+              >
+                Next
+              </TitanButton>
+            </div>
+          </div>
+        </div>
+      </DriverLayout>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4">
-      {/* Header */}
-      <div className="max-w-2xl mx-auto mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <ClipboardCheck className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold">End of Shift Check</h1>
+    <DriverLayout>
+      <div className="pb-24">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => setStep("instructions")}
+            className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors"
+            data-testid="button-back-checklist"
+          >
+            <ChevronLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold text-slate-900 truncate" data-testid="text-checklist-header">
+              End of shift inspection {vehicle?.vrm ? `| ${vehicle.vrm}` : ""}
+            </h1>
+          </div>
+          <button className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors">
+            <Filter className="h-4 w-4 text-slate-400" />
+          </button>
         </div>
-        <p className="text-muted-foreground">
-          Complete all checks to clock out and end your shift
-        </p>
-      </div>
 
-      {/* Progress */}
-      <Card className="max-w-2xl mx-auto p-6 mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">Progress</span>
-          <span className="text-sm text-muted-foreground">
-            {completedCount} of {totalCount} complete
-          </span>
-        </div>
-        <Progress value={progressPercent} className="h-2" />
-      </Card>
+        <div className="space-y-3">
+          {END_OF_SHIFT_ITEMS.map((item, index) => {
+            const answer = answers[item.id] || {};
 
-      {/* Check Items */}
-      <div className="max-w-2xl mx-auto space-y-4 mb-6">
-        {DEFAULT_CHECK_ITEMS.map((item) => {
-          const itemState = checkItems[item.id] || { status: 'pending' };
-          const isComplete = isItemComplete(item);
-
-          return (
-            <Card key={item.id} className="p-6">
-              <div className="flex items-start gap-4">
-                {/* Icon */}
-                <div className={`p-3 rounded-lg ${
-                  isComplete 
-                    ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                }`}>
-                  {isComplete ? <CheckCircle2 className="h-5 w-5" /> : item.icon}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold">{item.label}</h3>
-                    {isComplete && (
-                      <Badge variant="default" className="bg-green-600">
-                        <Check className="h-3 w-3 mr-1" />
-                        Complete
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Pass/Fail Buttons */}
-                  {item.type === 'pass_fail' && (
-                    <div className="flex gap-2 mb-3">
-                      <Button
-                        variant={itemState.status === 'passed' ? 'default' : 'outline'}
-                        className={itemState.status === 'passed' ? 'bg-green-600' : ''}
-                        onClick={() => handleStatusChange(item.id, 'passed')}
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        Pass
-                      </Button>
-                      <Button
-                        variant={itemState.status === 'failed' ? 'default' : 'outline'}
-                        className={itemState.status === 'failed' ? 'bg-red-600' : ''}
-                        onClick={() => handleStatusChange(item.id, 'failed')}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Fail
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Numeric/Percentage Input */}
-                  {(item.type === 'numeric' || item.type === 'percentage') && (
-                    <div className="mb-3">
-                      <Input
-                        type="number"
-                        placeholder={item.type === 'percentage' ? 'Enter percentage (0-100)' : 'Enter value'}
-                        value={itemState.value || ''}
-                        onChange={(e) => {
-                          handleValueChange(item.id, e.target.value);
-                          // Auto-set status based on value
-                          const numValue = parseFloat(e.target.value);
-                          if (!isNaN(numValue)) {
-                            if (item.minValue !== undefined && numValue < item.minValue) {
-                              handleStatusChange(item.id, 'failed');
-                            } else {
-                              handleStatusChange(item.id, 'passed');
-                            }
-                          }
-                        }}
-                        min={0}
-                        max={item.type === 'percentage' ? 100 : undefined}
-                      />
-                    </div>
-                  )}
-
-                  {/* Photo Capture */}
-                  {item.requiresPhoto && (
-                    <div className="mb-3">
-                      <input
-                        ref={(el) => { fileInputRefs.current[item.id] = el; }}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handlePhotoCapture(item.id, file);
-                        }}
-                      />
-                      
-                      {itemState.photoPreview ? (
-                        <div className="relative">
-                          <img
-                            src={itemState.photoPreview}
-                            alt={item.label}
-                            className="w-full h-48 object-cover rounded-lg"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => fileInputRefs.current[item.id]?.click()}
-                          >
-                            <Camera className="h-4 w-4 mr-1" />
-                            Retake
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => fileInputRefs.current[item.id]?.click()}
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.02 }}
+              >
+                <TitanCard className="p-4" data-testid={`check-item-${item.id}`}>
+                  {item.type === "pass_fail" && (
+                    <div className="flex items-center justify-between min-h-[56px]">
+                      <p className="text-sm font-medium text-slate-800 flex-1 pr-3">{item.label}</p>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button
+                          onClick={() => updateAnswer(item.id, { passFail: "pass" })}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            answer.passFail === "pass"
+                              ? "bg-green-100 text-green-700 ring-2 ring-green-500"
+                              : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                          }`}
+                          data-testid={`button-pass-${item.id}`}
                         >
-                          <Camera className="h-4 w-4 mr-2" />
-                          Take Photo
-                        </Button>
+                          <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                            answer.passFail === "pass" ? "border-green-500 bg-green-500" : "border-slate-300"
+                          }`}>
+                            {answer.passFail === "pass" && <Check className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          Pass
+                        </button>
+                        <button
+                          onClick={() => updateAnswer(item.id, { passFail: "fail" })}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            answer.passFail === "fail"
+                              ? "bg-red-100 text-red-700 ring-2 ring-red-500"
+                              : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                          }`}
+                          data-testid={`button-fail-${item.id}`}
+                        >
+                          <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                            answer.passFail === "fail" ? "border-red-500 bg-red-500" : "border-slate-300"
+                          }`}>
+                            {answer.passFail === "fail" && <X className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          Fail
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {item.type === "photo" && (
+                    <div className="flex items-center justify-between min-h-[56px]">
+                      <div className="flex-1 pr-3">
+                        <p className="text-sm font-medium text-slate-800">{item.label}</p>
+                        {answer.photo && (
+                          <div className="mt-2 relative inline-block">
+                            <img
+                              src={answer.photo}
+                              alt={item.label}
+                              className="h-16 w-16 rounded-lg object-cover border border-slate-200"
+                            />
+                            <button
+                              onClick={() => updateAnswer(item.id, { photo: undefined, photoFile: undefined })}
+                              className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        <input
+                          ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoCapture(item.id, file);
+                          }}
+                          data-testid={`input-photo-${item.id}`}
+                        />
+                        <button
+                          onClick={() => fileInputRefs.current[item.id]?.click()}
+                          className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${
+                            answer.photo
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                          }`}
+                          data-testid={`button-camera-${item.id}`}
+                        >
+                          {answer.photo ? (
+                            <CheckCircle2 className="h-5 w-5" />
+                          ) : (
+                            <Camera className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {item.type === "checkbox_photo" && (
+                    <div className="flex items-center justify-between min-h-[56px]">
+                      <p className="text-sm font-medium text-slate-800 flex-1 pr-3">{item.label}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input
+                          ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoCapture(item.id, file);
+                          }}
+                          data-testid={`input-photo-${item.id}`}
+                        />
+                        <button
+                          onClick={() => fileInputRefs.current[item.id]?.click()}
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center transition-colors ${
+                            answer.photo
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                          }`}
+                          data-testid={`button-camera-${item.id}`}
+                        >
+                          <Camera className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => updateAnswer(item.id, { checked: !answer.checked })}
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center border-2 transition-colors ${
+                            answer.checked
+                              ? "bg-primary border-primary text-white"
+                              : "border-slate-300 bg-white hover:border-slate-400"
+                          }`}
+                          data-testid={`button-checkbox-${item.id}`}
+                        >
+                          {answer.checked && <Check className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {answer.photo && (
+                        <div className="mt-2 relative inline-block ml-0">
+                          <img
+                            src={answer.photo}
+                            alt={item.label}
+                            className="h-16 w-16 rounded-lg object-cover border border-slate-200"
+                          />
+                          <button
+                            onClick={() => updateAnswer(item.id, { photo: undefined, photoFile: undefined })}
+                            className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {/* Notes */}
-                  <Textarea
-                    placeholder="Add notes (optional)"
-                    value={itemState.notes || ''}
-                    onChange={(e) => handleNotesChange(item.id, e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+                  {item.type === "text" && (
+                    <div className="min-h-[56px]">
+                      <input
+                        type="text"
+                        placeholder={item.label}
+                        value={answer.text || ""}
+                        onChange={(e) => updateAnswer(item.id, { text: e.target.value })}
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/50 placeholder:text-slate-400"
+                        data-testid={`input-text-${item.id}`}
+                      />
+                    </div>
+                  )}
+                </TitanCard>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Submit Button */}
-      <div className="max-w-2xl mx-auto">
-        <Card className="p-6">
-          {allComplete ? (
-            <Button
-              className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Completing Check & Clocking Out...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 mr-2" />
-                  Complete Check & Clock Out
-                </>
-              )}
-            </Button>
-          ) : (
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-3" />
-              <p className="text-lg font-semibold mb-1">
-                Complete all checks to clock out
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {totalCount - completedCount} item{totalCount - completedCount !== 1 ? 's' : ''} remaining
-              </p>
-            </div>
-          )}
-        </Card>
+      <div className="fixed bottom-20 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-30">
+        <div className="max-w-md mx-auto flex gap-3">
+          <TitanButton
+            variant="outline"
+            className="flex-1"
+            onClick={() => handleSubmit(true)}
+            disabled={isSubmitting}
+            data-testid="button-save-draft"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save as Draft
+          </TitanButton>
+          <TitanButton
+            className="flex-1"
+            onClick={() => handleSubmit(false)}
+            disabled={isSubmitting}
+            data-testid="button-submit"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Submit
+          </TitanButton>
+        </div>
       </div>
-    </div>
+    </DriverLayout>
   );
 }

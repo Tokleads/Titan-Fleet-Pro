@@ -166,7 +166,7 @@ export interface IStorage {
   getUnreadNotificationCount(companyId: number, userId: number): Promise<number>;
   
   // Shift check operations (End-of-shift vehicle checks)
-  createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number): Promise<any>;
+  createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number | null): Promise<any>;
   addShiftCheckItem(shiftCheckId: number, itemId: string, label: string, itemType: string, status: string, value?: string, notes?: string, photoUrl?: string): Promise<any>;
   completeShiftCheck(shiftCheckId: number, latitude: string, longitude: string): Promise<any>;
   getShiftChecksByCompany(companyId: number): Promise<any[]>;
@@ -1430,7 +1430,7 @@ export class DatabaseStorage implements IStorage {
   
   // ==================== SHIFT CHECKS (END-OF-SHIFT) ====================
   
-  async createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number): Promise<any> {
+  async createShiftCheck(companyId: number, driverId: number, vehicleId: number, timesheetId: number | null): Promise<any> {
     const { shiftChecks } = await import('@shared/schema');
     
     const [shiftCheck] = await db.insert(shiftChecks).values({
