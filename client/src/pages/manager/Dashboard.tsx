@@ -22,7 +22,7 @@ import {
   Package,
   MapPin
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Skeleton";
 import { HelpTooltip } from "@/components/titan-ui/HelpTooltip";
 import UKDriverMap from "@/components/UKDriverMap";
@@ -90,6 +90,7 @@ export default function ManagerDashboard() {
   const user = session.getUser();
   const queryClient = useQueryClient();
   const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
+  const [, setLocation] = useLocation();
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["manager-stats", companyId],
@@ -368,6 +369,29 @@ export default function ManagerDashboard() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* End of Shift Inspection Quick Action */}
+        {vehiclesList.length > 0 && (
+          <button
+            onClick={() => {
+              const firstActive = vehiclesList.find((v: any) => v.active) || vehiclesList[0];
+              if (firstActive) {
+                setLocation(`/driver/end-of-shift/${firstActive.id}`);
+              }
+            }}
+            className="w-full bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow active:scale-[0.99]"
+            data-testid="button-end-of-shift-inspection"
+          >
+            <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <ClipboardCheck className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="flex-1 text-left">
+              <div className="font-semibold text-slate-900">End of Shift Inspection</div>
+              <div className="text-sm text-slate-500">Complete a vehicle walk-around check</div>
+            </div>
+            <ArrowUpRight className="h-5 w-5 text-slate-400 shrink-0" />
+          </button>
         )}
 
         {/* Attention Required Section */}
