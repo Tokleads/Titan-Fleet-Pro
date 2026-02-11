@@ -499,7 +499,8 @@ export default function DriverDashboard() {
           </div>
         </div>
 
-        {/* Activity Summary */}
+        {/* Activity Summary - only show when there's data */}
+        {(inspections.length > 0 || fuelEntries.length > 0) && (
         <section>
              <div className="titan-card bg-slate-900 text-white border-0 p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -522,6 +523,7 @@ export default function DriverDashboard() {
                 </div>
              </div>
         </section>
+        )}
 
         {/* Delivery Actions - at bottom, only shown if POD is enabled */}
         {(company?.settings as any)?.podEnabled !== false && (
