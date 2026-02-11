@@ -3,8 +3,8 @@ import type { UploadedFile } from "express-fileupload";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and, gte, desc } from "drizzle-orm";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages } from "@shared/schema";
+import { eq, and, gte, desc, isNull } from "drizzle-orm";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
@@ -864,6 +864,34 @@ export async function registerRoutes(
   });
 
   // Manager dashboard stats
+  app.get("/api/manager/on-shift/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const results = await db
+        .select({
+          driverId: timesheets.driverId,
+          driverName: users.name,
+          depotName: timesheets.depotName,
+          arrivalTime: timesheets.arrivalTime,
+          latitude: timesheets.arrivalLatitude,
+          longitude: timesheets.arrivalLongitude,
+        })
+        .from(timesheets)
+        .innerJoin(users, eq(timesheets.driverId, users.id))
+        .where(
+          and(
+            eq(timesheets.companyId, companyId),
+            eq(timesheets.status, "ACTIVE"),
+            isNull(timesheets.departureTime)
+          )
+        );
+      res.json(results);
+    } catch (error) {
+      console.error("Failed to fetch on-shift drivers:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/manager/stats/:companyId", async (req, res) => {
     try {
       const stats = await storage.getManagerDashboardStats(Number(req.params.companyId));

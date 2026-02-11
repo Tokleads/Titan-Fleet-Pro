@@ -19,11 +19,13 @@ import {
   AlertOctagon,
   Mail,
   FileWarning,
-  Package
+  Package,
+  MapPin
 } from "lucide-react";
 import { Link } from "wouter";
 import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Skeleton";
 import { HelpTooltip } from "@/components/titan-ui/HelpTooltip";
+import UKDriverMap from "@/components/UKDriverMap";
 
 interface DriverMessage {
   id: number;
@@ -179,6 +181,17 @@ export default function ManagerDashboard() {
     enabled: !!companyId,
   });
 
+  const { data: onShiftDrivers } = useQuery<Array<{ driverId: number; driverName: string; depotName: string; latitude: string; longitude: string; arrivalTime: string }>>({
+    queryKey: ["on-shift-drivers", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/on-shift/${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
   async function handleMessageClick(msg: DriverMessage) {
     if (expandedMessageId === msg.id) {
       setExpandedMessageId(null);
@@ -282,9 +295,9 @@ export default function ManagerDashboard() {
             <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-drivers-active">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-500">Registered Drivers</p>
-                  <p className="text-3xl font-bold text-slate-900">{totalDrivers}</p>
-                  <p className="text-xs text-slate-400">{activeDrivers} active accounts</p>
+                  <p className="text-sm font-medium text-slate-500">Drivers on Shift</p>
+                  <p className="text-3xl font-bold text-slate-900">{onShiftDrivers?.length || 0}</p>
+                  <p className="text-xs text-slate-400">{totalDrivers} registered drivers</p>
                 </div>
                 <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-blue-100 shadow-sm">
                   <Users className="h-6 w-6 text-blue-600" />
@@ -442,6 +455,15 @@ export default function ManagerDashboard() {
             </div>
           </div>
         )}
+
+        {/* Live Driver Locations Map */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6" data-testid="section-driver-map">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-blue-600" />
+            Live Driver Locations
+          </h2>
+          <UKDriverMap drivers={onShiftDrivers || []} />
+        </div>
 
         {/* Two-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
