@@ -3052,9 +3052,17 @@ export async function registerRoutes(
           )
         )
         .orderBy(desc(notifications.createdAt))
-        .limit(5);
+        .limit(20);
       
-      res.json(broadcasts);
+      const seen = new Set<string>();
+      const unique = broadcasts.filter(b => {
+        const key = `${b.title}|${b.message}|${new Date(b.createdAt!).toISOString().slice(0, 16)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 5);
+      
+      res.json(unique);
     } catch (error) {
       console.error("Failed to fetch public notifications:", error);
       res.status(500).json({ error: "Failed to fetch notifications" });
