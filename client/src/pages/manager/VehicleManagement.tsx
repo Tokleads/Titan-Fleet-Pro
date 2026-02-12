@@ -1132,6 +1132,7 @@ function DefectsTab({ companyId }: { companyId: number }) {
 
 function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; companyId: number; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const [activeDefectId, setActiveDefectId] = useState(defectId);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [actionsOpen, setActionsOpen] = useState(true);
   const [existingOpen, setExistingOpen] = useState(false);
@@ -1145,14 +1146,22 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
   const [existingSelectedIds, setExistingSelectedIds] = useState<number[]>([]);
   const [docFilter, setDocFilter] = useState("ALL");
 
+  const switchToDefect = (newDefectId: number) => {
+    setActiveDefectId(newDefectId);
+    setDirty(false);
+    setFormData({});
+    setDetailsOpen(true);
+    setActionsOpen(true);
+  };
+
   const { data: detail, isLoading } = useQuery({
-    queryKey: ["defect-detail", defectId],
+    queryKey: ["defect-detail", activeDefectId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/defects/detail/${defectId}`);
+      const res = await fetch(`/api/manager/defects/detail/${activeDefectId}`);
       if (!res.ok) throw new Error("Failed to fetch defect detail");
       return res.json();
     },
-    enabled: !!defectId,
+    enabled: !!activeDefectId,
   });
 
   useState(() => {
@@ -1181,7 +1190,7 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("PATCH", `/api/manager/defects/${defectId}`, formData);
+      await apiRequest("PATCH", `/api/manager/defects/${activeDefectId}`, formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["defect-detail"] });
@@ -1440,14 +1449,21 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
                         <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">No existing defects</td></tr>
                       ) : (
                         existingPaged.map((d: any) => (
-                          <tr key={d.reference} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`row-existing-defect-${d.reference}`}>
+                          <tr key={d.reference}
+                            className={`border-b border-slate-100 cursor-pointer transition-colors ${d.reference === activeDefectId ? "bg-blue-50 border-l-4 border-l-blue-500" : "hover:bg-slate-50"}`}
+                            onClick={(e) => {
+                              const target = e.target as HTMLElement;
+                              if (target.closest("input") || target.closest("button")) return;
+                              switchToDefect(d.reference);
+                            }}
+                            data-testid={`row-existing-defect-${d.reference}`}>
                             <td className="px-3 py-2.5">
                               <input type="checkbox" checked={existingSelectedIds.includes(d.reference)}
                                 onChange={() => setExistingSelectedIds((prev) => prev.includes(d.reference) ? prev.filter((x) => x !== d.reference) : [...prev, d.reference])}
                                 className="rounded border-slate-300"
                                 data-testid={`checkbox-existing-defect-${d.reference}`} />
                             </td>
-                            <td className="px-3 py-2.5 font-medium text-slate-900">{d.reference}</td>
+                            <td className="px-3 py-2.5 font-medium text-blue-700 underline">{d.reference}</td>
                             <td className="px-3 py-2.5 text-slate-600">{d.registration}</td>
                             <td className="px-3 py-2.5 text-slate-600">{d.reportedDate}</td>
                             <td className="px-3 py-2.5 text-slate-600">{d.requiredBy || "—"}</td>
