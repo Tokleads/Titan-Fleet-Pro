@@ -218,6 +218,12 @@ function VehicleListTab({ companyId }: { companyId: number }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const perPage = 25;
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+  const [addError, setAddError] = useState<string | null>(null);
+  const [motLookupResult, setMotLookupResult] = useState<{ motDue?: string; status?: string; error?: string } | null>(null);
+  const [isLookingUpMot, setIsLookingUpMot] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-list", companyId, page, search],
@@ -229,22 +235,212 @@ function VehicleListTab({ companyId }: { companyId: number }) {
     enabled: !!companyId,
   });
 
+  const createMutation = useMutation({
+    mutationFn: async (vehicleData: any) => {
+      const res = await fetch('/api/manager/vehicles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vehicleData),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to create vehicle');
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicle-mgmt-list'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet-vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-mgmt-overview'] });
+      setShowAddForm(false);
+      setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+      setAddError(null);
+      setMotLookupResult(null);
+    },
+    onError: (error: Error) => {
+      setAddError(error.message);
+    },
+  });
+
+  const lookupMot = async () => {
+    if (!addFormData.vrm || addFormData.vrm.length < 5) return;
+    setIsLookingUpMot(true);
+    setMotLookupResult(null);
+    try {
+      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`);
+      const data = await res.json();
+      if (res.ok && data.motDue) {
+        setMotLookupResult({ motDue: data.motDue, status: data.status });
+        setAddFormData(d => ({ ...d, motDue: data.motDue }));
+      } else {
+        setMotLookupResult({ error: data.error || 'Vehicle not found in DVSA database' });
+      }
+    } catch {
+      setMotLookupResult({ error: 'Failed to lookup MOT status' });
+    } finally {
+      setIsLookingUpMot(false);
+    }
+  };
+
+  const handleCreate = () => {
+    if (!addFormData.vrm || !addFormData.make || !addFormData.model) {
+      setAddError('VRM, Make, and Model are required');
+      return;
+    }
+    createMutation.mutate({
+      companyId,
+      vrm: addFormData.vrm.toUpperCase().replace(/\s/g, ''),
+      make: addFormData.make,
+      model: addFormData.model,
+      fleetNumber: addFormData.fleetNumber || null,
+      vehicleCategory: addFormData.vehicleCategory,
+      motDue: addFormData.motDue || null,
+      active: true,
+    });
+  };
+
   const vehicles = data?.vehicles || [];
   const pagination = data?.pagination;
 
   return (
     <div className="space-y-4">
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search VRM, make, model..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          data-testid="input-vehicle-list-search"
-        />
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search VRM, make, model..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            data-testid="input-vehicle-list-search"
+          />
+        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+          data-testid="button-add-vehicle"
+        >
+          <Plus className="h-4 w-4" />
+          Add Vehicle
+        </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h4 className="text-sm font-semibold text-slate-900 mb-4">Add New Vehicle</h4>
+          {addError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" data-testid="text-add-vehicle-error">
+              {addError}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">VRM (Registration) *</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={addFormData.vrm}
+                  onChange={(e) => setAddFormData(d => ({ ...d, vrm: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. AB12 CDE"
+                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase"
+                  data-testid="input-add-vrm"
+                />
+                <button
+                  onClick={lookupMot}
+                  disabled={isLookingUpMot || !addFormData.vrm || addFormData.vrm.length < 5}
+                  className="px-3 py-2 bg-slate-700 text-white text-xs font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  data-testid="button-mot-lookup"
+                >
+                  {isLookingUpMot ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "DVSA Lookup"}
+                </button>
+              </div>
+              {motLookupResult && (
+                <p className={`text-xs mt-1.5 ${motLookupResult.error ? 'text-red-600' : 'text-green-600'}`} data-testid="text-mot-lookup-result">
+                  {motLookupResult.error || `MOT ${motLookupResult.status} — Due: ${motLookupResult.motDue}`}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Make *</label>
+              <input
+                type="text"
+                value={addFormData.make}
+                onChange={(e) => setAddFormData(d => ({ ...d, make: e.target.value }))}
+                placeholder="e.g. DAF"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-add-make"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Model *</label>
+              <input
+                type="text"
+                value={addFormData.model}
+                onChange={(e) => setAddFormData(d => ({ ...d, model: e.target.value }))}
+                placeholder="e.g. XF 480"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-add-model"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Fleet Number</label>
+              <input
+                type="text"
+                value={addFormData.fleetNumber}
+                onChange={(e) => setAddFormData(d => ({ ...d, fleetNumber: e.target.value }))}
+                placeholder="e.g. V001"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-add-fleet-number"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Vehicle Category</label>
+              <select
+                value={addFormData.vehicleCategory}
+                onChange={(e) => setAddFormData(d => ({ ...d, vehicleCategory: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="select-add-category"
+              >
+                <option value="HGV">HGV</option>
+                <option value="LGV">LGV</option>
+                <option value="Van">Van</option>
+                <option value="Car">Car</option>
+                <option value="Trailer">Trailer</option>
+                <option value="Plant">Plant</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">MOT Due Date</label>
+              <input
+                type="date"
+                value={addFormData.motDue}
+                onChange={(e) => setAddFormData(d => ({ ...d, motDue: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-add-mot-due"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-5 pt-4 border-t border-slate-100">
+            <button
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              data-testid="button-submit-vehicle"
+            >
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Add Vehicle
+            </button>
+            <button
+              onClick={() => { setShowAddForm(false); setAddError(null); setMotLookupResult(null); }}
+              className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              data-testid="button-cancel-add-vehicle"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="table-vehicle-list">
