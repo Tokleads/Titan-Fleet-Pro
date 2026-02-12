@@ -10,6 +10,7 @@ import {
   vehiclePenalties,
   vehicleUsage,
   vehicleCategories,
+  fuelEntries,
   insertCollisionSchema,
   insertMaintenanceBookingSchema,
   insertVehiclePenaltySchema,
@@ -934,6 +935,115 @@ export function registerVehicleManagementRoutes(app: Express) {
       console.error("Create penalty error:", error);
       if (error?.errors) return res.status(400).json({ error: "Validation failed", details: error.errors });
       res.status(500).json({ error: "Failed to create penalty record" });
+    }
+  });
+
+  // 18. GET /api/manager/vehicles/fuel-purchases
+  app.get("/api/manager/vehicles/fuel-purchases", async (req, res) => {
+    try {
+      const companyId = Number(req.query.companyId);
+      if (!companyId) return res.status(400).json({ error: "Missing companyId" });
+
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const perPage = Math.min(100, Math.max(1, Number(req.query.perPage) || 10));
+      const search = (req.query.search as string) || "";
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const includeDiscarded = req.query.includeDiscarded === "true";
+      const fuelType = req.query.fuelType as string;
+
+      const conditions: any[] = [eq(fuelEntries.companyId, companyId)];
+      if (startDate) conditions.push(gte(fuelEntries.date, startDate));
+      if (endDate) conditions.push(lte(fuelEntries.date, endDate));
+      if (fuelType) conditions.push(eq(fuelEntries.fuelType, fuelType));
+
+      let vehicleConditions: any[] = [];
+      if (!includeDiscarded) {
+        vehicleConditions.push(eq(vehicles.active, true));
+      }
+
+      const baseWhere = and(...conditions);
+
+      const totalResult = await db
+        .select({ count: count() })
+        .from(fuelEntries)
+        .innerJoin(vehicles, eq(fuelEntries.vehicleId, vehicles.id))
+        .where(
+          includeDiscarded
+            ? baseWhere
+            : and(baseWhere, eq(vehicles.active, true))
+        );
+
+      let query = db
+        .select({
+          id: fuelEntries.id,
+          date: fuelEntries.date,
+          fuelType: fuelEntries.fuelType,
+          odometer: fuelEntries.odometer,
+          litres: fuelEntries.litres,
+          price: fuelEntries.price,
+          location: fuelEntries.location,
+          vehicleVrm: vehicles.vrm,
+          vehicleActive: vehicles.active,
+          driverName: users.name,
+        })
+        .from(fuelEntries)
+        .innerJoin(vehicles, eq(fuelEntries.vehicleId, vehicles.id))
+        .leftJoin(users, eq(fuelEntries.driverId, users.id))
+        .where(
+          includeDiscarded
+            ? baseWhere
+            : and(baseWhere, eq(vehicles.active, true))
+        )
+        .orderBy(desc(fuelEntries.date))
+        .limit(perPage)
+        .offset((page - 1) * perPage);
+
+      const results = await query;
+
+      let filtered = results;
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = results.filter(
+          (r) =>
+            r.vehicleVrm?.toLowerCase().includes(s) ||
+            r.driverName?.toLowerCase().includes(s) ||
+            r.location?.toLowerCase().includes(s)
+        );
+      }
+
+      const vatRate = 0.2;
+      res.json({
+        purchases: filtered.map((r) => {
+          const grossPence = r.price || 0;
+          const grossPounds = grossPence / 100;
+          const vatPounds = grossPounds - grossPounds / (1 + vatRate);
+          const netPounds = grossPounds - vatPounds;
+          return {
+            id: r.id,
+            transactionDate: formatDateUK(r.date),
+            cardRegistration: r.vehicleVrm,
+            transactionRegistration: r.vehicleVrm,
+            transactionOdometer: r.odometer,
+            product: r.fuelType,
+            quantity: r.litres ? (r.litres / 100).toFixed(2) : "0.00",
+            gross: `£${grossPounds.toFixed(2)}`,
+            vat: `£${vatPounds.toFixed(2)}`,
+            net: `£${netPounds.toFixed(2)}`,
+            driverName: r.driverName,
+            location: r.location,
+          };
+        }),
+        pagination: {
+          page,
+          perPage,
+          total: totalResult[0].count,
+          totalPages: Math.ceil(totalResult[0].count / perPage),
+        },
+      });
+    } catch (error) {
+      console.error("Fuel purchases error:", error);
+      res.status(500).json({ error: "Failed to fetch fuel purchases" });
     }
   });
 }

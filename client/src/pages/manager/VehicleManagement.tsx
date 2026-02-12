@@ -26,6 +26,8 @@ import {
   PoundSterling,
   Gavel,
   Loader2,
+  Fuel,
+  Download,
 } from "lucide-react";
 
 type TabId =
@@ -41,7 +43,8 @@ type TabId =
   | "tax-due"
   | "sorn"
   | "collisions"
-  | "penalties";
+  | "penalties"
+  | "fuel-purchases";
 
 const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
@@ -57,6 +60,7 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: "sorn", label: "SORN", icon: Car },
   { id: "collisions", label: "Collisions", icon: CircleDot },
   { id: "penalties", label: "Penalties", icon: Gavel },
+  { id: "fuel-purchases", label: "Fuel Purchases", icon: Fuel },
 ];
 
 function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
@@ -1198,6 +1202,201 @@ function PenaltiesTab({ companyId }: { companyId: number }) {
   );
 }
 
+function FuelPurchasesTab({ companyId }: { companyId: number }) {
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [includeDiscarded, setIncludeDiscarded] = useState(false);
+
+  const params = new URLSearchParams({ companyId: String(companyId), page: String(page), perPage: String(perPage) });
+  if (search) params.set("search", search);
+  if (startDate) params.set("startDate", startDate);
+  if (endDate) params.set("endDate", endDate);
+  if (includeDiscarded) params.set("includeDiscarded", "true");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["fuel-purchases", companyId, page, perPage, search, startDate, endDate, includeDiscarded],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/vehicles/fuel-purchases?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch fuel purchases");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const exportCsv = () => {
+    if (!data?.purchases?.length) return;
+    const headers = ["Card Number", "Transaction Date", "Card Registration", "Transaction Registration", "Transaction Odometer", "Product", "Quantity", "Gross", "VAT", "Net"];
+    const rows = data.purchases.map((p: any) => [
+      "", p.transactionDate, p.cardRegistration, p.transactionRegistration, p.transactionOdometer, p.product, p.quantity, p.gross, p.vat, p.net,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r: any[]) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fuel-purchases-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const purchases = data?.purchases || [];
+  const pagination = data?.pagination || { page: 1, perPage: 10, total: 0, totalPages: 0 };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Fuel Purchases</h3>
+          <button
+            onClick={exportCsv}
+            disabled={!purchases.length}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            data-testid="button-export-csv"
+          >
+            <Download className="h-4 w-4" />
+            Export As CSV
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Transactions between</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="dd/mm/yyyy"
+                data-testid="input-fuel-start-date"
+              />
+              <span className="text-sm text-slate-500">and</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="dd/mm/yyyy"
+                data-testid="input-fuel-end-date"
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer pb-2">
+            <input
+              type="checkbox"
+              checked={includeDiscarded}
+              onChange={(e) => { setIncludeDiscarded(e.target.checked); setPage(1); }}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              data-testid="checkbox-include-discarded"
+            />
+            Include purchases on discarded vehicles
+          </label>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <select
+              value={perPage}
+              onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              data-testid="select-fuel-per-page"
+            >
+              {[10, 25, 50, 100].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span className="text-sm text-slate-500">entries per page</span>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search..."
+              className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-56"
+              data-testid="input-fuel-search"
+            />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <LoadingSkeleton rows={6} />
+        ) : purchases.length === 0 ? (
+          <EmptyState message="No fuel purchases found" />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="table-fuel-purchases">
+                <thead>
+                  <tr className="bg-slate-700 text-white">
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Card Number</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Transaction Date</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Card Registration</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Transaction Registration</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Transaction Odometer</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Product</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-xs uppercase tracking-wider">Quantity</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-xs uppercase tracking-wider">Gross</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-xs uppercase tracking-wider">VAT</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-xs uppercase tracking-wider">Net</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {purchases.map((p: any, idx: number) => (
+                    <tr key={p.id || idx} className="hover:bg-slate-50 transition-colors" data-testid={`row-fuel-purchase-${p.id || idx}`}>
+                      <td className="px-3 py-3 text-slate-500"></td>
+                      <td className="px-3 py-3 text-slate-700">{p.transactionDate}</td>
+                      <td className="px-3 py-3 font-medium text-slate-900">{p.cardRegistration}</td>
+                      <td className="px-3 py-3 text-slate-700">{p.transactionRegistration}</td>
+                      <td className="px-3 py-3 text-slate-700">{p.transactionOdometer?.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-slate-700">{p.product}</td>
+                      <td className="px-3 py-3 text-right text-slate-700">{p.quantity}</td>
+                      <td className="px-3 py-3 text-right text-slate-700">{p.gross}</td>
+                      <td className="px-3 py-3 text-right text-slate-700">{p.vat}</td>
+                      <td className="px-3 py-3 text-right text-slate-700">{p.net}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                <p className="text-sm text-slate-500">
+                  Showing {(pagination.page - 1) * pagination.perPage + 1} to {Math.min(pagination.page * pagination.perPage, pagination.total)} of {pagination.total} entries
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page <= 1}
+                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-fuel-prev-page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-sm text-slate-600 px-3">Page {pagination.page} of {pagination.totalPages}</span>
+                  <button
+                    onClick={() => setPage(Math.min(pagination.totalPages, page + 1))}
+                    disabled={page >= pagination.totalPages}
+                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="button-fuel-next-page"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function VehicleManagement() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const company = session.getCompany();
@@ -1228,6 +1427,7 @@ export default function VehicleManagement() {
       case "sorn": return <SornTab companyId={companyId} />;
       case "collisions": return <CollisionsTab companyId={companyId} />;
       case "penalties": return <PenaltiesTab companyId={companyId} />;
+      case "fuel-purchases": return <FuelPurchasesTab companyId={companyId} />;
       default: return null;
     }
   };
