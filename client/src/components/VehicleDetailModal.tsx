@@ -208,7 +208,7 @@ function OverviewTabContent({ data }: { data: any }) {
   );
 }
 
-function VehicleDetailsTabContent({ data, formData, setFormData }: { data: any; formData: any; setFormData: (fn: (prev: any) => any) => void }) {
+function VehicleDetailsTabContent({ data, formData, setFormData, categories, costCentres, departments }: { data: any; formData: any; setFormData: (fn: (prev: any) => any) => void; categories?: any[]; costCentres?: any[]; departments?: any[] }) {
   const set = (key: string, value: any) => setFormData((prev: any) => ({ ...prev, [key]: value }));
 
   return (
@@ -310,12 +310,43 @@ function VehicleDetailsTabContent({ data, formData, setFormData }: { data: any; 
                 { value: "Inactive", label: "Inactive" },
               ]}
             />
-            <InputField label="Category" value={formData.category || ""} onChange={(v) => set("category", v)} />
+            <SelectField
+              label="Category"
+              value={formData.categoryId || ""}
+              onChange={(v) => set("categoryId", v)}
+              options={[
+                { value: "", label: "Select a Category" },
+                ...(categories || []).map((c: any) => ({ value: String(c.id), label: c.name })),
+              ]}
+              testId="select-category"
+            />
             <InputField label="Division" value={formData.division || ""} onChange={(v) => set("division", v)} />
-            <InputField label="Department" value={formData.department || ""} onChange={(v) => set("department", v)} />
+            <SelectField
+              label="Department"
+              value={formData.departmentId || ""}
+              onChange={(v) => set("departmentId", v)}
+              options={[
+                { value: "", label: "Select a Department" },
+                ...(departments || []).map((d: any) => ({ value: String(d.id), label: d.name })),
+              ]}
+              testId="select-department"
+            />
           </div>
           <div className="space-y-4">
-            <InputField label="Cost Centre" value={formData.costCentre || ""} onChange={(v) => set("costCentre", v)} />
+            <SelectField
+              label="Cost Centre"
+              value={formData.costCentreId || ""}
+              onChange={(v) => {
+                set("costCentreId", v);
+                const selected = (costCentres || []).find((cc: any) => String(cc.id) === v);
+                set("costCentreManager", selected?.managerName || "");
+              }}
+              options={[
+                { value: "", label: "Select a Cost Centre" },
+                ...(costCentres || []).map((cc: any) => ({ value: String(cc.id), label: `${cc.code} - ${cc.name}` })),
+              ]}
+              testId="select-cost-centre"
+            />
             <InputField label="Cost Centre Manager" value={formData.costCentreManager || ""} readonly />
             <InputField label="Parking Site" value={formData.parkingSite || ""} onChange={(v) => set("parkingSite", v)} />
             <InputField label="Overnight Parking Site" value={formData.overnightParkingSite || ""} onChange={(v) => set("overnightParkingSite", v)} />
@@ -581,6 +612,38 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
     enabled: !!vehicleId,
   });
 
+  const companyId = data?.companyId;
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ["hierarchy-categories", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/hierarchy/categories?companyId=${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: costCentresData } = useQuery({
+    queryKey: ["hierarchy-cost-centres", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/hierarchy/cost-centres?companyId=${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch cost centres");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: departmentsData } = useQuery({
+    queryKey: ["hierarchy-departments", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/hierarchy/departments?companyId=${companyId}`);
+      if (!res.ok) throw new Error("Failed to fetch departments");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
   const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -602,9 +665,22 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
         hierarchyStatus: data.active ? "Active" : "Inactive",
         odometerUnit: "Miles",
         registrationCountry: "United Kingdom",
+        categoryId: data.categoryId ? String(data.categoryId) : "",
+        costCentreId: data.costCentreId ? String(data.costCentreId) : "",
+        departmentId: data.departmentId ? String(data.departmentId) : "",
+        costCentreManager: "",
       });
     }
   }, [data]);
+
+  useEffect(() => {
+    if (formData.costCentreId && costCentresData) {
+      const selected = costCentresData.find((cc: any) => String(cc.id) === formData.costCentreId);
+      if (selected) {
+        setFormData((prev: any) => ({ ...prev, costCentreManager: selected.managerName || "" }));
+      }
+    }
+  }, [costCentresData]);
 
   const saveMutation = useMutation({
     mutationFn: async (updates: any) => {
@@ -644,6 +720,9 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
     if (formData.lastServiceDate) updates.lastServiceDate = formData.lastServiceDate;
     if (formData.lastServiceMileage) updates.lastServiceMileage = parseInt(formData.lastServiceMileage) || undefined;
     if (formData.nextServiceDue) updates.nextServiceDue = formData.nextServiceDue;
+    updates.categoryId = formData.categoryId ? parseInt(formData.categoryId) : null;
+    updates.costCentreId = formData.costCentreId ? parseInt(formData.costCentreId) : null;
+    updates.departmentId = formData.departmentId ? parseInt(formData.departmentId) : null;
     saveMutation.mutate(updates);
   };
 
@@ -668,7 +747,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
       case "overview":
         return <OverviewTabContent data={data} />;
       case "vehicle-details":
-        return <VehicleDetailsTabContent data={data} formData={formData} setFormData={setFormData} />;
+        return <VehicleDetailsTabContent data={data} formData={formData} setFormData={setFormData} categories={categoriesData} costCentres={costCentresData} departments={departmentsData} />;
       case "key-dates":
         return <KeyDatesTabContent data={data} formData={formData} setFormData={setFormData} />;
       case "service-intervals":
