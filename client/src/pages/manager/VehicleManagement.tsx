@@ -28,6 +28,7 @@ import {
   Loader2,
   Fuel,
   Download,
+  Trash2,
 } from "lucide-react";
 
 type TabId =
@@ -518,9 +519,15 @@ function VehicleListTab({ companyId }: { companyId: number }) {
 
 function SafetyChecksTab({ companyId }: { companyId: number }) {
   const [startDate, setStartDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split("T")[0];
+    const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split("T")[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [search, setSearch] = useState("");
+  const [perPage, setPerPage] = useState(10);
+  const [selectedInspection, setSelectedInspection] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-safety-checks", companyId, startDate, endDate],
@@ -532,58 +539,281 @@ function SafetyChecksTab({ companyId }: { companyId: number }) {
     enabled: !!companyId,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/inspections/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete inspection");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicle-mgmt-safety-checks"] });
+      setConfirmDelete(null);
+    },
+  });
+
+  const viewInspection = async (id: number) => {
+    setLoadingDetail(true);
+    try {
+      const res = await fetch(`/api/inspections/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch inspection");
+      const detail = await res.json();
+      setSelectedInspection(detail);
+    } catch {
+      setSelectedInspection(null);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const downloadPdf = (id: number) => {
+    window.open(`/api/inspections/${id}/pdf`, "_blank");
+  };
+
+  const allRows = data || [];
+  const filtered = search
+    ? allRows.filter((r: any) =>
+        r.registration?.toLowerCase().includes(search.toLowerCase()) ||
+        r.driverName?.toLowerCase().includes(search.toLowerCase()) ||
+        r.driverEmail?.toLowerCase().includes(search.toLowerCase()) ||
+        r.checksheetTitle?.toLowerCase().includes(search.toLowerCase())
+      )
+    : allRows;
+  const displayed = filtered.slice(0, perPage);
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-            className="h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            data-testid="input-safety-start-date" />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Inspections</h3>
+
+        <div className="flex flex-wrap items-end gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Between</label>
+            <div className="flex items-center gap-2">
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-safety-start-date" />
+              <span className="text-sm text-slate-500">And</span>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                data-testid="input-safety-end-date" />
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">End Date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-            className="h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            data-testid="input-safety-end-date" />
+
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              data-testid="select-safety-per-page">
+              {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span className="text-sm text-slate-500">entries per page</span>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-56"
+              data-testid="input-safety-search" />
+          </div>
         </div>
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm" data-testid="table-safety-checks">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Registration</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Driver</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Checksheet</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Faults</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Remaining</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={7} className="px-4 py-8"><LoadingSkeleton /></td></tr>
-              ) : !data || data.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState message="No safety checks found for this period" /></td></tr>
-              ) : (
-                data.map((r: any) => (
-                  <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 text-slate-600">{r.inspectionDate}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{r.registration}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.driverName}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.checksheetTitle}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.faultsCount}</td>
-                    <td className="px-4 py-3 text-slate-600">{r.remainingFaults}</td>
-                    <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+
+        {isLoading ? (
+          <LoadingSkeleton rows={6} />
+        ) : displayed.length === 0 ? (
+          <EmptyState message="No safety checks found for this period" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="table-safety-checks">
+              <thead>
+                <tr className="bg-slate-700 text-white">
+                  <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Inspection Date</th>
+                  <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Registration</th>
+                  <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Driver Name</th>
+                  <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Email Address</th>
+                  <th className="px-3 py-2.5 text-left font-medium text-xs uppercase tracking-wider">Checksheet Title</th>
+                  <th className="px-3 py-2.5 text-center font-medium text-xs uppercase tracking-wider">Faults</th>
+                  <th className="px-3 py-2.5 text-center font-medium text-xs uppercase tracking-wider">Remaining Faults</th>
+                  <th className="px-3 py-2.5 text-center font-medium text-xs uppercase tracking-wider w-20"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {displayed.map((r: any) => (
+                  <tr key={r.id} className="hover:bg-blue-50/50 transition-colors cursor-pointer group" data-testid={`row-safety-check-${r.id}`}>
+                    <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.inspectionDate}</td>
+                    <td className="px-3 py-3 font-medium text-slate-900" onClick={() => viewInspection(r.id)}>{r.registration}</td>
+                    <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.driverName}</td>
+                    <td className="px-3 py-3 text-slate-500" onClick={() => viewInspection(r.id)}>{r.driverEmail}</td>
+                    <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.checksheetTitle}</td>
+                    <td className="px-3 py-3 text-center text-slate-700" onClick={() => viewInspection(r.id)}>{r.faultsCount}</td>
+                    <td className="px-3 py-3 text-center text-slate-700" onClick={() => viewInspection(r.id)}>{r.remainingFaults}</td>
+                    <td className="px-3 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => downloadPdf(r.id)} title="Download PDF"
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
+                          data-testid={`button-download-inspection-${r.id}`}>
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setConfirmDelete(r.id)} title="Delete inspection"
+                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-100 transition-colors"
+                          data-testid={`button-delete-inspection-${r.id}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {filtered.length > perPage && (
+          <p className="text-xs text-slate-500 mt-3">Showing {displayed.length} of {filtered.length} entries</p>
+        )}
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h4 className="text-lg font-semibold text-slate-900 mb-2">Delete Inspection</h4>
+            <p className="text-sm text-slate-600 mb-5">Are you sure you want to permanently delete this inspection record? This cannot be undone.</p>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                data-testid="button-cancel-delete">
+                Cancel
+              </button>
+              <button onClick={() => deleteMutation.mutate(confirmDelete)}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                data-testid="button-confirm-delete">
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(selectedInspection || loadingDetail) && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedInspection(null)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+            {loadingDetail ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : selectedInspection ? (
+              <>
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h4 className="text-lg font-semibold text-slate-900">
+                      {selectedInspection.type} — {selectedInspection.vehicleVrm}
+                    </h4>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      {selectedInspection.driverName} · {new Date(selectedInspection.createdAt).toLocaleString("en-GB")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => downloadPdf(selectedInspection.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      data-testid="button-detail-download-pdf">
+                      <Download className="h-4 w-4" /> Download PDF
+                    </button>
+                    <button onClick={() => setSelectedInspection(null)}
+                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                      data-testid="button-close-detail">
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 mb-0.5">Status</p>
+                    <StatusBadge status={selectedInspection.status} />
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 mb-0.5">Odometer</p>
+                    <p className="text-sm font-medium text-slate-900">{selectedInspection.odometer?.toLocaleString() || "—"}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 mb-0.5">Vehicle</p>
+                    <p className="text-sm font-medium text-slate-900">{selectedInspection.vehicleMake} {selectedInspection.vehicleModel}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 mb-0.5">Duration</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {selectedInspection.durationSeconds
+                        ? `${Math.floor(selectedInspection.durationSeconds / 60)}m ${selectedInspection.durationSeconds % 60}s`
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedInspection.checklist && Array.isArray(selectedInspection.checklist) && selectedInspection.checklist.length > 0 && (
+                  <div className="mb-5">
+                    <h5 className="text-sm font-semibold text-slate-900 mb-2">Checklist Items</h5>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="text-left px-3 py-2 font-medium text-slate-600">Item</th>
+                            <th className="text-center px-3 py-2 font-medium text-slate-600 w-24">Result</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {selectedInspection.checklist.map((item: any, idx: number) => (
+                            <tr key={idx}>
+                              <td className="px-3 py-2 text-slate-700">{item.label || item.id || `Item ${idx + 1}`}</td>
+                              <td className="px-3 py-2 text-center">
+                                {item.result === "pass" || item.value === "pass" ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto" />
+                                ) : item.result === "fail" || item.value === "fail" ? (
+                                  <XCircle className="h-4 w-4 text-red-500 mx-auto" />
+                                ) : item.result === "na" || item.value === "na" ? (
+                                  <span className="text-xs text-slate-400">N/A</span>
+                                ) : (
+                                  <span className="text-xs text-slate-500">{item.result || item.value || "—"}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {selectedInspection.defects && Array.isArray(selectedInspection.defects) && selectedInspection.defects.length > 0 && (
+                  <div>
+                    <h5 className="text-sm font-semibold text-slate-900 mb-2">Defects Reported</h5>
+                    <div className="space-y-2">
+                      {selectedInspection.defects.map((d: any, idx: number) => (
+                        <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <p className="text-sm text-red-800 font-medium">{d.description || d.note || d}</p>
+                          {d.category && <p className="text-xs text-red-600 mt-1">Category: {d.category}</p>}
+                          {d.severity && <p className="text-xs text-red-600">Severity: {d.severity}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInspection.cabPhotos && Array.isArray(selectedInspection.cabPhotos) && selectedInspection.cabPhotos.length > 0 && (
+                  <div className="mt-5">
+                    <h5 className="text-sm font-semibold text-slate-900 mb-2">Photos</h5>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedInspection.cabPhotos.map((url: string, idx: number) => (
+                        <img key={idx} src={url} alt={`Photo ${idx + 1}`} className="rounded-lg border border-slate-200 object-cover h-32 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

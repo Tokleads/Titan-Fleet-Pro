@@ -624,6 +624,49 @@ export async function registerRoutes(
     }
   });
 
+  // Get single inspection detail
+  app.get("/api/inspections/:id", async (req, res) => {
+    try {
+      const inspection = await storage.getInspectionById(Number(req.params.id));
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+      const vehicle = await storage.getVehicleById(inspection.vehicleId);
+      const driver = await storage.getUser(inspection.driverId);
+      const company = await storage.getCompanyById(inspection.companyId);
+      res.json({
+        ...inspection,
+        vehicleVrm: vehicle?.vrm || "Unknown",
+        vehicleMake: vehicle?.make || "",
+        vehicleModel: vehicle?.model || "",
+        driverName: driver?.name || "Unknown",
+        driverEmail: driver?.email || "",
+        companyName: company?.name || "",
+        createdAt: inspection.createdAt?.toISOString(),
+        startedAt: inspection.startedAt?.toISOString() || null,
+        completedAt: inspection.completedAt?.toISOString() || null,
+      });
+    } catch (error) {
+      console.error("Get inspection error:", error);
+      res.status(500).json({ error: "Failed to fetch inspection" });
+    }
+  });
+
+  // Delete inspection
+  app.delete("/api/inspections/:id", async (req, res) => {
+    try {
+      const inspection = await storage.getInspectionById(Number(req.params.id));
+      if (!inspection) {
+        return res.status(404).json({ error: "Inspection not found" });
+      }
+      await db.delete(inspections).where(eq(inspections.id, Number(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete inspection error:", error);
+      res.status(500).json({ error: "Failed to delete inspection" });
+    }
+  });
+
   // Generate PDF for inspection
   app.get("/api/inspections/:id/pdf", async (req, res) => {
     try {
