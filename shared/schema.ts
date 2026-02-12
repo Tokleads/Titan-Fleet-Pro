@@ -234,11 +234,20 @@ export const defects = pgTable("defects", {
   severity: varchar("severity", { length: 20 }).notNull().default("MEDIUM"), // LOW | MEDIUM | HIGH | CRITICAL
   status: varchar("status", { length: 20 }).notNull().default("OPEN"), // OPEN | ASSIGNED | IN_PROGRESS | RECTIFIED | VERIFIED | CLOSED | DEFERRED
   
-  assignedTo: integer("assigned_to").references(() => users.id), // Mechanic user ID
+  supplier: varchar("supplier", { length: 255 }),
+  site: varchar("site", { length: 255 }),
+  requiredBy: timestamp("required_by"),
+  cost: varchar("cost", { length: 20 }).default("0.00"),
+  odometer: integer("odometer"),
+  fleetReference: varchar("fleet_reference", { length: 100 }),
+  imReference: varchar("im_reference", { length: 100 }),
+  actionedNotes: text("actioned_notes"),
+
+  assignedTo: integer("assigned_to").references(() => users.id),
   resolutionNotes: text("resolution_notes"),
   resolvedAt: timestamp("resolved_at"),
   resolvedBy: integer("resolved_by").references(() => users.id),
-  photo: text("photo"), // Object storage path for defect photo evidence
+  photo: text("photo"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()

@@ -29,6 +29,11 @@ import {
   Fuel,
   Download,
   Trash2,
+  ChevronDown,
+  Menu,
+  Save,
+  X,
+  Minus,
 } from "lucide-react";
 
 type TabId =
@@ -819,9 +824,19 @@ function SafetyChecksTab({ companyId }: { companyId: number }) {
 }
 
 function DefectsTab({ companyId }: { companyId: number }) {
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("OPEN");
+  const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [siteFilter, setSiteFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [bulkStatus, setBulkStatus] = useState("CLOSED");
+  const [bulkStatus, setBulkStatus] = useState("OPEN");
+  const [showBulkDropdown, setShowBulkDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [editDefectId, setEditDefectId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -834,6 +849,16 @@ function DefectsTab({ companyId }: { companyId: number }) {
     enabled: !!companyId,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (defectId: number) => {
+      await apiRequest("DELETE", `/api/manager/defects/${defectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicle-mgmt-defects"] });
+      setDeleteConfirmId(null);
+    },
+  });
+
   const bulkMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/manager/vehicles/defects/bulk-status", { defectIds: selectedIds, status: bulkStatus });
@@ -841,6 +866,7 @@ function DefectsTab({ companyId }: { companyId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicle-mgmt-defects"] });
       setSelectedIds([]);
+      setShowBulkDropdown(false);
     },
   });
 
@@ -848,81 +874,681 @@ function DefectsTab({ companyId }: { companyId: number }) {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
+  const defects: any[] = data || [];
+
+  const filtered = defects.filter((d: any) => {
+    if (supplierFilter !== "ALL" && (d.supplier || "") !== supplierFilter) return false;
+    if (siteFilter !== "ALL" && (d.site || "") !== siteFilter) return false;
+    if (dateFrom && d.reportedDateISO) {
+      const rDate = d.reportedDateISO.split("T")[0];
+      if (rDate < dateFrom) return false;
+    }
+    if (dateTo && d.reportedDateISO) {
+      const rDate = d.reportedDateISO.split("T")[0];
+      if (rDate > dateTo) return false;
+    }
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      const match = [d.reference, d.registration, d.faultDescription, d.supplier, d.site, d.status]
+        .filter(Boolean).some((v: any) => String(v).toLowerCase().includes(s));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / perPage));
+  const startIdx = (page - 1) * perPage;
+  const paged = filtered.slice(startIdx, startIdx + perPage);
+  const showingFrom = totalFiltered === 0 ? 0 : startIdx + 1;
+  const showingTo = Math.min(startIdx + perPage, totalFiltered);
+
+  const uniqueSuppliers = Array.from(new Set(defects.map((d: any) => d.supplier).filter(Boolean)));
+  const uniqueSites = Array.from(new Set(defects.map((d: any) => d.site).filter(Boolean)));
+
+  const exportCsv = () => {
+    const headers = ["Reference", "Registration", "Reported Date", "Required By", "Days Open", "Supplier", "Fault", "Site", "Status"];
+    const rows = filtered.map((d: any) => [
+      d.reference, d.registration, d.reportedDate, d.requiredBy || "", d.daysOpen, d.supplier || "", d.faultDescription || "", d.site || "", d.status
+    ]);
+    const csv = [headers.join(","), ...rows.map((r: any[]) => r.map((c: any) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "defects-export.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (editDefectId !== null) {
+    return <EditDefectModal defectId={editDefectId} companyId={companyId} onClose={() => setEditDefectId(null)} />;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          <label className="block text-xs font-medium text-slate-500 mb-1">Show:</label>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="h-9 px-3 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             data-testid="select-defect-status">
-            <option value="ALL">All</option>
             <option value="OPEN">Open</option>
-            <option value="CLOSED">Closed</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="MONITOR">Monitor</option>
+            <option value="ALL">All</option>
           </select>
         </div>
-        {selectedIds.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Supplier:</label>
+          <select value={supplierFilter} onChange={(e) => { setSupplierFilter(e.target.value); setPage(1); }}
+            className="h-9 px-3 bg-white border border-slate-300 rounded text-sm"
+            data-testid="select-defect-supplier">
+            <option value="ALL">All Suppliers</option>
+            {uniqueSuppliers.map((s: any) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Site:</label>
+          <select value={siteFilter} onChange={(e) => { setSiteFilter(e.target.value); setPage(1); }}
+            className="h-9 px-3 bg-white border border-slate-300 rounded text-sm"
+            data-testid="select-defect-site">
+            <option value="ALL">All Sites</option>
+            {uniqueSites.map((s: any) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Reported between:</label>
           <div className="flex items-center gap-2">
-            <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}
-              className="h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm"
-              data-testid="select-bulk-status">
-              <option value="CLOSED">Close</option>
-              <option value="RECTIFIED">Rectified</option>
-              <option value="DEFERRED">Defer</option>
-            </select>
-            <button
-              onClick={() => bulkMutation.mutate()}
-              disabled={bulkMutation.isPending}
-              className="h-10 px-4 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              data-testid="button-bulk-update">
-              {bulkMutation.isPending ? "Updating..." : `Update ${selectedIds.length} selected`}
-            </button>
+            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="h-9 px-2 bg-white border border-slate-300 rounded text-sm"
+              data-testid="input-defect-date-from" />
+            <span className="text-slate-400 text-xs">to</span>
+            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="h-9 px-2 bg-white border border-slate-300 rounded text-sm"
+              data-testid="input-defect-date-to" />
           </div>
-        )}
+        </div>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setSelectedIds(paged.map((d: any) => d.reference))}
+          className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-800"
+          data-testid="button-select-all-defects">Select all</button>
+        <button onClick={() => setSelectedIds([])}
+          className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-800"
+          data-testid="button-deselect-all-defects">Deselect all</button>
+        <div className="relative">
+          <button onClick={() => setShowBulkDropdown(!showBulkDropdown)}
+            className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-800 flex items-center gap-1"
+            data-testid="button-change-status">
+            Change Status <ChevronDown className="h-3 w-3" />
+          </button>
+          {showBulkDropdown && (
+            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-20 min-w-[160px]">
+              {["OPEN", "COMPLETED", "CANCELLED", "MONITOR"].map((s) => (
+                <button key={s} onClick={() => { setBulkStatus(s); if (selectedIds.length > 0) { bulkMutation.mutate(); } else { setShowBulkDropdown(false); } }}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100"
+                  data-testid={`button-bulk-status-${s.toLowerCase()}`}>{s}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onClick={exportCsv}
+          className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-800 flex items-center gap-1"
+          data-testid="button-export-csv">
+          <Download className="h-3.5 w-3.5" /> Export As CSV
+        </button>
+      </div>
+
+      <div className="bg-white rounded border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="table-defects">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-4 py-3 w-10"><span className="sr-only">Select</span></th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Ref #</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Registration</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Days Open</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">Severity</th>
+              <tr className="bg-slate-700 text-white">
+                <th className="px-3 py-2.5 w-10"><span className="sr-only">Select</span></th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Reference</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Registration</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Reported Date</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Required By</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Days Open</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Supplier</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Fault</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Site</th>
+                <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Status</th>
+                <th className="px-3 py-2.5 w-10"><span className="sr-only">Delete</span></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-8"><LoadingSkeleton /></td></tr>
-              ) : !data || data.length === 0 ? (
-                <tr><td colSpan={8}><EmptyState message="No defects found" /></td></tr>
+                <tr><td colSpan={11} className="px-4 py-8"><LoadingSkeleton /></td></tr>
+              ) : paged.length === 0 ? (
+                <tr><td colSpan={11}><EmptyState message="No defects found" /></td></tr>
               ) : (
-                data.map((d: any) => (
-                  <tr key={d.reference} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3">
+                paged.map((d: any) => (
+                  <tr key={d.reference} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    data-testid={`row-defect-${d.reference}`}
+                    onClick={(e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.tagName === "INPUT" || t.closest("button")) return;
+                      setEditDefectId(d.reference);
+                    }}>
+                    <td className="px-3 py-2.5">
                       <input type="checkbox" checked={selectedIds.includes(d.reference)}
                         onChange={() => toggleId(d.reference)}
                         className="rounded border-slate-300"
                         data-testid={`checkbox-defect-${d.reference}`} />
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">#{d.reference}</td>
-                    <td className="px-4 py-3 text-slate-600">{d.registration}</td>
-                    <td className="px-4 py-3 text-slate-600">{d.reportedDate}</td>
-                    <td className="px-4 py-3 text-slate-600">{d.daysOpen}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{d.faultDescription}</td>
-                    <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
-                    <td className="px-4 py-3"><StatusBadge status={d.severity || "—"} /></td>
+                    <td className="px-3 py-2.5 font-medium text-slate-900">{d.reference}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.registration}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.reportedDate}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.requiredBy || "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.daysOpen}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.supplier || "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-600 max-w-xs truncate">{d.faultDescription || "—"}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{d.site || "—"}</td>
+                    <td className="px-3 py-2.5"><StatusBadge status={d.status} /></td>
+                    <td className="px-3 py-2.5">
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(d.reference); }}
+                        className="text-red-500 hover:text-red-700"
+                        data-testid={`button-delete-defect-${d.reference}`}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
+        <div className="flex flex-wrap items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50 gap-3">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+              className="h-8 px-2 border border-slate-300 rounded text-sm bg-white"
+              data-testid="select-defect-per-page">
+              {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n} entries per page</option>)}
+            </select>
+            <span>Showing {showingFrom} to {showingTo} of {totalFiltered} entries</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input type="text" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                placeholder="Search..."
+                className="h-8 pl-8 pr-3 border border-slate-300 rounded text-sm bg-white w-48"
+                data-testid="input-defect-search" />
+            </div>
+            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
+              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-40"
+              data-testid="button-defect-prev-page">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let p = i + 1;
+              if (totalPages > 5) {
+                if (page <= 3) p = i + 1;
+                else if (page >= totalPages - 2) p = totalPages - 4 + i;
+                else p = page - 2 + i;
+              }
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className={`h-8 w-8 rounded text-sm font-medium ${page === p ? "bg-slate-700 text-white" : "hover:bg-slate-200 text-slate-600"}`}
+                  data-testid={`button-defect-page-${p}`}>{p}</button>
+              );
+            })}
+            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
+              className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-40"
+              data-testid="button-defect-next-page">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {deleteConfirmId !== null && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" data-testid="modal-delete-defect">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirm Delete</h3>
+            <p className="text-sm text-slate-600 mb-4">Are you sure you want to delete defect #{deleteConfirmId}? This action cannot be undone.</p>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded"
+                data-testid="button-cancel-delete">Cancel</button>
+              <button onClick={() => deleteMutation.mutate(deleteConfirmId)}
+                disabled={deleteMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded disabled:opacity-50"
+                data-testid="button-confirm-delete">
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; companyId: number; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [actionsOpen, setActionsOpen] = useState(true);
+  const [existingOpen, setExistingOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
+  const [formData, setFormData] = useState<any>({});
+  const [dirty, setDirty] = useState(false);
+  const [existingSearch, setExistingSearch] = useState("");
+  const [existingPage, setExistingPage] = useState(1);
+  const [existingPerPage, setExistingPerPage] = useState(10);
+  const [existingStatusFilter, setExistingStatusFilter] = useState("ALL");
+  const [existingSelectedIds, setExistingSelectedIds] = useState<number[]>([]);
+  const [docFilter, setDocFilter] = useState("ALL");
+
+  const { data: detail, isLoading } = useQuery({
+    queryKey: ["defect-detail", defectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/defects/detail/${defectId}`);
+      if (!res.ok) throw new Error("Failed to fetch defect detail");
+      return res.json();
+    },
+    enabled: !!defectId,
+  });
+
+  useState(() => {
+    if (detail && !dirty) {
+      setFormData({
+        supplier: detail.supplier || "",
+        description: detail.faultDescription || detail.description || "",
+        odometer: detail.odometer || "",
+        fleetReference: detail.fleetReference || detail.vehicleFleetNumber || "",
+        imReference: detail.imReference || "",
+        reportedDate: detail.reportedDate || "",
+        reportedBy: detail.reportedByName || "",
+        requiredBy: detail.requiredBy || "",
+        cost: detail.cost || "",
+        site: detail.site || "",
+        status: detail.status || "OPEN",
+        actionedNotes: detail.actionedNotes || "",
+      });
+    }
+  });
+
+  const updateField = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+    setDirty(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PATCH", `/api/manager/defects/${defectId}`, formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["defect-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["vehicle-mgmt-defects"] });
+      setDirty(false);
+    },
+  });
+
+  if (detail && !dirty && Object.keys(formData).length === 0) {
+    setFormData({
+      supplier: detail.supplier || "",
+      description: detail.faultDescription || detail.description || "",
+      odometer: detail.odometer || "",
+      fleetReference: detail.fleetReference || detail.vehicleFleetNumber || "",
+      imReference: detail.imReference || "",
+      reportedDate: detail.reportedDate || "",
+      reportedBy: detail.reportedByName || "",
+      requiredBy: detail.requiredBy || "",
+      cost: detail.cost || "",
+      site: detail.site || "",
+      status: detail.status || "OPEN",
+      actionedNotes: detail.actionedNotes || "",
+    });
+  }
+
+  const vehicleDefects: any[] = detail?.vehicleDefects || [];
+  const filteredExisting = vehicleDefects.filter((d: any) => {
+    if (existingStatusFilter !== "ALL" && d.status !== existingStatusFilter) return false;
+    if (existingSearch) {
+      const s = existingSearch.toLowerCase();
+      return [d.reference, d.registration, d.faultDescription, d.supplier, d.site, d.status]
+        .filter(Boolean).some((v: any) => String(v).toLowerCase().includes(s));
+    }
+    return true;
+  });
+  const existingTotalPages = Math.max(1, Math.ceil(filteredExisting.length / existingPerPage));
+  const existingPaged = filteredExisting.slice((existingPage - 1) * existingPerPage, existingPage * existingPerPage);
+
+  const documents: any[] = detail?.documents || [];
+  const filteredDocs = docFilter === "ALL" ? documents : documents.filter((d: any) => d.type === docFilter);
+
+  const descRemaining = 1536 - (formData.description || "").length;
+  const notesRemaining = 4000 - (formData.actionedNotes || "").length;
+
+  const CollapsibleHeader = ({ title, isOpen, toggle }: { title: string; isOpen: boolean; toggle: () => void }) => (
+    <button onClick={toggle} className="w-full flex items-center justify-between bg-slate-100 border border-slate-200 px-4 py-3 rounded-t text-sm font-semibold text-slate-800 hover:bg-slate-200"
+      data-testid={`button-toggle-${title.toLowerCase().replace(/\s/g, "-")}`}>
+      <span>{title}</span>
+      {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+    </button>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-edit-defect">
+      <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <Menu className="h-5 w-5" />
+          <span className="font-semibold text-lg">Edit Defect</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 rounded"
+            data-testid="button-cancel-edit-defect">Cancel</button>
+          <button onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending || !dirty}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 flex items-center gap-1.5"
+            data-testid="button-save-defect">
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="p-8"><LoadingSkeleton rows={8} /></div>
+      ) : (
+        <div className="max-w-6xl mx-auto p-4 space-y-4">
+          <div className="flex items-center justify-center gap-2 py-3">
+            <XCircle className="h-5 w-5 text-red-500" />
+            <span className="text-sm font-medium text-red-600">Pending Defect</span>
+          </div>
+
+          {detail?.vehicleVorStatus && (
+            <div className="bg-blue-50 border border-blue-200 rounded px-4 py-3 text-sm text-blue-800" data-testid="banner-vor-status">
+              This vehicle is VOR {detail.vehicleVorStartDate ? new Date(detail.vehicleVorStartDate).toLocaleDateString("en-GB") : ""}: {detail.vehicleVorReason || "No reason specified"} -
+            </div>
+          )}
+
+          <div className="bg-white border border-slate-200 rounded shadow-sm">
+            <CollapsibleHeader title="Defect Details" isOpen={detailsOpen} toggle={() => setDetailsOpen(!detailsOpen)} />
+            {detailsOpen && (
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Supplier</label>
+                    <input type="text" value={formData.supplier || ""} onChange={(e) => updateField("supplier", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-supplier" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+                    <textarea value={formData.description || ""} onChange={(e) => { if (e.target.value.length <= 1536) updateField("description", e.target.value); }}
+                      rows={4} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white resize-none"
+                      data-testid="textarea-defect-description" />
+                    <span className="text-xs text-slate-400">{descRemaining} characters remaining</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Odometer</label>
+                    <input type="text" value={formData.odometer || ""} onChange={(e) => updateField("odometer", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-odometer" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Fleet Reference</label>
+                    <input type="text" value={formData.fleetReference || ""} onChange={(e) => updateField("fleetReference", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-fleet-ref" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">IM Reference</label>
+                    <input type="text" value={formData.imReference || ""} onChange={(e) => updateField("imReference", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-im-ref" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Reported Date</label>
+                    <input type="date" value={formData.reportedDate || ""} onChange={(e) => updateField("reportedDate", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-reported-date" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Reported By</label>
+                    <input type="text" value={formData.reportedBy || ""} onChange={(e) => updateField("reportedBy", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-reported-by" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Required By</label>
+                    <input type="date" value={formData.requiredBy || ""} onChange={(e) => updateField("requiredBy", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="input-defect-required-by" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Cost</label>
+                    <div className="flex items-center">
+                      <span className="bg-slate-100 border border-r-0 border-slate-300 rounded-l px-3 py-2 text-sm text-slate-600">£</span>
+                      <input type="text" value={formData.cost || ""} onChange={(e) => updateField("cost", e.target.value)}
+                        className="flex-1 border border-slate-300 rounded-r px-3 py-2 text-sm bg-white"
+                        data-testid="input-defect-cost" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Site</label>
+                    <select value={formData.site || ""} onChange={(e) => updateField("site", e.target.value)}
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                      data-testid="select-defect-site-edit">
+                      <option value="">Please select...</option>
+                      <option value="Main Depot">Main Depot</option>
+                      <option value="Workshop">Workshop</option>
+                      <option value="Remote">Remote</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded shadow-sm">
+            <CollapsibleHeader title="Actions" isOpen={actionsOpen} toggle={() => setActionsOpen(!actionsOpen)} />
+            {actionsOpen && (
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Defect Status</label>
+                  <select value={formData.status || "OPEN"} onChange={(e) => updateField("status", e.target.value)}
+                    className="w-full md:w-64 border border-slate-300 rounded px-3 py-2 text-sm bg-white"
+                    data-testid="select-defect-status-edit">
+                    <option value="OPEN">Open</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="MONITOR">Monitor</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Actioned Notes</label>
+                  <textarea value={formData.actionedNotes || ""} onChange={(e) => { if (e.target.value.length <= 4000) updateField("actionedNotes", e.target.value); }}
+                    rows={4} className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-white resize-none"
+                    data-testid="textarea-defect-actioned-notes" />
+                  <span className="text-xs text-slate-400">{notesRemaining} characters remaining</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded shadow-sm">
+            <CollapsibleHeader title="Existing Defects" isOpen={existingOpen} toggle={() => setExistingOpen(!existingOpen)} />
+            {existingOpen && (
+              <div className="p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button className="bg-slate-600 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-700"
+                    data-testid="button-existing-change-status">Change Status</button>
+                  <button className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded hover:bg-slate-800 flex items-center gap-1"
+                    data-testid="button-existing-export-csv">
+                    <Download className="h-3.5 w-3.5" /> Export As CSV
+                  </button>
+                  <button className="bg-green-600 text-white text-sm px-3 py-1.5 rounded hover:bg-green-700 flex items-center gap-1"
+                    data-testid="button-existing-add-defect">
+                    <Plus className="h-3.5 w-3.5" /> Add Defect
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Show:</label>
+                    <select value={existingStatusFilter} onChange={(e) => { setExistingStatusFilter(e.target.value); setExistingPage(1); }}
+                      className="h-9 px-3 bg-white border border-slate-300 rounded text-sm"
+                      data-testid="select-existing-status">
+                      <option value="ALL">All</option>
+                      <option value="OPEN">Open</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="MONITOR">Monitor</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={() => setExistingSelectedIds(existingPaged.map((d: any) => d.reference))}
+                    className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded"
+                    data-testid="button-existing-select-all">Select all</button>
+                  <button onClick={() => setExistingSelectedIds([])}
+                    className="bg-slate-700 text-white text-sm px-3 py-1.5 rounded"
+                    data-testid="button-existing-deselect-all">Deselect all</button>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 rounded">
+                  <table className="w-full text-sm" data-testid="table-existing-defects">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        <th className="px-3 py-2.5 w-10"><span className="sr-only">Select</span></th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Reference</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Registration</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Reported Date</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Required By</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Days Open</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Supplier</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Fault</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Site</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Status</th>
+                        <th className="px-3 py-2.5 w-10"><span className="sr-only">Delete</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {existingPaged.length === 0 ? (
+                        <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">No existing defects</td></tr>
+                      ) : (
+                        existingPaged.map((d: any) => (
+                          <tr key={d.reference} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`row-existing-defect-${d.reference}`}>
+                            <td className="px-3 py-2.5">
+                              <input type="checkbox" checked={existingSelectedIds.includes(d.reference)}
+                                onChange={() => setExistingSelectedIds((prev) => prev.includes(d.reference) ? prev.filter((x) => x !== d.reference) : [...prev, d.reference])}
+                                className="rounded border-slate-300"
+                                data-testid={`checkbox-existing-defect-${d.reference}`} />
+                            </td>
+                            <td className="px-3 py-2.5 font-medium text-slate-900">{d.reference}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.registration}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.reportedDate}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.requiredBy || "—"}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.daysOpen}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.supplier || "—"}</td>
+                            <td className="px-3 py-2.5 text-slate-600 max-w-xs truncate">{d.faultDescription || "—"}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{d.site || "—"}</td>
+                            <td className="px-3 py-2.5"><StatusBadge status={d.status} /></td>
+                            <td className="px-3 py-2.5">
+                              <button className="text-red-500 hover:text-red-700" data-testid={`button-delete-existing-${d.reference}`}>
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <select value={existingPerPage} onChange={(e) => { setExistingPerPage(Number(e.target.value)); setExistingPage(1); }}
+                      className="h-8 px-2 border border-slate-300 rounded text-sm bg-white"
+                      data-testid="select-existing-per-page">
+                      {[10, 25, 50].map((n) => <option key={n} value={n}>{n} entries per page</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <input type="text" value={existingSearch} onChange={(e) => { setExistingSearch(e.target.value); setExistingPage(1); }}
+                        placeholder="Search..."
+                        className="h-8 pl-8 pr-3 border border-slate-300 rounded text-sm bg-white w-40"
+                        data-testid="input-existing-search" />
+                    </div>
+                    <button onClick={() => setExistingPage(Math.max(1, existingPage - 1))} disabled={existingPage <= 1}
+                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-40"
+                      data-testid="button-existing-prev-page">
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-xs">Page {existingPage} of {existingTotalPages}</span>
+                    <button onClick={() => setExistingPage(Math.min(existingTotalPages, existingPage + 1))} disabled={existingPage >= existingTotalPages}
+                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-40"
+                      data-testid="button-existing-next-page">
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded shadow-sm">
+            <CollapsibleHeader title="Documents" isOpen={documentsOpen} toggle={() => setDocumentsOpen(!documentsOpen)} />
+            {documentsOpen && (
+              <div className="p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Show:</label>
+                    <select value={docFilter} onChange={(e) => setDocFilter(e.target.value)}
+                      className="h-9 px-3 bg-white border border-slate-300 rounded text-sm"
+                      data-testid="select-doc-filter">
+                      <option value="ALL">All</option>
+                    </select>
+                  </div>
+                  <button className="bg-green-600 text-white text-sm px-3 py-1.5 rounded hover:bg-green-700 flex items-center gap-1 mt-5"
+                    data-testid="button-add-document">
+                    <Plus className="h-3.5 w-3.5" /> Add Document
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 rounded">
+                  <table className="w-full text-sm" data-testid="table-documents">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Document Type</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">File Name</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-xs uppercase">Document Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDocs.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-400">No documents found</td></tr>
+                      ) : (
+                        filteredDocs.map((doc: any, i: number) => (
+                          <tr key={i} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`row-document-${i}`}>
+                            <td className="px-3 py-2.5 text-slate-600">{doc.type || "—"}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{doc.fileName || "—"}</td>
+                            <td className="px-3 py-2.5 text-slate-600">{doc.date || "—"}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

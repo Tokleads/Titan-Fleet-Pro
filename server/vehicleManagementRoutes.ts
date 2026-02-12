@@ -327,10 +327,14 @@ export function registerVehicleManagementRoutes(app: Express) {
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
       const conditions: any[] = [eq(defects.companyId, companyId)];
-      if (statusFilter === "OPEN") conditions.push(not(eq(defects.status, "CLOSED")));
+      if (statusFilter === "OPEN") conditions.push(eq(defects.status, "OPEN"));
+      else if (statusFilter === "COMPLETED") conditions.push(eq(defects.status, "COMPLETED"));
+      else if (statusFilter === "CANCELLED") conditions.push(eq(defects.status, "CANCELLED"));
+      else if (statusFilter === "MONITOR") conditions.push(eq(defects.status, "MONITOR"));
       else if (statusFilter === "CLOSED") conditions.push(eq(defects.status, "CLOSED"));
       if (startDate) conditions.push(gte(defects.createdAt, startDate));
       if (endDate) conditions.push(lte(defects.createdAt, endDate));
+      if (supplier && supplier !== "All Suppliers") conditions.push(eq(defects.supplier, supplier));
 
       const results = await db
         .select({
@@ -342,6 +346,9 @@ export function registerVehicleManagementRoutes(app: Express) {
           createdAt: defects.createdAt,
           resolvedAt: defects.resolvedAt,
           vehicleVrm: vehicles.vrm,
+          supplier: defects.supplier,
+          site: defects.site,
+          requiredBy: defects.requiredBy,
         })
         .from(defects)
         .leftJoin(vehicles, eq(defects.vehicleId, vehicles.id))
@@ -358,7 +365,11 @@ export function registerVehicleManagementRoutes(app: Express) {
             reference: r.id,
             registration: r.vehicleVrm,
             reportedDate: formatDateUK(r.createdAt),
+            reportedDateISO: r.createdAt.toISOString(),
+            requiredBy: r.requiredBy ? formatDateUK(r.requiredBy) : "Not Set",
             daysOpen,
+            supplier: r.supplier || "",
+            site: r.site || "",
             faultDescription: r.description,
             status: r.status,
             severity: r.severity,
@@ -380,7 +391,7 @@ export function registerVehicleManagementRoutes(app: Express) {
         return res.status(400).json({ error: "Missing defectIds array or status" });
       }
 
-      const validStatuses = ["OPEN", "ASSIGNED", "IN_PROGRESS", "RECTIFIED", "VERIFIED", "CLOSED", "DEFERRED"];
+      const validStatuses = ["OPEN", "COMPLETED", "CANCELLED", "MONITOR", "ASSIGNED", "IN_PROGRESS", "RECTIFIED", "VERIFIED", "CLOSED", "DEFERRED"];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }

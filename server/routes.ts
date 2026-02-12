@@ -1040,15 +1040,40 @@ export async function registerRoutes(
       // Get all defects for the same vehicle
       let vehicleDefects: any[] = [];
       if (defect.vehicleId) {
-        vehicleDefects = await db.select({
+        const vDefects = await db.select({
           id: defects.id,
           description: defects.description,
           status: defects.status,
           severity: defects.severity,
           category: defects.category,
+          supplier: defects.supplier,
+          site: defects.site,
+          requiredBy: defects.requiredBy,
           createdAt: defects.createdAt,
           resolvedAt: defects.resolvedAt,
-        }).from(defects).where(eq(defects.vehicleId, defect.vehicleId)).orderBy(desc(defects.createdAt));
+          vehicleVrm: vehicles.vrm,
+        }).from(defects)
+          .leftJoin(vehicles, eq(defects.vehicleId, vehicles.id))
+          .where(eq(defects.vehicleId, defect.vehicleId))
+          .orderBy(desc(defects.createdAt));
+        const now = new Date();
+        vehicleDefects = vDefects.map((r) => {
+          const daysOpen = r.resolvedAt
+            ? Math.ceil((new Date(r.resolvedAt).getTime() - new Date(r.createdAt).getTime()) / (1000*60*60*24))
+            : Math.ceil((now.getTime() - new Date(r.createdAt).getTime()) / (1000*60*60*24));
+          return {
+            reference: r.id,
+            registration: r.vehicleVrm,
+            reportedDate: r.createdAt.toLocaleDateString("en-GB"),
+            requiredBy: r.requiredBy ? r.requiredBy.toLocaleDateString("en-GB") : "Not Set",
+            daysOpen,
+            supplier: r.supplier || "",
+            site: r.site || "",
+            faultDescription: r.description,
+            status: r.status,
+            severity: r.severity,
+          };
+        });
       }
 
       res.json({
