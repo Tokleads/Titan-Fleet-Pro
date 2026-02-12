@@ -1027,6 +1027,66 @@ export async function registerRoutes(
     }
   });
 
+  // Get single defect detail with vehicle info
+  app.get("/api/manager/defects/detail/:id", async (req, res) => {
+    try {
+      const defectId = Number(req.params.id);
+      const [defect] = await db.select().from(defects).where(eq(defects.id, defectId));
+      if (!defect) return res.status(404).json({ error: "Defect not found" });
+
+      const vehicle = defect.vehicleId ? await storage.getVehicleById(defect.vehicleId) : null;
+      const reporter = await storage.getUser(defect.reportedBy);
+      
+      // Get all defects for the same vehicle
+      let vehicleDefects: any[] = [];
+      if (defect.vehicleId) {
+        vehicleDefects = await db.select({
+          id: defects.id,
+          description: defects.description,
+          status: defects.status,
+          severity: defects.severity,
+          category: defects.category,
+          createdAt: defects.createdAt,
+          resolvedAt: defects.resolvedAt,
+        }).from(defects).where(eq(defects.vehicleId, defect.vehicleId)).orderBy(desc(defects.createdAt));
+      }
+
+      res.json({
+        ...defect,
+        vehicleVrm: vehicle?.vrm || null,
+        vehicleMake: vehicle?.make || null,
+        vehicleModel: vehicle?.model || null,
+        vehicleVorStatus: vehicle?.vorStatus || false,
+        vehicleVorReason: vehicle?.vorReason || null,
+        vehicleVorStartDate: vehicle?.vorStartDate || null,
+        vehicleFleetNumber: vehicle?.fleetNumber || null,
+        reportedByName: reporter?.name || "Unknown",
+        reportedByEmail: reporter?.email || "",
+        vehicleDefects,
+        createdAt: defect.createdAt?.toISOString(),
+        updatedAt: defect.updatedAt?.toISOString(),
+        resolvedAt: defect.resolvedAt?.toISOString() || null,
+      });
+    } catch (error) {
+      console.error("Get defect detail error:", error);
+      res.status(500).json({ error: "Failed to fetch defect detail" });
+    }
+  });
+
+  // Delete defect
+  app.delete("/api/manager/defects/:id", async (req, res) => {
+    try {
+      const defectId = Number(req.params.id);
+      const [defect] = await db.select().from(defects).where(eq(defects.id, defectId));
+      if (!defect) return res.status(404).json({ error: "Defect not found" });
+      await db.delete(defects).where(eq(defects.id, defectId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete defect error:", error);
+      res.status(500).json({ error: "Failed to delete defect" });
+    }
+  });
+
   app.patch("/api/manager/defects/:id", async (req, res) => {
     try {
       const defectId = Number(req.params.id);
