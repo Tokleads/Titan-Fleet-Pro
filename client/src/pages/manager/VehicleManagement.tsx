@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
@@ -1152,6 +1152,10 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
     setFormData({});
     setDetailsOpen(true);
     setActionsOpen(true);
+    setTimeout(() => {
+      const el = document.getElementById("defect-modal-scroll");
+      if (el) el.scrollTop = 0;
+    }, 50);
   };
 
   const { data: detail, isLoading } = useQuery({
@@ -1164,7 +1168,7 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
     enabled: !!activeDefectId,
   });
 
-  useState(() => {
+  useEffect(() => {
     if (detail && !dirty) {
       setFormData({
         supplier: detail.supplier || "",
@@ -1172,16 +1176,16 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
         odometer: detail.odometer || "",
         fleetReference: detail.fleetReference || detail.vehicleFleetNumber || "",
         imReference: detail.imReference || "",
-        reportedDate: detail.reportedDate || "",
+        reportedDate: detail.createdAt ? detail.createdAt.split("T")[0] : "",
         reportedBy: detail.reportedByName || "",
-        requiredBy: detail.requiredBy || "",
-        cost: detail.cost || "",
+        requiredBy: detail.requiredBy ? detail.requiredBy.split("T")[0] : "",
+        cost: detail.cost || "0.00",
         site: detail.site || "",
         status: detail.status || "OPEN",
         actionedNotes: detail.actionedNotes || "",
       });
     }
-  });
+  }, [detail, activeDefectId]);
 
   const updateField = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -1198,23 +1202,6 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
       setDirty(false);
     },
   });
-
-  if (detail && !dirty && Object.keys(formData).length === 0) {
-    setFormData({
-      supplier: detail.supplier || "",
-      description: detail.faultDescription || detail.description || "",
-      odometer: detail.odometer || "",
-      fleetReference: detail.fleetReference || detail.vehicleFleetNumber || "",
-      imReference: detail.imReference || "",
-      reportedDate: detail.reportedDate || "",
-      reportedBy: detail.reportedByName || "",
-      requiredBy: detail.requiredBy || "",
-      cost: detail.cost || "",
-      site: detail.site || "",
-      status: detail.status || "OPEN",
-      actionedNotes: detail.actionedNotes || "",
-    });
-  }
 
   const vehicleDefects: any[] = detail?.vehicleDefects || [];
   const filteredExisting = vehicleDefects.filter((d: any) => {
@@ -1244,7 +1231,7 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
   );
 
   return (
-    <div className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-edit-defect">
+    <div id="defect-modal-scroll" className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-edit-defect">
       <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Menu className="h-5 w-5" />
