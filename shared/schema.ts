@@ -1109,3 +1109,74 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true });
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+
+// Vehicle Collisions
+export const collisions = pgTable("collisions", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id),
+  collisionDate: timestamp("collision_date").notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("AT_SCENE"),
+  fault: varchar("fault", { length: 30 }),
+  description: text("description"),
+  internalReference: varchar("internal_reference", { length: 100 }),
+  insurerReference: varchar("insurer_reference", { length: 100 }),
+  accidentServicesReference: varchar("accident_services_reference", { length: 100 }),
+  insurer: varchar("insurer", { length: 100 }),
+  requiresFollowUp: boolean("requires_follow_up").default(false),
+  followUpNotes: text("follow_up_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertCollisionSchema = createInsertSchema(collisions).omit({ id: true, createdAt: true, updatedAt: true });
+export type Collision = typeof collisions.$inferSelect;
+export type InsertCollision = z.infer<typeof insertCollisionSchema>;
+
+// Maintenance Bookings
+export const maintenanceBookings = pgTable("maintenance_bookings", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  category: varchar("category", { length: 50 }),
+  supplier: varchar("supplier", { length: 100 }),
+  bookingDate: timestamp("booking_date").notNull(),
+  bookingTime: varchar("booking_time", { length: 10 }),
+  endDate: timestamp("end_date"),
+  status: varchar("status", { length: 30 }).notNull().default("SCHEDULED"),
+  description: text("description"),
+  costEstimate: integer("cost_estimate"),
+  actualCost: integer("actual_cost"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertMaintenanceBookingSchema = createInsertSchema(maintenanceBookings).omit({ id: true, createdAt: true, updatedAt: true });
+export type MaintenanceBooking = typeof maintenanceBookings.$inferSelect;
+export type InsertMaintenanceBooking = z.infer<typeof insertMaintenanceBookingSchema>;
+
+// Vehicle Penalties (PCNs, fines, etc.)
+export const vehiclePenalties = pgTable("vehicle_penalties", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id),
+  pcnReference: varchar("pcn_reference", { length: 100 }),
+  internalReference: varchar("internal_reference", { length: 100 }),
+  penaltyType: varchar("penalty_type", { length: 50 }).notNull(),
+  penaltyDate: timestamp("penalty_date").notNull(),
+  amount: integer("amount"),
+  penaltyStatus: varchar("penalty_status", { length: 30 }).notNull().default("UNPAID"),
+  paid: boolean("paid").default(false),
+  paidDate: timestamp("paid_date"),
+  authority: varchar("authority", { length: 100 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertVehiclePenaltySchema = createInsertSchema(vehiclePenalties).omit({ id: true, createdAt: true, updatedAt: true });
+export type VehiclePenalty = typeof vehiclePenalties.$inferSelect;
+export type InsertVehiclePenalty = z.infer<typeof insertVehiclePenaltySchema>;
