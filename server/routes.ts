@@ -3,8 +3,8 @@ import type { UploadedFile } from "express-fileupload";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and, gte, desc, isNull } from "drizzle-orm";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users } from "@shared/schema";
+import { eq, and, gte, desc, isNull, sql } from "drizzle-orm";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users, fuelEntries } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
@@ -386,6 +386,92 @@ export async function registerRoutes(
       res.json(vehicle);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/vehicles/:id/full-profile", async (req, res) => {
+    try {
+      const vehicleId = Number(req.params.id);
+      const vehicle = await storage.getVehicleById(vehicleId);
+      if (!vehicle) return res.status(404).json({ error: "Vehicle not found" });
+
+      const [vehicleInspections, vehicleDefects, vehicleFuelEntries, assignedDriver] = await Promise.all([
+        db.select({
+          id: inspections.id,
+          type: inspections.type,
+          status: inspections.status,
+          driverId: inspections.driverId,
+          odometer: inspections.odometer,
+          createdAt: inspections.createdAt,
+          driverName: users.name,
+        }).from(inspections)
+          .leftJoin(users, eq(inspections.driverId, users.id))
+          .where(eq(inspections.vehicleId, vehicleId))
+          .orderBy(desc(inspections.createdAt))
+          .limit(50),
+        db.select({
+          id: defects.id,
+          description: defects.description,
+          status: defects.status,
+          severity: defects.severity,
+          category: defects.category,
+          supplier: defects.supplier,
+          site: defects.site,
+          createdAt: defects.createdAt,
+          resolvedAt: defects.resolvedAt,
+          reportedByName: users.name,
+        }).from(defects)
+          .leftJoin(users, eq(defects.reportedBy, users.id))
+          .where(eq(defects.vehicleId, vehicleId))
+          .orderBy(desc(defects.createdAt))
+          .limit(50),
+        db.select().from(fuelEntries)
+          .where(eq(fuelEntries.vehicleId, vehicleId))
+          .orderBy(desc(fuelEntries.createdAt))
+          .limit(50),
+        db.select({ id: users.id, name: users.name, email: users.email })
+          .from(users)
+          .innerJoin(
+            sql`(SELECT DISTINCT ON (vehicle_id) driver_id, vehicle_id FROM inspections WHERE vehicle_id = ${vehicleId} ORDER BY vehicle_id, created_at DESC) AS latest`,
+            sql`${users.id} = latest.driver_id`
+          )
+          .limit(1),
+      ]);
+
+      const now = new Date();
+      res.json({
+        ...vehicle,
+        createdAt: vehicle.createdAt?.toISOString(),
+        motDue: vehicle.motDue?.toISOString() || null,
+        taxDue: vehicle.taxDue?.toISOString() || null,
+        vorStartDate: vehicle.vorStartDate?.toISOString() || null,
+        vorResolvedDate: vehicle.vorResolvedDate?.toISOString() || null,
+        lastServiceDate: vehicle.lastServiceDate?.toISOString() || null,
+        nextServiceDue: vehicle.nextServiceDue?.toISOString() || null,
+        assignedDriver: assignedDriver[0] || null,
+        inspections: vehicleInspections.map((i) => ({
+          ...i,
+          createdAt: i.createdAt?.toISOString(),
+        })),
+        defects: vehicleDefects.map((d) => {
+          const daysOpen = d.resolvedAt
+            ? Math.ceil((new Date(d.resolvedAt).getTime() - new Date(d.createdAt).getTime()) / (1000*60*60*24))
+            : Math.ceil((now.getTime() - new Date(d.createdAt).getTime()) / (1000*60*60*24));
+          return {
+            ...d,
+            daysOpen,
+            createdAt: d.createdAt?.toISOString(),
+            resolvedAt: d.resolvedAt?.toISOString() || null,
+          };
+        }),
+        fuelEntries: vehicleFuelEntries.map((f) => ({
+          ...f,
+          createdAt: f.createdAt?.toISOString(),
+        })),
+      });
+    } catch (error) {
+      console.error("Vehicle full profile error:", error);
+      res.status(500).json({ error: "Failed to fetch vehicle profile" });
     }
   });
 

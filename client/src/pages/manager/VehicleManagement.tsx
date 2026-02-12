@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { apiRequest } from "@/lib/queryClient";
+import VehicleDetailModal from "@/components/VehicleDetailModal";
 import {
   CarFront,
   Truck,
@@ -88,6 +89,19 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function ClickableVrm({ vrm, vehicleId, onClick }: { vrm: string; vehicleId?: number; onClick?: (id: number) => void }) {
+  if (!vehicleId || !onClick) return <span>{vrm}</span>;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(vehicleId); }}
+      className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+      data-testid={`link-vrm-${vrm}`}
+    >
+      {vrm}
+    </button>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toUpperCase() || "";
   let cls = "px-2.5 py-1 rounded-full text-xs font-medium ";
@@ -119,7 +133,7 @@ function KpiCard({ label, value, color = "blue" }: { label: string; value: numbe
   );
 }
 
-function OverviewTab({ companyId }: { companyId: number }) {
+function OverviewTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-overview", companyId],
     queryFn: async () => {
@@ -186,7 +200,7 @@ function OverviewTab({ companyId }: { companyId: number }) {
               {data.recentlyAdded.map((v: any) => (
                 <div key={v.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                   <div>
-                    <span className="font-medium text-slate-900 text-sm">{v.vrm}</span>
+                    <span className="font-medium text-sm"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></span>
                     <span className="text-slate-500 text-sm ml-2">{v.make} {v.model}</span>
                   </div>
                   <span className="text-xs text-slate-400">{new Date(v.createdAt).toLocaleDateString("en-GB")}</span>
@@ -204,7 +218,7 @@ function OverviewTab({ companyId }: { companyId: number }) {
               {data.recentlyDiscarded.map((v: any) => (
                 <div key={v.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                   <div>
-                    <span className="font-medium text-slate-900 text-sm">{v.vrm}</span>
+                    <span className="font-medium text-sm"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></span>
                     <span className="text-slate-500 text-sm ml-2">{v.make} {v.model}</span>
                   </div>
                   <span className="text-xs text-slate-400">{new Date(v.createdAt).toLocaleDateString("en-GB")}</span>
@@ -220,7 +234,7 @@ function OverviewTab({ companyId }: { companyId: number }) {
   );
 }
 
-function VehicleListTab({ companyId }: { companyId: number }) {
+function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const perPage = 25;
@@ -469,7 +483,7 @@ function VehicleListTab({ companyId }: { companyId: number }) {
               ) : (
                 vehicles.map((v: any) => (
                   <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`row-vehicle-${v.id}`}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{v.vrm}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                     <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                     <td className="px-4 py-3 text-slate-600">{v.vehicleCategory}</td>
                     <td className="px-4 py-3 text-slate-600">{v.fleetNumber || "—"}</td>
@@ -522,7 +536,7 @@ function VehicleListTab({ companyId }: { companyId: number }) {
   );
 }
 
-function SafetyChecksTab({ companyId }: { companyId: number }) {
+function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split("T")[0];
   });
@@ -646,7 +660,7 @@ function SafetyChecksTab({ companyId }: { companyId: number }) {
                 {displayed.map((r: any) => (
                   <tr key={r.id} className="hover:bg-blue-50/50 transition-colors cursor-pointer group" data-testid={`row-safety-check-${r.id}`}>
                     <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.inspectionDate}</td>
-                    <td className="px-3 py-3 font-medium text-slate-900" onClick={() => viewInspection(r.id)}>{r.registration}</td>
+                    <td className="px-3 py-3 font-medium text-slate-900" onClick={() => viewInspection(r.id)}><ClickableVrm vrm={r.registration} vehicleId={vrmToIdMap?.get(r.registration)} onClick={onVrmClick} /></td>
                     <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.driverName}</td>
                     <td className="px-3 py-3 text-slate-500" onClick={() => viewInspection(r.id)}>{r.driverEmail}</td>
                     <td className="px-3 py-3 text-slate-700" onClick={() => viewInspection(r.id)}>{r.checksheetTitle}</td>
@@ -823,7 +837,7 @@ function SafetyChecksTab({ companyId }: { companyId: number }) {
   );
 }
 
-function DefectsTab({ companyId }: { companyId: number }) {
+function DefectsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [statusFilter, setStatusFilter] = useState("OPEN");
   const [supplierFilter, setSupplierFilter] = useState("ALL");
   const [siteFilter, setSiteFilter] = useState("ALL");
@@ -1041,7 +1055,7 @@ function DefectsTab({ companyId }: { companyId: number }) {
                         data-testid={`checkbox-defect-${d.reference}`} />
                     </td>
                     <td className="px-3 py-2.5 font-medium text-slate-900">{d.reference}</td>
-                    <td className="px-3 py-2.5 text-slate-600">{d.registration}</td>
+                    <td className="px-3 py-2.5 text-slate-600"><ClickableVrm vrm={d.registration} vehicleId={vrmToIdMap?.get(d.registration)} onClick={onVrmClick} /></td>
                     <td className="px-3 py-2.5 text-slate-600">{d.reportedDate}</td>
                     <td className="px-3 py-2.5 text-slate-600">{d.requiredBy || "—"}</td>
                     <td className="px-3 py-2.5 text-slate-600">{d.daysOpen}</td>
@@ -1556,7 +1570,7 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
   );
 }
 
-function PendingDefectsTab({ companyId }: { companyId: number }) {
+function PendingDefectsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-pending-defects", companyId],
     queryFn: async () => {
@@ -1591,7 +1605,7 @@ function PendingDefectsTab({ companyId }: { companyId: number }) {
                 <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 text-slate-600">{d.checkDate}</td>
                   <td className="px-4 py-3 text-slate-600">{d.driverName}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900">{d.registration}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={d.registration} vehicleId={vrmToIdMap?.get(d.registration)} onClick={onVrmClick} /></td>
                   <td className="px-4 py-3 text-slate-600">{d.vehicleType}</td>
                   <td className="px-4 py-3 text-slate-600">{d.fleetNumber || "—"}</td>
                   <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{typeof d.description === "string" ? d.description : JSON.stringify(d.description)}</td>
@@ -1605,7 +1619,7 @@ function PendingDefectsTab({ companyId }: { companyId: number }) {
   );
 }
 
-function MaintenanceTab({ companyId }: { companyId: number }) {
+function MaintenanceTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vehicleId: "", companyId: companyId, category: "", supplier: "", bookingDate: "", endDate: "", status: "BOOKED", description: "", costEstimate: "", actualCost: "", notes: "" });
   const queryClient = useQueryClient();
@@ -1701,7 +1715,7 @@ function MaintenanceTab({ companyId }: { companyId: number }) {
               ) : (
                 data.map((m: any) => (
                   <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-900">{m.vehicleVrm}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={m.vehicleVrm} vehicleId={vrmToIdMap?.get(m.vehicleVrm)} onClick={onVrmClick} /></td>
                     <td className="px-4 py-3 text-slate-600">{m.category || "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{m.supplier || "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{m.bookingDateFormatted}</td>
@@ -1721,7 +1735,7 @@ function MaintenanceTab({ companyId }: { companyId: number }) {
   );
 }
 
-function ServicesDueTab({ companyId }: { companyId: number }) {
+function ServicesDueTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-services-due", companyId],
     queryFn: async () => {
@@ -1767,7 +1781,7 @@ function ServicesDueTab({ companyId }: { companyId: number }) {
                 const overdue = isOverdue(v.nextServiceDue) || (v.milesUntilService !== null && v.milesUntilService < 0);
                 return (
                   <tr key={v.id} className={`border-b border-slate-100 hover:bg-slate-50 ${overdue ? "bg-red-50" : ""}`}>
-                    <td className={`px-4 py-3 font-medium ${overdue ? "text-red-700" : "text-slate-900"}`}>{v.vrm}</td>
+                    <td className={`px-4 py-3 font-medium ${overdue ? "text-red-700" : "text-slate-900"}`}><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                     <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                     <td className="px-4 py-3 text-slate-600">{v.vehicleCategory}</td>
                     <td className="px-4 py-3 text-slate-600">{v.currentMileage?.toLocaleString() || "—"}</td>
@@ -1789,7 +1803,7 @@ function ServicesDueTab({ companyId }: { companyId: number }) {
   );
 }
 
-function MotsDueTab({ companyId }: { companyId: number }) {
+function MotsDueTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-mots-due", companyId],
     queryFn: async () => {
@@ -1831,7 +1845,7 @@ function MotsDueTab({ companyId }: { companyId: number }) {
             ) : (
               data.map((v: any) => (
                 <tr key={v.id} className={`border-b border-slate-100 hover:bg-slate-50 ${getUrgencyClass(v.motDueDate).includes("bg-") ? getUrgencyClass(v.motDueDate).split(" ")[0] : ""}`}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{v.registration}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.registration} vehicleId={v.id} onClick={onVrmClick} /></td>
                   <td className="px-4 py-3 text-slate-600">{v.category}</td>
                   <td className={`px-4 py-3 font-medium ${getUrgencyClass(v.motDueDate).split(" ").pop()}`}>{v.motDueDate}</td>
                   <td className="px-4 py-3 text-slate-600">{v.assignedDriver}</td>
@@ -1845,7 +1859,7 @@ function MotsDueTab({ companyId }: { companyId: number }) {
   );
 }
 
-function VorTab({ companyId }: { companyId: number }) {
+function VorTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-vor", companyId],
     queryFn: async () => {
@@ -1880,7 +1894,7 @@ function VorTab({ companyId }: { companyId: number }) {
                 ) : (
                   data.current.map((v: any) => (
                     <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-900">{v.vrm}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                       <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorStartDate || "—"}</td>
@@ -1914,7 +1928,7 @@ function VorTab({ companyId }: { companyId: number }) {
                 ) : (
                   data.history.map((v: any) => (
                     <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-900">{v.vrm}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                       <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorStartDate || "—"}</td>
@@ -1932,7 +1946,7 @@ function VorTab({ companyId }: { companyId: number }) {
   );
 }
 
-function TaxDueTab({ companyId }: { companyId: number }) {
+function TaxDueTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-tax-due", companyId],
     queryFn: async () => {
@@ -1962,7 +1976,7 @@ function TaxDueTab({ companyId }: { companyId: number }) {
             ) : (
               data.map((v: any) => (
                 <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{v.registration}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.registration} vehicleId={v.id} onClick={onVrmClick} /></td>
                   <td className="px-4 py-3 text-slate-600">{v.category}</td>
                   <td className="px-4 py-3 text-slate-600">{v.taxDueDate}</td>
                 </tr>
@@ -1975,7 +1989,7 @@ function TaxDueTab({ companyId }: { companyId: number }) {
   );
 }
 
-function SornTab({ companyId }: { companyId: number }) {
+function SornTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id: number) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-sorn", companyId],
     queryFn: async () => {
@@ -2008,7 +2022,7 @@ function SornTab({ companyId }: { companyId: number }) {
             ) : (
               data.map((v: any) => (
                 <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{v.registration}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.registration} vehicleId={v.id} onClick={onVrmClick} /></td>
                   <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                   <td className="px-4 py-3 text-slate-600">{v.vehicleCategory}</td>
                   <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
@@ -2024,7 +2038,7 @@ function SornTab({ companyId }: { companyId: number }) {
   );
 }
 
-function CollisionsTab({ companyId }: { companyId: number }) {
+function CollisionsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vehicleId: "", driverId: "", companyId: companyId, collisionDate: "", status: "REPORTED", fault: "", description: "", insurer: "", insurerReference: "" });
   const queryClient = useQueryClient();
@@ -2117,7 +2131,7 @@ function CollisionsTab({ companyId }: { companyId: number }) {
                 data.map((c: any) => (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 text-slate-600">{c.collisionDateFormatted}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{c.vehicleVrm}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={c.vehicleVrm} vehicleId={vrmToIdMap?.get(c.vehicleVrm)} onClick={onVrmClick} /></td>
                     <td className="px-4 py-3 text-slate-600">{c.driverName || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-slate-600">{c.fault || "—"}</td>
@@ -2135,7 +2149,7 @@ function CollisionsTab({ companyId }: { companyId: number }) {
   );
 }
 
-function PenaltiesTab({ companyId }: { companyId: number }) {
+function PenaltiesTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vehicleId: "", driverId: "", companyId: companyId, pcnReference: "", penaltyType: "", penaltyDate: "", amount: "", penaltyStatus: "ISSUED", paid: false, authority: "", notes: "" });
   const queryClient = useQueryClient();
@@ -2232,7 +2246,7 @@ function PenaltiesTab({ companyId }: { companyId: number }) {
                 data.map((p: any) => (
                   <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 text-slate-600">{p.penaltyDateFormatted}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{p.vehicleVrm}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={p.vehicleVrm} vehicleId={vrmToIdMap?.get(p.vehicleVrm)} onClick={onVrmClick} /></td>
                     <td className="px-4 py-3 text-slate-600">{p.driverName || "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{p.pcnReference || "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{p.penaltyType || "—"}</td>
@@ -2257,7 +2271,7 @@ function PenaltiesTab({ companyId }: { companyId: number }) {
   );
 }
 
-function FuelPurchasesTab({ companyId }: { companyId: number }) {
+function FuelPurchasesTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; onVrmClick?: (id: number) => void; vrmToIdMap?: Map<string, number> }) {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [search, setSearch] = useState("");
@@ -2405,8 +2419,8 @@ function FuelPurchasesTab({ companyId }: { companyId: number }) {
                     <tr key={p.id || idx} className="hover:bg-slate-50 transition-colors" data-testid={`row-fuel-purchase-${p.id || idx}`}>
                       <td className="px-3 py-3 text-slate-500"></td>
                       <td className="px-3 py-3 text-slate-700">{p.transactionDate}</td>
-                      <td className="px-3 py-3 font-medium text-slate-900">{p.cardRegistration}</td>
-                      <td className="px-3 py-3 text-slate-700">{p.transactionRegistration}</td>
+                      <td className="px-3 py-3 font-medium text-slate-900"><ClickableVrm vrm={p.cardRegistration} vehicleId={vrmToIdMap?.get(p.cardRegistration)} onClick={onVrmClick} /></td>
+                      <td className="px-3 py-3 text-slate-700"><ClickableVrm vrm={p.transactionRegistration} vehicleId={vrmToIdMap?.get(p.transactionRegistration)} onClick={onVrmClick} /></td>
                       <td className="px-3 py-3 text-slate-700">{p.transactionOdometer?.toLocaleString()}</td>
                       <td className="px-3 py-3 text-slate-700">{p.product}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{p.quantity}</td>
@@ -2454,8 +2468,20 @@ function FuelPurchasesTab({ companyId }: { companyId: number }) {
 
 export default function VehicleManagement() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const company = session.getCompany();
   const companyId = company?.id;
+
+  const { data: allVehiclesData } = useQuery({
+    queryKey: ["all-vehicles-lookup", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/vehicles/list?companyId=${companyId}`);
+      if (!res.ok) return { vehicles: [] };
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+  const vrmToIdMap = new Map(((allVehiclesData as any)?.vehicles || []).map((v: any) => [v.vrm, v.id]));
 
   if (!companyId) {
     return (
@@ -2467,22 +2493,24 @@ export default function VehicleManagement() {
     );
   }
 
+  const onVrmClick = (vehicleId: number) => setSelectedVehicleId(vehicleId);
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case "overview": return <OverviewTab companyId={companyId} />;
-      case "list": return <VehicleListTab companyId={companyId} />;
-      case "safety-checks": return <SafetyChecksTab companyId={companyId} />;
-      case "defects": return <DefectsTab companyId={companyId} />;
-      case "pending-defects": return <PendingDefectsTab companyId={companyId} />;
-      case "maintenance": return <MaintenanceTab companyId={companyId} />;
-      case "services-due": return <ServicesDueTab companyId={companyId} />;
-      case "mots-due": return <MotsDueTab companyId={companyId} />;
-      case "vor": return <VorTab companyId={companyId} />;
-      case "tax-due": return <TaxDueTab companyId={companyId} />;
-      case "sorn": return <SornTab companyId={companyId} />;
-      case "collisions": return <CollisionsTab companyId={companyId} />;
-      case "penalties": return <PenaltiesTab companyId={companyId} />;
-      case "fuel-purchases": return <FuelPurchasesTab companyId={companyId} />;
+      case "overview": return <OverviewTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "list": return <VehicleListTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "safety-checks": return <SafetyChecksTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "defects": return <DefectsTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "pending-defects": return <PendingDefectsTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "maintenance": return <MaintenanceTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "services-due": return <ServicesDueTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "mots-due": return <MotsDueTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "vor": return <VorTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "tax-due": return <TaxDueTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "sorn": return <SornTab companyId={companyId} onVrmClick={onVrmClick} />;
+      case "collisions": return <CollisionsTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "penalties": return <PenaltiesTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
+      case "fuel-purchases": return <FuelPurchasesTab companyId={companyId} onVrmClick={onVrmClick} vrmToIdMap={vrmToIdMap} />;
       default: return null;
     }
   };
@@ -2526,6 +2554,9 @@ export default function VehicleManagement() {
           {renderTabContent()}
         </div>
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }
