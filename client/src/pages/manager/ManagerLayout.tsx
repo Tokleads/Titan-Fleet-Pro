@@ -36,29 +36,29 @@ import { TitanIntelligenceSidebar } from "@/components/TitanIntelligenceSidebar"
 import { NotificationBell } from "@/components/NotificationBell";
 
 const navItems = [
-  { path: "/manager", icon: LayoutDashboard, label: "Dashboard" },
-  { path: "/manager/advanced-dashboard", icon: BarChart3, label: "Analytics" },
-  { path: "/manager/live-tracking", icon: Navigation, label: "Live Tracking" },
-  { path: "/manager/drivers", icon: Users, label: "Drivers" },
-  { path: "/manager/timesheets", icon: Clock, label: "Timesheets" },
-  { path: "/manager/pay-rates", icon: PoundSterling, label: "Pay Rates" },
-  { path: "/manager/fuel-intelligence", icon: TrendingUp, label: "Fuel Intelligence" },
-  { path: "/manager/titan-command", icon: Radio, label: "Titan Command" },
-  { path: "/manager/geofences", icon: MapPin, label: "Geofences" },
-  { path: "/manager/inspections", icon: ClipboardCheck, label: "Inspections" },
-  { path: "/manager/deliveries", icon: Package, label: "Deliveries" },
-  { path: "/manager/defects", icon: AlertTriangle, label: "Defects" },
-  { path: "/manager/fuel", icon: Fuel, label: "Fuel Log" },
-  { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence" },
-  { path: "/manager/fleet", icon: Truck, label: "Fleet" },
-  { path: "/manager/vehicle-management", icon: CarFront, label: "Vehicle Mgmt" },
-  { path: "/manager/documents", icon: FileText, label: "Documents" },
-  { path: "/manager/fleet-documents", icon: FolderOpen, label: "Fleet Docs" },
-  { path: "/manager/user-roles", icon: Users, label: "User Roles" },
-  { path: "/manager/notifications", icon: Bell, label: "Notifications" },
-  { path: "/manager/referrals", icon: Gift, label: "Referrals" },
-  { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log" },
-  { path: "/manager/settings", icon: Settings, label: "Settings" },
+  { path: "/manager", icon: LayoutDashboard, label: "Dashboard", permissionKey: "dashboard" },
+  { path: "/manager/advanced-dashboard", icon: BarChart3, label: "Analytics", permissionKey: "analytics" },
+  { path: "/manager/live-tracking", icon: Navigation, label: "Live Tracking", permissionKey: "live-tracking" },
+  { path: "/manager/drivers", icon: Users, label: "Drivers", permissionKey: "drivers" },
+  { path: "/manager/timesheets", icon: Clock, label: "Timesheets", permissionKey: "timesheets" },
+  { path: "/manager/pay-rates", icon: PoundSterling, label: "Pay Rates", permissionKey: "pay-rates" },
+  { path: "/manager/fuel-intelligence", icon: TrendingUp, label: "Fuel Intelligence", permissionKey: "fuel-intelligence" },
+  { path: "/manager/titan-command", icon: Radio, label: "Titan Command", permissionKey: "titan-command" },
+  { path: "/manager/geofences", icon: MapPin, label: "Geofences", permissionKey: "geofences" },
+  { path: "/manager/inspections", icon: ClipboardCheck, label: "Inspections", permissionKey: "inspections" },
+  { path: "/manager/deliveries", icon: Package, label: "Deliveries", permissionKey: "deliveries" },
+  { path: "/manager/defects", icon: AlertTriangle, label: "Defects", permissionKey: "defects" },
+  { path: "/manager/fuel", icon: Fuel, label: "Fuel Log", permissionKey: "fuel-log" },
+  { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence", permissionKey: "o-licence" },
+  { path: "/manager/fleet", icon: Truck, label: "Fleet", permissionKey: "fleet" },
+  { path: "/manager/vehicle-management", icon: CarFront, label: "Vehicle Mgmt", permissionKey: "vehicle-mgmt" },
+  { path: "/manager/documents", icon: FileText, label: "Documents", permissionKey: "documents" },
+  { path: "/manager/fleet-documents", icon: FolderOpen, label: "Fleet Docs", permissionKey: "fleet-docs" },
+  { path: "/manager/user-roles", icon: Users, label: "User Roles", permissionKey: "user-roles" },
+  { path: "/manager/notifications", icon: Bell, label: "Notifications", permissionKey: "notifications" },
+  { path: "/manager/referrals", icon: Gift, label: "Referrals", permissionKey: "referrals" },
+  { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log", permissionKey: "audit-log" },
+  { path: "/manager/settings", icon: Settings, label: "Settings", permissionKey: "settings" },
 ];
 
 export function ManagerLayout({ children }: { children: React.ReactNode }) {
@@ -68,10 +68,18 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
   const company = session.getCompany();
   const companySettings = (company?.settings || {}) as Record<string, any>;
 
+  const isAdmin = user?.role === 'ADMIN';
+  const userPermissions = user?.permissions as string[] | null | undefined;
+  const hasPermissions = Array.isArray(userPermissions) && userPermissions.length > 0;
+
   const filteredNavItems = navItems.filter(item => {
     if (item.path === "/manager/deliveries" && companySettings.podEnabled === false) return false;
     if (item.path === "/manager/fuel" && companySettings.fuelEnabled === false) return false;
-    return true;
+    if (isAdmin) return true;
+    if (item.permissionKey === "dashboard") return true;
+    if (item.permissionKey === "user-roles" || item.permissionKey === "settings") return false;
+    if (!hasPermissions) return true;
+    return userPermissions!.includes(item.permissionKey);
   });
 
   const handleLogout = () => {

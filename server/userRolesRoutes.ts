@@ -6,7 +6,7 @@
 
 import { Router, Request, Response } from 'express';
 import { db } from './db.js';
-import { users } from '../shared/schema.js';
+import { users, VALID_PERMISSION_KEYS } from '../shared/schema.js';
 import { eq, and, sql, desc, or, like } from 'drizzle-orm';
 
 const router = Router();
@@ -122,13 +122,13 @@ router.get('/users', async (req: Request, res: Response) => {
       );
     }
     
-    // Get users
     const userList = await db.select({
       id: users.id,
       name: users.name,
       email: users.email,
       role: users.role,
       active: users.active,
+      permissions: users.permissions,
       createdAt: users.createdAt
     })
       .from(users)

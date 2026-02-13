@@ -4316,7 +4316,67 @@ export async function registerRoutes(
   // User Roles Routes
   const userRolesRoutes = await import("./userRolesRoutes.js");
   app.use("/api/user-roles", userRolesRoutes.default);
-  
+
+  // Per-user dashboard permissions endpoint (admin only, company-scoped)
+  app.put("/api/user-roles/:userId/permissions", async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      const { permissions: permsBody, requestingUserId } = req.body;
+      const companyId = Number(req.query.companyId);
+      const { VALID_PERMISSION_KEYS: validKeys } = await import("@shared/schema");
+
+      if (!requestingUserId) {
+        return res.status(400).json({ error: "Missing requestingUserId in request body" });
+      }
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Missing companyId query parameter" });
+      }
+
+      const requestingUser = await storage.getUser(Number(requestingUserId));
+      if (!requestingUser) {
+        return res.status(403).json({ error: "Requesting user not found" });
+      }
+      if (requestingUser.role !== 'ADMIN') {
+        return res.status(403).json({ error: "Only admins can update user permissions" });
+      }
+      if (requestingUser.companyId !== companyId) {
+        return res.status(403).json({ error: "Admin does not belong to the specified company" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "Target user not found" });
+      }
+      if (targetUser.companyId !== companyId) {
+        return res.status(403).json({ error: "Target user does not belong to the same company" });
+      }
+
+      if (!Array.isArray(permsBody)) {
+        return res.status(400).json({ error: "permissions must be an array" });
+      }
+
+      const invalidKeys = permsBody.filter((key: string) => !validKeys.includes(key));
+      if (invalidKeys.length > 0) {
+        return res.status(400).json({ error: `Invalid permission keys: ${invalidKeys.join(", ")}` });
+      }
+
+      const [updated] = await db.update(users)
+        .set({ permissions: permsBody })
+        .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ success: true, user: { id: updated.id, name: updated.name, permissions: updated.permissions } });
+    } catch (error) {
+      console.error("Update permissions error:", error);
+      res.status(500).json({ error: "Failed to update permissions" });
+    }
+  });
+
   // Referral Program Routes
   
   // Generate referral code helper

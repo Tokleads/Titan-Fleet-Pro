@@ -32,6 +32,7 @@ import {
 import { Pagination } from '@/components/Pagination';
 import { useToast } from '@/hooks/use-toast';
 import { session } from '@/lib/session';
+import { DASHBOARD_PERMISSION_KEYS } from '@shared/schema';
 
 // Role definitions
 const ROLES = [
@@ -144,12 +145,13 @@ const PERMISSION_CATEGORIES = [
   }
 ];
 
-interface User {
+interface UserRecord {
   id: number;
   name: string;
   email: string;
   role: string;
   active: boolean;
+  permissions: string[] | null;
   createdAt: string;
 }
 
@@ -165,7 +167,7 @@ function UserRolesContent() {
   const { toast } = useToast();
   const companyId = session.getCompany()?.id || 1;
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [roleFilter, setRoleFilter] = useState('all');
@@ -233,31 +235,77 @@ function UserRolesContent() {
     }).format(new Date(dateString));
   };
   
+  const allPermissionKeys = DASHBOARD_PERMISSION_KEYS
+    .filter(p => !('adminOnly' in p && p.adminOnly) && !('alwaysVisible' in p && p.alwaysVisible))
+    .map(p => p.key);
+
   const handleEditUser = (user: any) => {
-    setSelectedUser(user);
+    const currentPerms = user.permissions && user.permissions.length > 0
+      ? user.permissions
+      : [...allPermissionKeys];
+    setSelectedUser({ ...user, editPermissions: currentPerms, originalRole: user.role });
     setEditDialogOpen(true);
+  };
+
+  const togglePermission = (key: string) => {
+    if (!selectedUser) return;
+    const current = selectedUser.editPermissions as string[];
+    const updated = current.includes(key)
+      ? current.filter((k: string) => k !== key)
+      : [...current, key];
+    setSelectedUser({ ...selectedUser, editPermissions: updated });
+  };
+
+  const selectAllPermissions = () => {
+    if (!selectedUser) return;
+    setSelectedUser({ ...selectedUser, editPermissions: [...allPermissionKeys] });
+  };
+
+  const clearAllPermissions = () => {
+    if (!selectedUser) return;
+    setSelectedUser({ ...selectedUser, editPermissions: [] });
   };
   
   const handleSaveUser = async () => {
     setSaving(true);
     
     try {
-      const response = await fetch(`/api/user-roles/${selectedUser.id}/role?companyId=${companyId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: selectedUser.role })
-      });
-      
-      if (!response.ok) throw new Error('Failed to update user');
+      const roleChanged = selectedUser.role !== selectedUser.originalRole;
+      const permissionsToSave = selectedUser.editPermissions as string[];
+
+      const promises: Promise<Response>[] = [];
+
+      if (roleChanged) {
+        promises.push(
+          fetch(`/api/user-roles/${selectedUser.id}/role?companyId=${companyId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: selectedUser.role })
+          })
+        );
+      }
+
+      promises.push(
+        fetch(`/api/user-roles/${selectedUser.id}/permissions?companyId=${companyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ permissions: permissionsToSave, requestingUserId: session.getUser()?.id })
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const allOk = results.every(r => r.ok);
+      if (!allOk) throw new Error('Failed to update user');
       
       toast({
         title: 'User updated',
-        description: `${selectedUser.name}'s role has been updated successfully.`,
-        duration: 3      });
+        description: `${selectedUser.name}'s role and permissions have been updated.`,
+        duration: 3000
+      });
       
       setEditDialogOpen(false);
       setSelectedUser(null);
-      fetchUsers(); // Refresh list
+      fetchUsers();
     } catch (error) {
       toast({
         title: 'Error',
@@ -524,16 +572,16 @@ function UserRolesContent() {
       
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Change the role for {selectedUser?.name}
+              Update role and dashboard access for {selectedUser?.name}
             </DialogDescription>
           </DialogHeader>
           
           {selectedUser && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label>User</Label>
                 <div className="p-3 bg-muted rounded-lg">
@@ -566,6 +614,55 @@ function UserRolesContent() {
                   {ROLES.find(r => r.value === selectedUser.role)?.description}
                 </p>
               </div>
+
+              {selectedUser.role !== 'ADMIN' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Dashboard Access</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={selectAllPermissions}
+                        data-testid="button-select-all-permissions"
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={clearAllPermissions}
+                        data-testid="button-clear-all-permissions"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Choose which dashboard sections this user can access. Dashboard is always visible.
+                  </p>
+                  <div className="space-y-2 border rounded-lg p-3">
+                    {DASHBOARD_PERMISSION_KEYS.filter(p => !('adminOnly' in p && p.adminOnly) && !('alwaysVisible' in p && p.alwaysVisible)).map(perm => {
+                      const isChecked = (selectedUser.editPermissions as string[]).includes(perm.key);
+                      return (
+                        <div key={perm.key} className="flex items-center justify-between py-1.5">
+                          <Label htmlFor={`perm-${perm.key}`} className="text-sm font-normal cursor-pointer">
+                            {perm.label}
+                          </Label>
+                          <Switch
+                            id={`perm-${perm.key}`}
+                            checked={isChecked}
+                            onCheckedChange={() => togglePermission(perm.key)}
+                            data-testid={`switch-permission-${perm.key}`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -573,10 +670,10 @@ function UserRolesContent() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSaveUser} disabled={saving}>
+            <Button onClick={handleSaveUser} disabled={saving} data-testid="button-save-user">
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </>
               ) : (

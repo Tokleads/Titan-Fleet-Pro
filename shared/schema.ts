@@ -73,12 +73,42 @@ export const users = pgTable("users", {
   totpSecret: text("totp_secret"), // Encrypted TOTP secret key
   totpEnabled: boolean("totp_enabled").default(false),
   
+  permissions: text("permissions").array(),
+  
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export const DASHBOARD_PERMISSION_KEYS = [
+  { key: "dashboard", label: "Dashboard", path: "/manager", alwaysVisible: true },
+  { key: "analytics", label: "Analytics", path: "/manager/advanced-dashboard" },
+  { key: "live-tracking", label: "Live Tracking", path: "/manager/live-tracking" },
+  { key: "drivers", label: "Drivers", path: "/manager/drivers" },
+  { key: "timesheets", label: "Timesheets", path: "/manager/timesheets" },
+  { key: "pay-rates", label: "Pay Rates", path: "/manager/pay-rates" },
+  { key: "fuel-intelligence", label: "Fuel Intelligence", path: "/manager/fuel-intelligence" },
+  { key: "titan-command", label: "Titan Command", path: "/manager/titan-command" },
+  { key: "geofences", label: "Geofences", path: "/manager/geofences" },
+  { key: "inspections", label: "Inspections", path: "/manager/inspections" },
+  { key: "deliveries", label: "Deliveries", path: "/manager/deliveries" },
+  { key: "defects", label: "Defects", path: "/manager/defects" },
+  { key: "fuel-log", label: "Fuel Log", path: "/manager/fuel" },
+  { key: "o-licence", label: "O Licence", path: "/manager/operator-licence" },
+  { key: "fleet", label: "Fleet", path: "/manager/fleet" },
+  { key: "vehicle-mgmt", label: "Vehicle Mgmt", path: "/manager/vehicle-management" },
+  { key: "documents", label: "Documents", path: "/manager/documents" },
+  { key: "fleet-docs", label: "Fleet Docs", path: "/manager/fleet-documents" },
+  { key: "user-roles", label: "User Roles", path: "/manager/user-roles", adminOnly: true },
+  { key: "notifications", label: "Notifications", path: "/manager/notifications" },
+  { key: "referrals", label: "Referrals", path: "/manager/referrals" },
+  { key: "audit-log", label: "Audit Log", path: "/manager/audit-log" },
+  { key: "settings", label: "Settings", path: "/manager/settings", adminOnly: true },
+] as const;
+
+export const VALID_PERMISSION_KEYS = DASHBOARD_PERMISSION_KEYS.map(p => p.key);
 
 // Vehicles
 export const vehicles = pgTable("vehicles", {

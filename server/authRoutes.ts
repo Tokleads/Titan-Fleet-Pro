@@ -303,6 +303,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         companyId: company.id,
+        permissions: user.permissions,
       },
       company: {
         id: company.id,
