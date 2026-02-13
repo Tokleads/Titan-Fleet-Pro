@@ -3024,6 +3024,38 @@ export async function registerRoutes(
     }
   });
   
+  // Manager clock-out driver
+  app.post("/api/manager/clock-out-driver", async (req, res) => {
+    try {
+      const { driverId, companyId } = req.body;
+
+      if (!driverId || !companyId) {
+        return res.status(400).json({ error: "Missing driverId or companyId" });
+      }
+
+      const activeTimesheet = await storage.getActiveTimesheet(Number(driverId));
+      if (!activeTimesheet) {
+        return res.status(404).json({ error: "No active timesheet found for this driver" });
+      }
+
+      if (activeTimesheet.companyId !== Number(companyId)) {
+        return res.status(403).json({ error: "Driver does not belong to this company" });
+      }
+
+      const timesheet = await storage.clockOut(
+        activeTimesheet.id,
+        null as any,
+        null as any,
+        null
+      );
+
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Manager clock out error:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to clock out driver" });
+    }
+  });
+
   // ==================== PAY RATES & WAGE CALCULATIONS ====================
   
   // Get pay rates for company

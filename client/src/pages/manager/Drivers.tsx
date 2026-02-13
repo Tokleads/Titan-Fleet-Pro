@@ -15,7 +15,12 @@ import {
   MoreVertical,
   Eye,
   EyeOff,
-  UserX
+  UserX,
+  X,
+  Shield,
+  LogOut,
+  Activity,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,11 +215,179 @@ function DriverForm({
   );
 }
 
+interface ActiveTimesheet {
+  id: number;
+  driverId: number;
+  depotName: string;
+  arrivalTime: string;
+  departureTime: string | null;
+  status: string;
+  totalMinutes: number | null;
+}
+
+function DriverProfileModal({
+  driver,
+  onClose,
+  companyId,
+  onVehicleClick,
+}: {
+  driver: Driver;
+  onClose: () => void;
+  companyId: number;
+  onVehicleClick: (vehicleId: number) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const { data: timesheetData } = useQuery<{ timesheet: ActiveTimesheet | null }>({
+    queryKey: ["active-timesheet", driver.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/timesheets/active/${driver.id}`);
+      if (!res.ok) throw new Error("Failed to fetch timesheet");
+      return res.json();
+    },
+  });
+
+  const clockOutMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/manager/clock-out-driver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driverId: driver.id, companyId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to clock out driver");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success(`${driver.name} has been clocked out`);
+      queryClient.invalidateQueries({ queryKey: ["active-timesheet", driver.id] });
+      queryClient.invalidateQueries({ queryKey: ["drivers", companyId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const activeTimesheet = timesheetData?.timesheet;
+  const isOnShift = !!activeTimesheet && activeTimesheet.status === "ACTIVE";
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" data-testid="driver-profile-modal">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg mx-4 bg-white rounded-xl border border-slate-200/80 shadow-2xl overflow-hidden">
+        <div className={`h-2 ${isOnShift ? "bg-emerald-500" : "bg-slate-400"}`} />
+
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
+                <User className="h-6 w-6 text-slate-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900" data-testid="modal-driver-name">{driver.name}</h2>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${isOnShift ? "bg-emerald-500" : "bg-slate-400"}`}>
+                  <div className={`h-1.5 w-1.5 rounded-full bg-white ${isOnShift ? "animate-pulse" : ""}`} />
+                  {isOnShift ? "On Shift" : "Off Shift"}
+                </span>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" data-testid="button-close-profile-modal">
+              <X className="h-5 w-5 text-slate-400" />
+            </button>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <div className="flex items-center gap-3 text-sm">
+              <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="text-slate-700" data-testid="modal-driver-email">{driver.email}</span>
+            </div>
+            {driver.phone && (
+              <div className="flex items-center gap-3 text-sm">
+                <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="text-slate-700" data-testid="modal-driver-phone">{driver.phone}</span>
+              </div>
+            )}
+            {driver.licenseNumber && (
+              <div className="flex items-center gap-3 text-sm">
+                <Shield className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="text-slate-700" data-testid="modal-driver-license">License: {driver.licenseNumber}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-3 text-sm">
+              <User className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs" data-testid="modal-driver-role">
+                {ROLE_OPTIONS.find(r => r.value === driver.role)?.label || driver.role}
+              </span>
+            </div>
+          </div>
+
+          {isOnShift && activeTimesheet && (
+            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 mb-4" data-testid="modal-shift-info">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-800">Current Shift</span>
+              </div>
+              <div className="space-y-1 text-sm text-emerald-700">
+                <p>Started: {new Date(activeTimesheet.arrivalTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                <p>Depot: {activeTimesheet.depotName}</p>
+              </div>
+            </div>
+          )}
+
+          {driver.assignedVehicle && (
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 mb-4" data-testid="modal-assigned-vehicle">
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-slate-600" />
+                <span className="text-sm font-medium text-slate-700">Assigned Vehicle</span>
+              </div>
+              <button
+                onClick={() => { onClose(); onVehicleClick(driver.assignedVehicle!.id); }}
+                className="mt-1 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                data-testid="modal-vehicle-vrm"
+              >
+                {driver.assignedVehicle.vrm}
+              </button>
+              <span className="text-sm text-slate-500 ml-2">{driver.assignedVehicle.make} {driver.assignedVehicle.model}</span>
+            </div>
+          )}
+
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 mb-5" data-testid="modal-recent-activity">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="h-4 w-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">Recent Activity</span>
+            </div>
+            <p className="text-xs text-slate-400">Activity summary coming soon</p>
+          </div>
+
+          {isOnShift && (
+            <Button
+              onClick={() => {
+                if (confirm(`Are you sure you want to clock out ${driver.name}?`)) {
+                  clockOutMutation.mutate();
+                }
+              }}
+              disabled={clockOutMutation.isPending}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-clock-out-driver"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              {clockOutMutation.isPending ? "Clocking Out..." : "Clock Out Driver"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
   const queryClient = useQueryClient();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [profileDriver, setProfileDriver] = useState<Driver | null>(null);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -381,6 +554,13 @@ export default function Drivers() {
   const startingSoonDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "starting");
   const offShiftDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "off");
   const inactiveDrivers = filteredDrivers.filter(d => getDriverStatus(d).status === "inactive");
+
+  const sortedDrivers = [
+    ...activeDrivers,
+    ...startingSoonDrivers,
+    ...offShiftDrivers,
+    ...inactiveDrivers,
+  ];
 
   return (
     <ManagerLayout>
@@ -555,7 +735,7 @@ export default function Drivers() {
         {/* Driver Cards */}
         {isLoading ? (
           <div className="text-center py-12 text-slate-400">Loading drivers...</div>
-        ) : filteredDrivers.length === 0 ? (
+        ) : sortedDrivers.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200/60">
             <UserPlus className="h-12 w-12 mx-auto mb-4 text-slate-300" />
             <p className="text-slate-500 mb-4">No drivers found</p>
@@ -566,7 +746,7 @@ export default function Drivers() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDrivers.map((driver) => {
+            {sortedDrivers.map((driver) => {
               const status = getDriverStatus(driver);
               const isInactive = !driver.active;
               return (
@@ -586,7 +766,11 @@ export default function Drivers() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-slate-900">{driver.name}</h3>
+                          <h3
+                            className="font-semibold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+                            onClick={() => setProfileDriver(driver)}
+                            data-testid={`link-driver-name-${driver.id}`}
+                          >{driver.name}</h3>
                           {isInactive && (
                             <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
                               Inactive
@@ -695,6 +879,14 @@ export default function Drivers() {
       </div>
       {selectedVehicleId && (
         <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
+      {profileDriver && companyId && (
+        <DriverProfileModal
+          driver={profileDriver}
+          onClose={() => setProfileDriver(null)}
+          companyId={companyId}
+          onVehicleClick={(vehicleId) => setSelectedVehicleId(vehicleId)}
+        />
       )}
     </ManagerLayout>
   );
