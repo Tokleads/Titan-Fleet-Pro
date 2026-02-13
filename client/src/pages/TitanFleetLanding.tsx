@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Check,
   Phone,
@@ -25,9 +25,40 @@ const staggerContainer = {
 };
 
 export default function TitanFleetLandingPage() {
+  const [, setLocation] = useLocation();
+  const [redirecting, setRedirecting] = useState(true);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("marketing") === "true") {
+      setRedirecting(false);
+      return;
+    }
+
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone;
+
+    if (isStandalone) {
+      setLocation("/app");
+      return;
+    }
+
+    const lastRole = localStorage.getItem("titanfleet_last_role");
+    if (lastRole === "driver") {
+      setLocation("/app");
+      return;
+    }
+    if (lastRole === "manager") {
+      setLocation("/manager/login");
+      return;
+    }
+
+    setRedirecting(false);
+  }, [setLocation]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("referralCode");
@@ -58,6 +89,10 @@ export default function TitanFleetLandingPage() {
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
   };
+
+  if (redirecting) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-white">

@@ -70,7 +70,7 @@ export default function ManagerLogin() {
       
       session.setUser(data.manager);
       session.setCompany(data.company);
-
+      localStorage.setItem("titanfleet_last_role", "manager");
       setLocation("/manager");
     } catch (error) {
       toast({
@@ -278,6 +278,14 @@ export default function ManagerLogin() {
             </div>
           )}
         </TitanCard>
+
+        <div className="mt-6 text-center flex items-center justify-center gap-4">
+          <Link href="/app">
+            <a className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-driver-login">Driver Login</a>
+          </Link>
+          <span className="text-slate-600">·</span>
+          <a href="/?marketing=true" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-view-website">View our website</a>
+        </div>
       </motion.div>
     </div>
   );

@@ -88,6 +88,7 @@ export default function Landing() {
           totpEnabled: null,
         });
         refreshCompany();
+        localStorage.setItem("titanfleet_last_role", "driver");
         setLocation("/driver");
       } else {
         const company = await api.getCompanyByCode(companyCode);
@@ -294,8 +295,15 @@ export default function Landing() {
         </motion.div>
       </div>
       
-      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
-        <span className="text-[10px] tracking-widest uppercase opacity-60">
+      <div className="absolute bottom-6 left-0 right-0 text-center z-10 space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/manager/login">
+            <a className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-manager-login">Manager Login</a>
+          </Link>
+          <span className="text-slate-600">·</span>
+          <a href="/?marketing=true" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-view-website">View our website</a>
+        </div>
+        <span className="text-[10px] tracking-widest uppercase opacity-60 block">
           <span className="font-bold text-slate-700">Titan</span>
           <span className="font-normal text-slate-500 ml-1">Fleet</span>
         </span>

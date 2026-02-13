@@ -23,5 +23,6 @@ export const session = {
   clear() {
     localStorage.removeItem("fleetcheck_user");
     localStorage.removeItem("fleetcheck_company");
+    localStorage.removeItem("titanfleet_last_role");
   },
 };
