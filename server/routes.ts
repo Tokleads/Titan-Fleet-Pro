@@ -4341,7 +4341,10 @@ export async function registerRoutes(
       if (!companyId || !licenceNumber || !trafficArea || !licenceType) {
         return res.status(400).json({ error: "Missing required fields: companyId, licenceNumber, trafficArea, licenceType" });
       }
-      const [licence] = await db.insert(operatorLicences).values(req.body).returning();
+      const values = { ...req.body };
+      if (values.inForceFrom) values.inForceFrom = new Date(values.inForceFrom);
+      if (values.reviewDate) values.reviewDate = new Date(values.reviewDate);
+      const [licence] = await db.insert(operatorLicences).values(values).returning();
       res.json(licence);
     } catch (error) {
       console.error("Failed to create operator licence:", error);
@@ -4358,6 +4361,8 @@ export async function registerRoutes(
       if (!existing.length || existing[0].companyId !== companyId) {
         return res.status(403).json({ error: "Not authorised" });
       }
+      if (updateData.inForceFrom) updateData.inForceFrom = new Date(updateData.inForceFrom);
+      if (updateData.reviewDate) updateData.reviewDate = new Date(updateData.reviewDate);
       const [licence] = await db.update(operatorLicences)
         .set({ ...updateData, updatedAt: new Date() })
         .where(eq(operatorLicences.id, Number(req.params.id)))
