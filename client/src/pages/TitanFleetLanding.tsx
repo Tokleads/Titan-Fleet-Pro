@@ -588,67 +588,62 @@ export default function TitanFleetLandingPage() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-            {/* Logo & Tagline */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl font-bold text-white">Titan</span>
-                <span className="text-xl text-slate-400">Fleet</span>
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl font-bold text-white">Titan</span>
+              <span className="text-xl text-slate-400">Fleet</span>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              UK-built compliance for transport operators.
+            </p>
+            <div className="flex gap-3 mb-8">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
+                data-testid="link-instagram"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
+                data-testid="link-facebook"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-3">Platform</h4>
+                <ul className="space-y-2">
+                  <li><a href="#features" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}>Features</a></li>
+                  <li><a href="#pricing" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>Pricing</a></li>
+                  <li><Link href="/help"><span className="text-xs sm:text-sm hover:text-white transition-colors cursor-pointer">Help Centre</span></Link></li>
+                  <li><a href="/procurement-faq" className="text-xs sm:text-sm hover:text-white transition-colors">FAQs</a></li>
+                </ul>
               </div>
-              <p className="text-sm text-slate-500 mb-6">
-                UK-built compliance for transport operators.
-              </p>
-              <div className="flex gap-3">
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
-                  data-testid="link-instagram"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
-                  data-testid="link-facebook"
-                >
-                  <Facebook className="h-4 w-4" />
-                </a>
+
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-3">Company</h4>
+                <ul className="space-y-2">
+                  <li><a href="#founder" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("founder")?.scrollIntoView({ behavior: "smooth" }); }}>Our Story</a></li>
+                  <li><a href="#features" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}>Our Principles</a></li>
+                  <li><a href="#pricing" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>No Lock-In</a></li>
+                  <li><a href="/demo" className="text-xs sm:text-sm hover:text-white transition-colors">View Demo</a></li>
+                </ul>
               </div>
-            </div>
 
-            {/* Platform Links */}
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Platform</h4>
-              <ul className="space-y-3">
-                <li><a href="#features" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}>Features</a></li>
-                <li><a href="#pricing" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>Pricing</a></li>
-                <li><Link href="/help"><span className="text-sm hover:text-white transition-colors cursor-pointer">Help Centre</span></Link></li>
-                <li><a href="/procurement-faq" className="text-sm hover:text-white transition-colors">FAQs</a></li>
-              </ul>
-            </div>
-
-            {/* Company Links */}
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
-              <ul className="space-y-3">
-                <li><a href="#founder" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("founder")?.scrollIntoView({ behavior: "smooth" }); }}>Our Story</a></li>
-                <li><a href="#features" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }}>Our Principles</a></li>
-                <li><a href="#pricing" className="text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>No Lock-In</a></li>
-                <li><a href="/demo" className="text-sm hover:text-white transition-colors">View Demo</a></li>
-                <li><a href="mailto:support@titanfleet.co.uk" className="text-sm hover:text-white transition-colors">Contact</a></li>
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Contact</h4>
-              <ul className="space-y-3">
-                <li><a href="mailto:support@titanfleet.co.uk" className="text-sm hover:text-white transition-colors">support@titanfleet.co.uk</a></li>
-              </ul>
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-3">Contact</h4>
+                <ul className="space-y-2">
+                  <li><a href="mailto:support@titanfleet.co.uk" className="text-xs sm:text-sm hover:text-white transition-colors break-all">support@<br className="sm:hidden" />titanfleet.co.uk</a></li>
+                </ul>
+              </div>
             </div>
           </div>
 
