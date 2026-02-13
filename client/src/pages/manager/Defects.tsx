@@ -12,6 +12,7 @@ import {
   ChevronRight,
   X
 } from "lucide-react";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 const statusColors: Record<string, string> = {
   OPEN: "bg-red-50 text-red-700 border-red-200",
@@ -36,6 +37,7 @@ export default function ManagerDefects() {
   const company = session.getCompany();
   const companyId = company?.id;
   const queryClient = useQueryClient();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   
   const [showFilters, setShowFilters] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>("");
@@ -245,9 +247,12 @@ export default function ManagerDefects() {
                               <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
                                 <Truck className="h-4 w-4 text-slate-500" />
                               </div>
-                              <span className="font-mono font-semibold text-sm text-slate-900">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (defect.vehicleId) setSelectedVehicleId(defect.vehicleId); }}
+                                className="font-mono font-semibold text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-transparent border-none p-0"
+                              >
                                 {getVehicleVrm(defect.vehicleId)}
-                              </span>
+                              </button>
                             </div>
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityColors[defect.severity] || severityColors.MEDIUM}`}>
                               {defect.severity}
@@ -274,6 +279,9 @@ export default function ManagerDefects() {
           </div>
         )}
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

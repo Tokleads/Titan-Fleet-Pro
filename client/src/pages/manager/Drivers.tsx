@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 interface Driver {
   id: number;
@@ -213,6 +214,7 @@ export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
   const queryClient = useQueryClient();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -652,7 +654,13 @@ export default function Drivers() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-slate-600">Assigned Vehicle</p>
                           <p className="text-sm font-semibold text-slate-900 truncate">
-                            {driver.assignedVehicle.vrm} • {driver.assignedVehicle.make}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (driver.assignedVehicle?.id) setSelectedVehicleId(driver.assignedVehicle.id); }}
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-semibold cursor-pointer bg-transparent border-none p-0"
+                            >
+                              {driver.assignedVehicle.vrm}
+                            </button>
+                            {' • '}{driver.assignedVehicle.make}
                           </p>
                         </div>
                       </div>
@@ -685,6 +693,9 @@ export default function Drivers() {
           </div>
         )}
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

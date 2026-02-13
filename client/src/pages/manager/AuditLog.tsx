@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Download, Filter, ChevronLeft, ChevronRight, User, Clock, FileText } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 interface AuditLogEntry {
   id: number;
@@ -51,10 +52,23 @@ const entityLabels: Record<string, string> = {
 
 export default function AuditLog() {
   const company = session.getCompany();
+  const companyId = company?.id;
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [entityFilter, setEntityFilter] = useState<string>("");
   const [actionFilter, setActionFilter] = useState<string>("");
   const limit = 25;
+
+  const { data: allVehiclesData } = useQuery({
+    queryKey: ["all-vehicles-lookup", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+  const vrmToIdMap = new Map(((allVehiclesData as any)?.vehicles || (Array.isArray(allVehiclesData) ? allVehiclesData : [])).map((v: any) => [v.vrm, v.id]));
 
   const { data, isLoading } = useQuery<AuditLogsResponse>({
     queryKey: ['auditLogs', company?.id, page, entityFilter, actionFilter],
@@ -177,7 +191,10 @@ export default function AuditLog() {
                       </div>
                       {log.details && Object.keys(log.details).length > 0 && (
                         <div className="mt-1 text-sm text-muted-foreground">
-                          {(log.details as Record<string, string>).vrm && <span className="mr-3">VRM: {(log.details as Record<string, string>).vrm}</span>}
+                          {(log.details as Record<string, string>).vrm && <span className="mr-3">VRM: <button
+                            onClick={(e) => { e.stopPropagation(); const id = vrmToIdMap.get((log.details as Record<string, string>).vrm); if (id) setSelectedVehicleId(id); }}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                          >{(log.details as Record<string, string>).vrm}</button></span>}
                           {(log.details as Record<string, string>).managerName && <span className="mr-3">{(log.details as Record<string, string>).managerName}</span>}
                           {(log.details as Record<string, string>).status && <span>Status: {(log.details as Record<string, string>).status}</span>}
                         </div>
@@ -230,6 +247,9 @@ export default function AuditLog() {
           </TitanCardContent>
         </TitanCard>
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

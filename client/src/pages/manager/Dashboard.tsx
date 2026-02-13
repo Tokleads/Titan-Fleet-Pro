@@ -26,6 +26,7 @@ import { Link, useLocation } from "wouter";
 import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Skeleton";
 import { HelpTooltip } from "@/components/titan-ui/HelpTooltip";
 import UKDriverMap from "@/components/UKDriverMap";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 interface DriverMessage {
   id: number;
@@ -91,6 +92,18 @@ export default function ManagerDashboard() {
   const queryClient = useQueryClient();
   const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+
+  const { data: allVehiclesData } = useQuery({
+    queryKey: ["all-vehicles-lookup", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+  const vrmToIdMap = new Map(((allVehiclesData as any)?.vehicles || (Array.isArray(allVehiclesData) ? allVehiclesData : [])).map((v: any) => [v.vrm, v.id]));
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["manager-stats", companyId],
@@ -415,7 +428,17 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 line-clamp-2">
-                    {missedInspections.slice(0, 3).map((v: any) => v.vrm).join(', ')}
+                    {missedInspections.slice(0, 3).map((v: any, idx: number) => (
+                      <span key={v.id || idx}>
+                        {idx > 0 && ', '}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (v.id) setSelectedVehicleId(v.id); }}
+                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                        >
+                          {v.vrm}
+                        </button>
+                      </span>
+                    ))}
                     {missedInspections.length > 3 && ` +${missedInspections.length - 3} more`}
                   </p>
                 </div>
@@ -433,9 +456,18 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                   <p className={`text-xs ${criticalDefects.length > 0 ? 'text-red-700' : 'text-amber-700'} line-clamp-2`}>
-                    {[...criticalDefects, ...highDefects].slice(0, 2).map((d: Defect) => 
-                      `${d.vrm || d.vehicleReg || 'Vehicle'}: ${d.description?.slice(0, 30) || 'Defect reported'}`
-                    ).join('; ')}
+                    {[...criticalDefects, ...highDefects].slice(0, 2).map((d: Defect, idx: number) => (
+                      <span key={d.id || idx}>
+                        {idx > 0 && '; '}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); const vrm = d.vrm || d.vehicleReg; const id = vrm ? vrmToIdMap.get(vrm) : undefined; if (id) setSelectedVehicleId(id); }}
+                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                        >
+                          {d.vrm || d.vehicleReg || 'Vehicle'}
+                        </button>
+                        {`: ${d.description?.slice(0, 30) || 'Defect reported'}`}
+                      </span>
+                    ))}
                   </p>
                 </div>
               )}
@@ -471,7 +503,17 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 line-clamp-2">
-                    {expiringVehicles.slice(0, 3).map((v: any) => v.vrm).join(', ')}
+                    {expiringVehicles.slice(0, 3).map((v: any, idx: number) => (
+                      <span key={v.id || idx}>
+                        {idx > 0 && ', '}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (v.id) setSelectedVehicleId(v.id); }}
+                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                        >
+                          {v.vrm}
+                        </button>
+                      </span>
+                    ))}
                     {expiringVehicles.length > 3 && ` +${expiringVehicles.length - 3} more`}
                   </p>
                 </div>
@@ -522,7 +564,12 @@ export default function ManagerDashboard() {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-slate-900">{inspection.vrm}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); const id = vrmToIdMap.get(inspection.vrm); if (id) setSelectedVehicleId(id); }}
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-semibold cursor-pointer bg-transparent border-none p-0"
+                              >
+                                {inspection.vrm}
+                              </button>
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                 inspection.result === 'PASS' 
                                   ? 'bg-emerald-100 text-emerald-700' 
@@ -734,6 +781,9 @@ export default function ManagerDashboard() {
           </div>
         </div>
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

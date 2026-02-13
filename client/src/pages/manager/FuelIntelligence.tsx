@@ -18,6 +18,7 @@ import {
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { session } from "@/lib/session";
 import { ManagerLayout } from "./ManagerLayout";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 // Date range selector component
 function DateRangeSelector({ 
@@ -82,6 +83,18 @@ function DateRangeSelector({
 export default function FuelIntelligence() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+
+  const { data: allVehiclesData } = useQuery({
+    queryKey: ["all-vehicles-lookup", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      if (!res.ok) return { vehicles: [] };
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+  const vrmToIdMap = new Map(((allVehiclesData as any)?.vehicles || (Array.isArray(allVehiclesData) ? allVehiclesData : [])).map((v: any) => [v.vrm, v.id]));
 
   // Default to last 30 days
   const [startDate, setStartDate] = useState(() => {
@@ -314,12 +327,29 @@ export default function FuelIntelligence() {
                       <div className="mt-3">
                         <p className="text-sm font-medium mb-2">Action Items:</p>
                         <ul className="text-sm space-y-1">
-                          {opp.actionItems.map((item: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-muted-foreground">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
+                          {opp.actionItems.map((item: string, idx: number) => {
+                            const colonIdx = item.indexOf(':');
+                            const possibleVrm = colonIdx > 0 ? item.slice(0, colonIdx).trim() : null;
+                            const vrmId = possibleVrm ? vrmToIdMap.get(possibleVrm) : undefined;
+                            return (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-muted-foreground">•</span>
+                                <span>
+                                  {vrmId ? (
+                                    <>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setSelectedVehicleId(vrmId); }}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                                      >
+                                        {possibleVrm}
+                                      </button>
+                                      {item.slice(colonIdx)}
+                                    </>
+                                  ) : item}
+                                </span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     </div>
@@ -399,7 +429,12 @@ export default function FuelIntelligence() {
                           <span className="text-sm font-medium">{idx + 1}</span>
                         </div>
                         <div>
-                          <p className="font-medium">{vehicle.vehicleVrm}</p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); if (vehicle.vehicleId) setSelectedVehicleId(vehicle.vehicleId); }}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0 text-left"
+                          >
+                            {vehicle.vehicleVrm}
+                          </button>
                           <p className="text-sm text-muted-foreground">
                             {vehicle.make} {vehicle.model} • {vehicle.totalMiles.toFixed(0)} miles
                           </p>
@@ -447,7 +482,15 @@ export default function FuelIntelligence() {
                       }`} />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{anomaly.vehicleVrm} - {anomaly.driverName}</p>
+                          <p className="font-medium">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); const id = vrmToIdMap.get(anomaly.vehicleVrm); if (id) setSelectedVehicleId(id); }}
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
+                            >
+                              {anomaly.vehicleVrm}
+                            </button>
+                            {' - '}{anomaly.driverName}
+                          </p>
                           <Badge variant={anomaly.potentialFraud ? 'destructive' : 'secondary'}>
                             {anomaly.type.replace(/_/g, ' ')}
                           </Badge>
@@ -466,6 +509,9 @@ export default function FuelIntelligence() {
         </TabsContent>
       </Tabs>
     </div>
+    {selectedVehicleId && (
+      <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+    )}
     </ManagerLayout>
   );
 }

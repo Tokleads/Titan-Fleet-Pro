@@ -11,10 +11,12 @@ import {
   MapPin,
   X
 } from "lucide-react";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 export default function ManagerFuelLog() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string>("ALL");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -253,9 +255,12 @@ export default function ManagerFuelLog() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="font-mono font-semibold text-sm text-slate-900">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (entry.vehicleId) setSelectedVehicleId(entry.vehicleId); }}
+                          className="font-mono font-semibold text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-transparent border-none p-0"
+                        >
                           {getVehicleVrm(entry.vehicleId)}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-600">
                         {getDriverName(entry.driverId)}
@@ -301,6 +306,9 @@ export default function ManagerFuelLog() {
           </div>
         </div>
       </div>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

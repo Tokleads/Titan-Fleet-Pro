@@ -26,10 +26,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 export default function ManagerInspections() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 20;
   const [showFilters, setShowFilters] = useState(false);
@@ -346,9 +348,12 @@ export default function ManagerInspections() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <p className="font-mono font-semibold text-sm text-slate-900">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (inspection.vehicleId) setSelectedVehicleId(inspection.vehicleId); }}
+                          className="font-mono font-semibold text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-transparent border-none p-0"
+                        >
                           {getVehicleVrm(inspection.vehicleId)}
-                        </p>
+                        </button>
                         <p className="text-xs text-slate-500">{getVehicleName(inspection.vehicleId)}</p>
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-600">
@@ -606,6 +611,9 @@ export default function ManagerInspections() {
           )}
         </DialogContent>
       </Dialog>
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
+      )}
     </ManagerLayout>
   );
 }

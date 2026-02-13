@@ -9,6 +9,7 @@ import { ServiceHistoryDialog } from "@/components/ServiceHistoryDialog";
 import { MultiCountdownBadge } from "@/components/CountdownBadge";
 import { Pagination } from "@/components/Pagination";
 import { useFleetVehicles, useCreateVehicle, useToggleVehicleActive } from "@/hooks/useFleetVehicles";
+import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 import { 
   Truck,
   Plus,
@@ -43,6 +44,7 @@ interface LicenseInfo {
 export default function ManagerFleet() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
@@ -431,7 +433,12 @@ export default function ManagerFleet() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-slate-900 text-lg">{vehicle.vrm}</h3>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedVehicleId(vehicle.id); }}
+                          className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-lg cursor-pointer bg-transparent border-none p-0 text-left"
+                        >
+                          {vehicle.vrm}
+                        </button>
                         {vehicle.pendingReview && (
                           <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
@@ -614,6 +621,10 @@ export default function ManagerFleet() {
           vehicle={serviceHistoryVehicle}
           onClose={() => setServiceHistoryVehicle(null)}
         />
+      )}
+
+      {selectedVehicleId && (
+        <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
       )}
     </ManagerLayout>
   );
