@@ -2907,6 +2907,28 @@ export async function registerRoutes(
   
   // ==================== TIMESHEETS ====================
   
+  // Get timesheets for a specific driver
+  app.get("/api/driver/timesheets/:companyId/:driverId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const driverId = Number(req.params.driverId);
+      
+      const results = await db.select()
+        .from(timesheets)
+        .where(and(
+          eq(timesheets.companyId, companyId),
+          eq(timesheets.driverId, driverId)
+        ))
+        .orderBy(desc(timesheets.arrivalTime))
+        .limit(50);
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Failed to fetch driver timesheets:", error);
+      res.status(500).json({ error: "Failed to fetch driver timesheets" });
+    }
+  });
+
   // Get timesheets for company
   app.get("/api/timesheets/:companyId", async (req, res) => {
     try {
