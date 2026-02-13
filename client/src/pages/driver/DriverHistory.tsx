@@ -3,7 +3,7 @@ import { DriverLayout } from "@/components/layout/AppShell";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Inspection, FuelEntry } from "@shared/schema";
-import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight } from "lucide-react";
+import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
@@ -14,6 +14,7 @@ export default function DriverHistory() {
   const [timesheetEntries, setTimesheetEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "inspections" | "fuel" | "shifts">("all");
+  const [expandedShiftId, setExpandedShiftId] = useState<number | null>(null);
 
   const user = session.getUser();
   const company = session.getCompany();
@@ -185,30 +186,92 @@ export default function DriverHistory() {
                       </div>
                     </div>
                   ) : item.type === "shift" ? (
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 text-sm">
-                          {item.data.depotName || "Shift"}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDate(item.date)}
-                          {item.data.departureTime && ` → ${new Date(item.data.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {item.data.totalMinutes ? (
-                          <span className="text-sm font-bold text-purple-700">
-                            {Math.floor(item.data.totalMinutes / 60)}h {item.data.totalMinutes % 60}m
-                          </span>
-                        ) : item.data.status === "ACTIVE" ? (
-                          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Active</span>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </div>
+                    <div>
+                      <button
+                        onClick={() => setExpandedShiftId(expandedShiftId === item.data.id ? null : item.data.id)}
+                        className="w-full flex items-center gap-3 text-left"
+                      >
+                        <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                          <Clock className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-sm">
+                            {item.data.depotName || "Shift"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDate(item.date)}
+                            {item.data.departureTime && ` → ${new Date(item.data.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.data.totalMinutes ? (
+                            <span className="text-sm font-bold text-purple-700">
+                              {Math.floor(item.data.totalMinutes / 60)}h {item.data.totalMinutes % 60}m
+                            </span>
+                          ) : item.data.status === "ACTIVE" ? (
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Active</span>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                          {expandedShiftId === item.data.id ? (
+                            <ChevronDown className="h-4 w-4 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                      </button>
+                      {expandedShiftId === item.data.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="mt-3 pt-3 border-t border-slate-100 space-y-3"
+                        >
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-purple-50 rounded-xl p-3">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <LogIn className="h-3.5 w-3.5 text-purple-500" />
+                                <span className="text-[10px] uppercase tracking-wider text-purple-600 font-medium">Clocked In</span>
+                              </div>
+                              <p className="text-sm font-bold text-slate-900">
+                                {new Date(item.data.arrivalTime).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl p-3">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <LogOut className="h-3.5 w-3.5 text-slate-500" />
+                                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium">Clocked Out</span>
+                              </div>
+                              <p className="text-sm font-bold text-slate-900">
+                                {item.data.departureTime
+                                  ? new Date(item.data.departureTime).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                                  : "Still active"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="bg-purple-50/50 rounded-xl p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-purple-500" />
+                                <span className="text-[10px] uppercase tracking-wider text-purple-600 font-medium">Total Hours</span>
+                              </div>
+                              <p className="text-lg font-bold text-purple-700">
+                                {item.data.totalMinutes
+                                  ? `${Math.floor(item.data.totalMinutes / 60)}h ${item.data.totalMinutes % 60}m`
+                                  : "In progress"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>{item.data.depotName || "Unknown depot"}</span>
+                            <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              item.data.status === "COMPLETED" ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-700"
+                            }`}>
+                              {item.data.status}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
                   ) : null}
                 </motion.div>
