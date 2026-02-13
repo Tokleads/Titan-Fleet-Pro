@@ -598,7 +598,7 @@ function PlaceholderTab({ label }: { label: string }) {
 }
 
 export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<SidebarTab>("overview");
+  const [activeTab, setActiveTab] = useState<SidebarTab>("vehicle-details");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const queryClient = useQueryClient();
 
