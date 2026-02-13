@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { useToast } from "@/hooks/use-toast";
 import { 
   AlertTriangle, 
   Clock, 
@@ -10,7 +11,15 @@ import {
   Filter,
   Truck,
   ChevronRight,
-  X
+  X,
+  MapPin,
+  User,
+  Calendar,
+  FileText,
+  DollarSign,
+  Gauge,
+  ArrowRight,
+  Save
 } from "lucide-react";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
@@ -27,23 +36,265 @@ const severityColors: Record<string, string> = {
   CRITICAL: "bg-red-50 text-red-600",
 };
 
+const severityBorderColors: Record<string, string> = {
+  LOW: "border-l-blue-400",
+  MEDIUM: "border-l-amber-400",
+  HIGH: "border-l-orange-400",
+  CRITICAL: "border-l-red-500",
+};
+
 const columnConfig = [
   { status: "OPEN", label: "Open", icon: AlertTriangle, color: "text-red-600" },
   { status: "IN_PROGRESS", label: "In Progress", icon: Wrench, color: "text-amber-600" },
   { status: "RESOLVED", label: "Resolved", icon: CheckCircle2, color: "text-emerald-600" },
 ];
 
+function DefectDetailModal({ defect, vehicles, onClose, onUpdate, onViewVehicle }: {
+  defect: any;
+  vehicles: any[];
+  onClose: () => void;
+  onUpdate: (id: number, data: any) => void;
+  onViewVehicle: (id: number) => void;
+}) {
+  const [status, setStatus] = useState(defect.status);
+  const [actionedNotes, setActionedNotes] = useState(defect.actionedNotes || "");
+  const [resolutionNotes, setResolutionNotes] = useState(defect.resolutionNotes || "");
+  const [supplier, setSupplier] = useState(defect.supplier || "");
+  const [site, setSite] = useState(defect.site || "");
+  const [cost, setCost] = useState(defect.cost || "0.00");
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const vehicle = vehicles?.find((v: any) => v.id === defect.vehicleId);
+  const vrm = vehicle?.vrm || "Unknown";
+  const daysOpen = defect.resolvedAt 
+    ? Math.ceil((new Date(defect.resolvedAt).getTime() - new Date(defect.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    : Math.ceil((Date.now() - new Date(defect.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+
+  const handleSave = () => {
+    onUpdate(defect.id, {
+      status,
+      actionedNotes: actionedNotes || null,
+      resolutionNotes: resolutionNotes || null,
+      supplier: supplier || null,
+      site: site || null,
+      cost: cost || "0.00",
+      ...(status === "COMPLETED" || status === "RESOLVED" ? { resolvedAt: new Date().toISOString() } : {}),
+    });
+    onClose();
+  };
+
+  const markChanged = () => setHasChanges(true);
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center" data-testid="modal-defect-detail">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+        <div className="sticky top-0 bg-white border-b border-slate-200 rounded-t-2xl px-6 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+              defect.severity === "CRITICAL" ? "bg-red-100" : defect.severity === "HIGH" ? "bg-orange-100" : "bg-amber-100"
+            }`}>
+              <AlertTriangle className={`h-5 w-5 ${
+                defect.severity === "CRITICAL" ? "text-red-600" : defect.severity === "HIGH" ? "text-orange-600" : "text-amber-600"
+              }`} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Defect #{defect.id}</h2>
+              <p className="text-xs text-slate-500">{defect.category} - {defect.severity}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="h-9 w-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors" data-testid="button-close-defect">
+            <X className="h-4 w-4 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-50 rounded-xl p-3">
+              <p className="text-xs text-slate-500 mb-1">Vehicle</p>
+              <button
+                onClick={() => { if (defect.vehicleId) { onClose(); onViewVehicle(defect.vehicleId); } }}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                data-testid="link-defect-vehicle"
+              >
+                {vrm}
+              </button>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3">
+              <p className="text-xs text-slate-500 mb-1">Severity</p>
+              <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-semibold ${severityColors[defect.severity] || severityColors.MEDIUM}`}>
+                {defect.severity}
+              </span>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3">
+              <p className="text-xs text-slate-500 mb-1">Reported</p>
+              <p className="text-sm font-medium text-slate-800">{new Date(defect.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-3">
+              <p className="text-xs text-slate-500 mb-1">Days Open</p>
+              <p className={`text-sm font-bold ${daysOpen > 14 ? "text-red-600" : daysOpen > 7 ? "text-amber-600" : "text-slate-800"}`}>{daysOpen} days</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 mb-2">Description</h3>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-sm text-slate-700">{defect.description}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Site</div>
+              </label>
+              <input
+                type="text"
+                value={site}
+                onChange={(e) => { setSite(e.target.value); markChanged(); }}
+                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                placeholder="e.g. Main Depot"
+                data-testid="input-defect-site"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                <div className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Supplier</div>
+              </label>
+              <input
+                type="text"
+                value={supplier}
+                onChange={(e) => { setSupplier(e.target.value); markChanged(); }}
+                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                placeholder="e.g. Fleet Brake Services"
+                data-testid="input-defect-supplier"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Cost (£)</div>
+              </label>
+              <input
+                type="text"
+                value={cost}
+                onChange={(e) => { setCost(e.target.value); markChanged(); }}
+                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                placeholder="0.00"
+                data-testid="input-defect-cost"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                <div className="flex items-center gap-1"><Gauge className="h-3 w-3" /> Odometer</div>
+              </label>
+              <p className="h-10 px-3 flex items-center bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700">
+                {defect.odometer ? defect.odometer.toLocaleString() : "—"}
+              </p>
+            </div>
+          </div>
+
+          {(defect.fleetReference || defect.imReference || defect.requiredBy) && (
+            <div className="grid grid-cols-3 gap-4">
+              {defect.fleetReference && (
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-500 mb-1">Fleet Ref</p>
+                  <p className="text-sm font-medium text-slate-800">{defect.fleetReference}</p>
+                </div>
+              )}
+              {defect.imReference && (
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-500 mb-1">IM Ref</p>
+                  <p className="text-sm font-medium text-slate-800">{defect.imReference}</p>
+                </div>
+              )}
+              {defect.requiredBy && (
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-500 mb-1">Required By</p>
+                  <p className="text-sm font-medium text-slate-800">{new Date(defect.requiredBy).toLocaleDateString("en-GB")}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">Status</label>
+            <select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); markChanged(); }}
+              className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              data-testid="select-defect-status"
+            >
+              <option value="OPEN">Open</option>
+              <option value="MONITOR">Monitor</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">Action Notes</label>
+            <textarea
+              value={actionedNotes}
+              onChange={(e) => { setActionedNotes(e.target.value); markChanged(); }}
+              rows={3}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+              placeholder="Add notes about actions taken..."
+              data-testid="textarea-defect-action-notes"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">Resolution Notes</label>
+            <textarea
+              value={resolutionNotes}
+              onChange={(e) => { setResolutionNotes(e.target.value); markChanged(); }}
+              rows={3}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+              placeholder="Add resolution details..."
+              data-testid="textarea-defect-resolution-notes"
+            />
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-slate-200 rounded-b-2xl px-6 py-4 flex items-center justify-between">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium" data-testid="button-cancel-defect">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              hasChanges 
+                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm" 
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+            data-testid="button-save-defect"
+          >
+            <Save className="h-4 w-4" />
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ManagerDefects() {
   const company = session.getCompany();
   const companyId = company?.id;
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [selectedDefect, setSelectedDefect] = useState<any | null>(null);
   
   const [showFilters, setShowFilters] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>("");
   const [vehicleFilter, setVehicleFilter] = useState<string>("");
 
-  // Close filter dropdown when clicking outside
   useEffect(() => {
     if (!showFilters) return;
     
@@ -81,19 +332,27 @@ export default function ManagerDefects() {
   const vehicles = Array.isArray(vehiclesData) ? vehiclesData : (vehiclesData?.vehicles || []);
 
   const updateDefectMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const res = await fetch(`/api/manager/defects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update defect");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manager-defects"] });
+      toast({ title: "Defect updated", description: "Changes have been saved successfully." });
+    },
+    onError: () => {
+      toast({ title: "Update failed", description: "Could not save changes. Please try again.", variant: "destructive" });
     },
   });
+
+  const handleUpdateDefect = (id: number, data: any) => {
+    updateDefectMutation.mutate({ id, data });
+  };
 
   const getVehicleVrm = (vehicleId: number | null) => {
     if (!vehicleId) return "N/A";
@@ -101,7 +360,6 @@ export default function ManagerDefects() {
     return vehicle?.vrm || "Unknown";
   };
 
-  // Apply filters to defects
   const filteredDefects = defects?.filter((d: any) => {
     if (severityFilter && d.severity !== severityFilter) return false;
     if (vehicleFilter && d.vehicleId !== parseInt(vehicleFilter)) return false;
@@ -238,21 +496,22 @@ export default function ManagerDefects() {
                       </div>
                     ) : (
                       columnDefects.map((defect: any) => (
-                        <div 
-                          key={defect.id} 
-                          className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 hover:shadow-md transition-all cursor-pointer group"
+                        <button
+                          key={defect.id}
+                          onClick={() => setSelectedDefect(defect)}
+                          className={`w-full text-left bg-white rounded-2xl border border-slate-200/60 border-l-4 ${severityBorderColors[defect.severity] || "border-l-slate-300"} shadow-sm p-4 hover:shadow-md transition-all cursor-pointer group`}
+                          data-testid={`card-defect-${defect.id}`}
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
                                 <Truck className="h-4 w-4 text-slate-500" />
                               </div>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); if (defect.vehicleId) setSelectedVehicleId(defect.vehicleId); }}
-                                className="font-mono font-semibold text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer bg-transparent border-none p-0"
+                              <span
+                                className="font-mono font-semibold text-sm text-blue-600"
                               >
                                 {getVehicleVrm(defect.vehicleId)}
-                              </button>
+                              </span>
                             </div>
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${severityColors[defect.severity] || severityColors.MEDIUM}`}>
                               {defect.severity}
@@ -267,9 +526,9 @@ export default function ManagerDefects() {
                               <Clock className="h-3 w-3" />
                               {new Date(defect.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                             </div>
-                            <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                            <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
                           </div>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -279,6 +538,17 @@ export default function ManagerDefects() {
           </div>
         )}
       </div>
+
+      {selectedDefect && (
+        <DefectDetailModal
+          defect={selectedDefect}
+          vehicles={vehicles}
+          onClose={() => setSelectedDefect(null)}
+          onUpdate={handleUpdateDefect}
+          onViewVehicle={(id) => { setSelectedDefect(null); setSelectedVehicleId(id); }}
+        />
+      )}
+
       {selectedVehicleId && (
         <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
       )}
