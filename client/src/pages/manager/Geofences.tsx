@@ -384,15 +384,15 @@ export default function Geofences() {
                   </label>
                   <input
                     type="range"
-                    min="50"
+                    min="10"
                     max="500"
-                    step="10"
+                    step="5"
                     value={formData.radiusMeters}
                     onChange={(e) => setFormData({ ...formData, radiusMeters: Number(e.target.value) })}
                     className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                   <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>50m</span>
+                    <span>10m</span>
                     <span>500m</span>
                   </div>
                 </div>
