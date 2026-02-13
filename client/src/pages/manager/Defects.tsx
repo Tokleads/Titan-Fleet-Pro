@@ -13,13 +13,10 @@ import {
   ChevronRight,
   X,
   MapPin,
-  User,
-  Calendar,
-  FileText,
-  DollarSign,
   Gauge,
-  ArrowRight,
-  Save
+  Save,
+  ChevronDown,
+  Plus
 } from "lucide-react";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
@@ -49,9 +46,10 @@ const columnConfig = [
   { status: "RESOLVED", label: "Resolved", icon: CheckCircle2, color: "text-emerald-600" },
 ];
 
-function DefectDetailModal({ defect, vehicles, onClose, onUpdate, onViewVehicle }: {
+function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, onViewVehicle }: {
   defect: any;
   vehicles: any[];
+  allDefects: any[];
   onClose: () => void;
   onUpdate: (id: number, data: any) => void;
   onViewVehicle: (id: number) => void;
@@ -63,6 +61,14 @@ function DefectDetailModal({ defect, vehicles, onClose, onUpdate, onViewVehicle 
   const [site, setSite] = useState(defect.site || "");
   const [cost, setCost] = useState(defect.cost || "0.00");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [customSupplier, setCustomSupplier] = useState("");
+
+  const existingSuppliers = [...new Set(
+    (allDefects || [])
+      .map((d: any) => d.supplier)
+      .filter((s: string | null) => s && s.trim().length > 0)
+  )] as string[];
 
   const vehicle = vehicles?.find((v: any) => v.id === defect.vehicleId);
   const vrm = vehicle?.vrm || "Unknown";
@@ -157,25 +163,81 @@ function DefectDetailModal({ defect, vehicles, onClose, onUpdate, onViewVehicle 
                 data-testid="input-defect-site"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
-                <div className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Supplier</div>
+                <div className="flex items-center gap-1"><Wrench className="h-3 w-3" /> Assigned To (Garage/Mechanic)</div>
               </label>
-              <input
-                type="text"
-                value={supplier}
-                onChange={(e) => { setSupplier(e.target.value); markChanged(); }}
-                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                placeholder="e.g. Fleet Brake Services"
-                data-testid="input-defect-supplier"
-              />
+              <button
+                type="button"
+                onClick={() => setShowSupplierDropdown(!showSupplierDropdown)}
+                className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                data-testid="button-defect-supplier"
+              >
+                <span className={supplier ? "text-slate-800" : "text-slate-400"}>{supplier || "Select garage or mechanic..."}</span>
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </button>
+              {showSupplierDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto">
+                    {existingSuppliers.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50">Saved Suppliers</div>
+                        {existingSuppliers.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => { setSupplier(s); setShowSupplierDropdown(false); markChanged(); }}
+                            className={`w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center gap-2 ${supplier === s ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700"}`}
+                          >
+                            <Wrench className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            {s}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-t border-slate-100">Add New</div>
+                    <div className="p-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customSupplier}
+                        onChange={(e) => setCustomSupplier(e.target.value)}
+                        placeholder="Enter new supplier..."
+                        className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        data-testid="input-custom-supplier"
+                      />
+                      <button
+                        onClick={() => {
+                          if (customSupplier.trim()) {
+                            setSupplier(customSupplier.trim());
+                            setCustomSupplier("");
+                            setShowSupplierDropdown(false);
+                            markChanged();
+                          }
+                        }}
+                        className="h-9 px-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1"
+                        data-testid="button-add-supplier"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                  {supplier && (
+                    <button
+                      onClick={() => { setSupplier(""); setShowSupplierDropdown(false); markChanged(); }}
+                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 border-t border-slate-100 font-medium"
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
-                <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Cost (£)</div>
+                <div className="flex items-center gap-1"><span className="text-xs font-bold">£</span> Cost</div>
               </label>
               <input
                 type="text"
@@ -543,6 +605,7 @@ export default function ManagerDefects() {
         <DefectDetailModal
           defect={selectedDefect}
           vehicles={vehicles}
+          allDefects={defects || []}
           onClose={() => setSelectedDefect(null)}
           onUpdate={handleUpdateDefect}
           onViewVehicle={(id) => { setSelectedDefect(null); setSelectedVehicleId(id); }}
