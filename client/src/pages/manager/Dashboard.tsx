@@ -417,7 +417,11 @@ export default function ManagerDashboard() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {missedInspections.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4" data-testid="attention-missed-inspections">
+                <button
+                  onClick={() => setLocation("/manager/inspections")}
+                  className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-amber-300 transition-all cursor-pointer"
+                  data-testid="attention-missed-inspections"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
                       <FileWarning className="h-4 w-4 text-amber-600" />
@@ -431,21 +435,20 @@ export default function ManagerDashboard() {
                     {missedInspections.slice(0, 3).map((v: any, idx: number) => (
                       <span key={v.id || idx}>
                         {idx > 0 && ', '}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); if (v.id) setSelectedVehicleId(v.id); }}
-                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                        >
-                          {v.vrm}
-                        </button>
+                        {v.vrm}
                       </span>
                     ))}
                     {missedInspections.length > 3 && ` +${missedInspections.length - 3} more`}
                   </p>
-                </div>
+                </button>
               )}
 
               {(criticalDefects.length > 0 || highDefects.length > 0) && (
-                <div className={`${criticalDefects.length > 0 ? 'bg-red-50 border-red-200/60' : 'bg-amber-50 border-amber-200/60'} border rounded-2xl p-4`} data-testid="attention-critical-defects">
+                <button
+                  onClick={() => setLocation("/manager/defects")}
+                  className={`${criticalDefects.length > 0 ? 'bg-red-50 border-red-200/60 hover:border-red-300' : 'bg-amber-50 border-amber-200/60 hover:border-amber-300'} border rounded-2xl p-4 text-left w-full hover:shadow-md transition-all cursor-pointer`}
+                  data-testid="attention-critical-defects"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${criticalDefects.length > 0 ? 'bg-red-100' : 'bg-amber-100'}`}>
                       <AlertTriangle className={`h-4 w-4 ${criticalDefects.length > 0 ? 'text-red-600' : 'text-amber-600'}`} />
@@ -459,21 +462,19 @@ export default function ManagerDashboard() {
                     {[...criticalDefects, ...highDefects].slice(0, 2).map((d: Defect, idx: number) => (
                       <span key={d.id || idx}>
                         {idx > 0 && '; '}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); const vrm = d.vrm || d.vehicleReg; const id = vrm ? vrmToIdMap.get(vrm) : undefined; if (id) setSelectedVehicleId(id); }}
-                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                        >
-                          {d.vrm || d.vehicleReg || 'Vehicle'}
-                        </button>
-                        {`: ${d.description?.slice(0, 30) || 'Defect reported'}`}
+                        Vehicle: {d.description?.slice(0, 30) || 'Defect reported'}
                       </span>
                     ))}
                   </p>
-                </div>
+                </button>
               )}
 
               {unreadCount > 0 && (
-                <div className="bg-blue-50 border border-blue-200/60 rounded-2xl p-4" data-testid="attention-unread-messages">
+                <button
+                  onClick={() => setLocation("/manager/messages")}
+                  className="bg-blue-50 border border-blue-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
+                  data-testid="attention-unread-messages"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
                       <Mail className="h-4 w-4 text-blue-600" />
@@ -488,11 +489,15 @@ export default function ManagerDashboard() {
                       `${m.sender?.name || 'Driver'}: ${m.content?.slice(0, 30)}...`
                     ).join('; ') || 'New messages from drivers'}
                   </p>
-                </div>
+                </button>
               )}
 
               {expiringVehicles.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4" data-testid="attention-expiring-docs">
+                <button
+                  onClick={() => setLocation("/manager/reminders")}
+                  className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-amber-300 transition-all cursor-pointer"
+                  data-testid="attention-expiring-docs"
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
                       <Calendar className="h-4 w-4 text-amber-600" />
@@ -506,17 +511,12 @@ export default function ManagerDashboard() {
                     {expiringVehicles.slice(0, 3).map((v: any, idx: number) => (
                       <span key={v.id || idx}>
                         {idx > 0 && ', '}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); if (v.id) setSelectedVehicleId(v.id); }}
-                          className="text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer bg-transparent border-none p-0"
-                        >
-                          {v.vrm}
-                        </button>
+                        {v.vrm}
                       </span>
                     ))}
                     {expiringVehicles.length > 3 && ` +${expiringVehicles.length - 3} more`}
                   </p>
-                </div>
+                </button>
               )}
             </div>
           </div>
