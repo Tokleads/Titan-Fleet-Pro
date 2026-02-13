@@ -6,6 +6,8 @@ import {
   Phone,
   Instagram,
   Facebook,
+  Menu,
+  X,
 } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
 
@@ -25,6 +27,7 @@ const staggerContainer = {
 export default function TitanFleetLandingPage() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("referralCode");
@@ -70,12 +73,10 @@ export default function TitanFleetLandingPage() {
       <header className={`fixed ${referrerName ? "top-9" : "top-0"} left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-slate-900">Titan</span>
-                <span className="text-xl text-slate-500">Fleet</span>
-              </div>
-              <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-slate-900">Titan</span>
+              <span className="text-xl text-slate-500">Fleet</span>
+              <span className="hidden sm:inline-block bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full ml-1">
                 EARLY ACCESS
               </span>
             </div>
@@ -92,7 +93,7 @@ export default function TitanFleetLandingPage() {
               </a>
             </nav>
 
-            <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
               <Link href="/app">
                 <span className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium cursor-pointer">
                   Driver Login
@@ -112,8 +113,67 @@ export default function TitanFleetLandingPage() {
                 </span>
               </Link>
             </div>
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+              data-testid="button-mobile-menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden bg-white border-t border-slate-100 shadow-lg"
+          >
+            <div className="px-4 py-4 space-y-1">
+              <a
+                href="#features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              >
+                Platform
+              </a>
+              <a
+                href="#pricing"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              >
+                Pricing
+              </a>
+              <a
+                href="/help"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              >
+                Help
+              </a>
+              <div className="border-t border-slate-100 my-2" />
+              <Link href="/app" onClick={() => setMobileMenuOpen(false)}>
+                <span className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm cursor-pointer transition-colors">
+                  Driver Login
+                </span>
+              </Link>
+              <Link href="/manager/login" onClick={() => setMobileMenuOpen(false)}>
+                <span className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm cursor-pointer transition-colors">
+                  Manager Login
+                </span>
+              </Link>
+              <Link href="/demo" onClick={() => setMobileMenuOpen(false)}>
+                <span
+                  className="block mt-2 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white text-sm font-medium px-4 py-3 rounded-xl transition-colors cursor-pointer text-center"
+                  data-testid="button-view-demo-mobile"
+                >
+                  View demo
+                </span>
+              </Link>
+            </div>
+          </motion.div>
+        )}
       </header>
 
       {/* Hero Section */}
