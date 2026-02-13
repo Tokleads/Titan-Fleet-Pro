@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useBrand } from "@/hooks/use-brand";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanInput } from "@/components/titan-ui/Input";
