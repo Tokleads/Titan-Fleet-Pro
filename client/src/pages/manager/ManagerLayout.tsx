@@ -56,7 +56,6 @@ const navItems = [
   { path: "/manager/fleet-documents", icon: FolderOpen, label: "Fleet Docs" },
   { path: "/manager/user-roles", icon: Users, label: "User Roles" },
   { path: "/manager/notifications", icon: Bell, label: "Notifications" },
-  { path: "/manager/license", icon: Shield, label: "License" },
   { path: "/manager/referrals", icon: Gift, label: "Referrals" },
   { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log" },
   { path: "/manager/settings", icon: Settings, label: "Settings" },
@@ -170,15 +169,19 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
             
             <div className="w-px h-8 bg-slate-200 mx-2" />
             
-            <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLocation("/manager/license")}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none p-0"
+              data-testid="button-user-profile"
+            >
               <div className="h-9 w-9 rounded-xl bg-blue-100 flex items-center justify-center">
                 <User className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden sm:block text-left">
                 <p className="text-sm font-medium text-slate-900">{user?.name || 'Manager'}</p>
                 <p className="text-xs text-slate-500">Transport Manager</p>
               </div>
-            </div>
+            </button>
           </div>
         </header>
 
