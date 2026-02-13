@@ -7,7 +7,7 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { DocumentsPopup } from "@/components/driver/DocumentsPopup";
 import { GPSTrackingStatus } from "@/components/driver/GPSTrackingStatus";
 import ClockInOut from "./ClockInOut";
-import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon, MessageSquare } from "lucide-react";
+import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiOff, Fuel, AlertOctagon, AlertCircle, CheckCircle, Bell, Info, X, Package, FileText as FileTextIcon, MessageSquare, Car } from "lucide-react";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
@@ -480,6 +480,24 @@ export default function DriverDashboard() {
                 )}
             </motion.section>
         )}
+
+        {/* Car Register */}
+        <div 
+          className="titan-card titan-btn-press p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => setLocation("/driver/car-register")}
+          data-testid="button-car-register"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-violet-50 flex items-center justify-center">
+              <Car className="h-5 w-5 text-violet-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-slate-900">Car Register</p>
+              <p className="text-xs text-slate-500">Log which company car you're using</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400" />
+          </div>
+        </div>
 
         {/* Message Transport */}
         <div 

@@ -64,7 +64,7 @@ export const users = pgTable("users", {
   companyId: integer("company_id").references(() => companies.id).notNull(),
   email: text("email").notNull(),
   name: text("name").notNull(),
-  role: varchar("role", { length: 20 }).notNull(), // ADMIN | TRANSPORT_MANAGER | DRIVER | MECHANIC | AUDITOR
+  role: varchar("role", { length: 20 }).notNull(), // ADMIN | TRANSPORT_MANAGER | DRIVER | MECHANIC | AUDITOR | OFFICE
   pin: varchar("pin", { length: 4 }), // Optional driver PIN
   password: text("password"), // Hashed password for local auth (optional)
   active: boolean("active").default(true),
@@ -401,6 +401,13 @@ export const timesheets = pgTable("timesheets", {
   arrivalAccuracy: integer("arrival_accuracy"),
   departureAccuracy: integer("departure_accuracy"),
   manualDepotSelection: boolean("manual_depot_selection").default(false).notNull(),
+  adjustmentStatus: varchar("adjustment_status", { length: 20 }),
+  adjustmentRequestedBy: integer("adjustment_requested_by"),
+  adjustmentNote: text("adjustment_note"),
+  originalArrivalTime: timestamp("original_arrival_time"),
+  originalDepartureTime: timestamp("original_departure_time"),
+  proposedArrivalTime: timestamp("proposed_arrival_time"),
+  proposedDepartureTime: timestamp("proposed_departure_time"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -1223,3 +1230,19 @@ export const operatorLicenceVehicles = pgTable("operator_licence_vehicles", {
 
 export const insertOperatorLicenceVehicleSchema = createInsertSchema(operatorLicenceVehicles).omit({ id: true });
 export type OperatorLicenceVehicle = typeof operatorLicenceVehicles.$inferSelect;
+
+// Company Car Register - tracks which driver is using which company car and when
+export const companyCarRegister = pgTable("company_car_register", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id).notNull(),
+  numberPlate: varchar("number_plate", { length: 20 }).notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const insertCompanyCarRegisterSchema = createInsertSchema(companyCarRegister).omit({ id: true, createdAt: true });
+export type CompanyCarRegister = typeof companyCarRegister.$inferSelect;
+export type InsertCompanyCarRegister = z.infer<typeof insertCompanyCarRegisterSchema>;

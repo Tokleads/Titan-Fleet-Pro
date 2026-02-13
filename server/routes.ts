@@ -2929,6 +2929,39 @@ export async function registerRoutes(
     }
   });
 
+  // Get pending adjustments for a company (must be before :companyId route)
+  app.get("/api/timesheets/pending-adjustments/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const pending = await db
+        .select({
+          timesheet: timesheets,
+          driver: {
+            name: users.name,
+            email: users.email,
+          },
+        })
+        .from(timesheets)
+        .leftJoin(users, eq(timesheets.driverId, users.id))
+        .where(
+          and(
+            eq(timesheets.companyId, companyId),
+            eq(timesheets.adjustmentStatus, "PENDING")
+          )
+        )
+        .orderBy(desc(timesheets.updatedAt));
+
+      const result = pending.map((row) => ({
+        ...row.timesheet,
+        driver: row.driver,
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to fetch pending adjustments:", error);
+      res.status(500).json({ error: "Failed to fetch pending adjustments" });
+    }
+  });
+
   // Get timesheets for company
   app.get("/api/timesheets/:companyId", async (req, res) => {
     try {
@@ -2975,14 +3008,142 @@ export async function registerRoutes(
     }
   });
   
-  // Manual timesheet override
+  // Manual timesheet override (with adjustment approval workflow)
   app.patch("/api/timesheets/:id", async (req, res) => {
     try {
-      const timesheet = await storage.updateTimesheet(Number(req.params.id), req.body);
+      const { role: _clientRole, userId, requestedBy, adjustmentNote, arrivalTime, departureTime, ...otherUpdates } = req.body;
+      const timesheetId = Number(req.params.id);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
+
+      const user = await storage.getUser(Number(userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const userRole = user.role;
+
+      if (userRole === "OFFICE") {
+        return res.status(403).json({ error: "OFFICE users cannot modify timesheets" });
+      }
+
+      if (userRole === "TRANSPORT_MANAGER" && (arrivalTime || departureTime)) {
+        const existing = await storage.getTimesheetById(timesheetId);
+        if (!existing) {
+          return res.status(404).json({ error: "Timesheet not found" });
+        }
+
+        const timesheet = await storage.updateTimesheet(timesheetId, {
+          originalArrivalTime: existing.originalArrivalTime || existing.arrivalTime,
+          originalDepartureTime: existing.originalDepartureTime || existing.departureTime,
+          proposedArrivalTime: arrivalTime ? new Date(arrivalTime) : null,
+          proposedDepartureTime: departureTime ? new Date(departureTime) : null,
+          adjustmentStatus: "PENDING",
+          adjustmentRequestedBy: requestedBy || null,
+          adjustmentNote: adjustmentNote || null,
+          ...otherUpdates,
+        });
+        return res.json(timesheet);
+      }
+
+      if (userRole === "ADMIN" && (arrivalTime || departureTime)) {
+        const updateData: any = { ...otherUpdates };
+        if (arrivalTime) updateData.arrivalTime = new Date(arrivalTime);
+        if (departureTime) updateData.departureTime = new Date(departureTime);
+        if (updateData.arrivalTime && updateData.departureTime) {
+          updateData.totalMinutes = Math.round(
+            (new Date(updateData.departureTime).getTime() - new Date(updateData.arrivalTime).getTime()) / 60000
+          );
+        }
+        const timesheet = await storage.updateTimesheet(timesheetId, updateData);
+        return res.json(timesheet);
+      }
+
+      const timesheet = await storage.updateTimesheet(timesheetId, otherUpdates);
       res.json(timesheet);
     } catch (error) {
       console.error("Failed to update timesheet:", error);
       res.status(500).json({ error: "Failed to update timesheet" });
+    }
+  });
+
+  // Approve adjustment
+  app.post("/api/timesheets/:id/approve-adjustment", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
+      const approver = await storage.getUser(Number(userId));
+      if (!approver || approver.role !== "ADMIN") {
+        return res.status(403).json({ error: "Only ADMIN users can approve adjustments" });
+      }
+
+      const timesheetId = Number(req.params.id);
+      const existing = await storage.getTimesheetById(timesheetId);
+      if (!existing) {
+        return res.status(404).json({ error: "Timesheet not found" });
+      }
+      if (existing.adjustmentStatus !== "PENDING") {
+        return res.status(400).json({ error: "No pending adjustment to approve" });
+      }
+
+      const newArrival = existing.proposedArrivalTime || existing.arrivalTime;
+      const newDeparture = existing.proposedDepartureTime || existing.departureTime;
+      let totalMinutes = existing.totalMinutes;
+      if (newArrival && newDeparture) {
+        totalMinutes = Math.round(
+          (new Date(newDeparture).getTime() - new Date(newArrival).getTime()) / 60000
+        );
+      }
+
+      const timesheet = await storage.updateTimesheet(timesheetId, {
+        arrivalTime: newArrival,
+        departureTime: newDeparture,
+        totalMinutes,
+        adjustmentStatus: "APPROVED",
+        proposedArrivalTime: null,
+        proposedDepartureTime: null,
+      });
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Failed to approve adjustment:", error);
+      res.status(500).json({ error: "Failed to approve adjustment" });
+    }
+  });
+
+  // Reject adjustment
+  app.post("/api/timesheets/:id/reject-adjustment", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
+      const rejector = await storage.getUser(Number(userId));
+      if (!rejector || rejector.role !== "ADMIN") {
+        return res.status(403).json({ error: "Only ADMIN users can reject adjustments" });
+      }
+
+      const timesheetId = Number(req.params.id);
+      const existing = await storage.getTimesheetById(timesheetId);
+      if (!existing) {
+        return res.status(404).json({ error: "Timesheet not found" });
+      }
+      if (existing.adjustmentStatus !== "PENDING") {
+        return res.status(400).json({ error: "No pending adjustment to reject" });
+      }
+
+      const timesheet = await storage.updateTimesheet(timesheetId, {
+        adjustmentStatus: "REJECTED",
+        proposedArrivalTime: null,
+        proposedDepartureTime: null,
+      });
+      res.json(timesheet);
+    } catch (error) {
+      console.error("Failed to reject adjustment:", error);
+      res.status(500).json({ error: "Failed to reject adjustment" });
     }
   });
   
@@ -4613,6 +4774,34 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/operator-licences/:companyId/with-vehicles", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const licences = await db.select().from(operatorLicences)
+        .where(and(eq(operatorLicences.companyId, companyId), eq(operatorLicences.active, true)))
+        .orderBy(desc(operatorLicences.createdAt));
+
+      const result = await Promise.all(licences.map(async (licence) => {
+        const assignments = await db.select({ vehicleId: operatorLicenceVehicles.vehicleId })
+          .from(operatorLicenceVehicles)
+          .where(eq(operatorLicenceVehicles.licenceId, licence.id));
+
+        return {
+          id: licence.id,
+          licenceNumber: licence.licenceNumber,
+          trafficArea: licence.trafficArea,
+          licenceType: licence.licenceType,
+          vehicleIds: assignments.map(a => a.vehicleId),
+        };
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to fetch operator licences with vehicles:", error);
+      res.status(500).json({ error: "Failed to fetch operator licences with vehicles" });
+    }
+  });
+
   // Get all operator licences for company
   app.get("/api/operator-licences/:companyId", async (req, res) => {
     try {
@@ -4744,6 +4933,72 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to remove vehicle:", error);
       res.status(500).json({ error: "Failed to remove vehicle" });
+    }
+  });
+
+  // ==================== COMPANY CAR REGISTER ====================
+
+  app.post("/api/car-register", async (req, res) => {
+    try {
+      const { driverId, companyId, numberPlate, startTime, notes } = req.body;
+      if (!driverId || !companyId || !numberPlate) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const entry = await storage.createCarRegisterEntry({
+        driverId,
+        companyId,
+        numberPlate: numberPlate.toUpperCase().replace(/\s+/g, ''),
+        startTime: startTime ? new Date(startTime) : new Date(),
+        notes: notes || null,
+        endTime: null,
+      });
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Failed to create car register entry:", error);
+      res.status(500).json({ error: "Failed to create car register entry" });
+    }
+  });
+
+  app.patch("/api/car-register/:id/end", async (req, res) => {
+    try {
+      const entry = await storage.endCarRegisterEntry(Number(req.params.id));
+      if (!entry) {
+        return res.status(404).json({ error: "Entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      console.error("Failed to end car register entry:", error);
+      res.status(500).json({ error: "Failed to end car register entry" });
+    }
+  });
+
+  app.get("/api/car-register/driver/:driverId", async (req, res) => {
+    try {
+      const entries = await storage.getCarRegisterByDriver(Number(req.params.driverId));
+      res.json(entries);
+    } catch (error) {
+      console.error("Failed to get car register entries:", error);
+      res.status(500).json({ error: "Failed to get car register entries" });
+    }
+  });
+
+  app.get("/api/car-register/company/:companyId", async (req, res) => {
+    try {
+      const entries = await storage.getCarRegisterByCompany(Number(req.params.companyId));
+      res.json(entries);
+    } catch (error) {
+      console.error("Failed to get car register entries:", error);
+      res.status(500).json({ error: "Failed to get car register entries" });
+    }
+  });
+
+  app.get("/api/car-register/active/:companyId", async (req, res) => {
+    try {
+      const entries = await storage.getActiveCarAssignments(Number(req.params.companyId));
+      res.json(entries);
+    } catch (error) {
+      console.error("Failed to get active car assignments:", error);
+      res.status(500).json({ error: "Failed to get active car assignments" });
     }
   });
 

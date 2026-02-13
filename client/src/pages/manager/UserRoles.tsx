@@ -69,6 +69,13 @@ const ROLES = [
     description: 'Read-only access to all data',
     color: 'bg-gray-500',
     permissionCount: 15
+  },
+  {
+    value: 'OFFICE',
+    label: 'Office',
+    description: 'Read-only access to manager console and dashboard',
+    color: 'bg-teal-500',
+    permissionCount: 10
   }
 ];
 

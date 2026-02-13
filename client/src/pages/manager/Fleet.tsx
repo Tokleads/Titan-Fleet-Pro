@@ -24,7 +24,8 @@ import {
   Power,
   Trash2,
   Wrench,
-  FileText
+  FileText,
+  Filter
 } from "lucide-react";
 
 interface LicenseInfo {
@@ -54,6 +55,7 @@ export default function ManagerFleet() {
   const [serviceHistoryVehicle, setServiceHistoryVehicle] = useState<any | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+  const [oLicenceFilter, setOLicenceFilter] = useState<string>("all");
   const [addError, setAddError] = useState<string | null>(null);
   const [motLookupResult, setMotLookupResult] = useState<{ motDue?: string; status?: string; error?: string } | null>(null);
   const [isLookingUpMot, setIsLookingUpMot] = useState(false);
@@ -173,6 +175,24 @@ export default function ManagerFleet() {
     enabled: !!companyId,
   });
 
+  interface OLicenceWithVehicles {
+    id: number;
+    licenceNumber: string;
+    trafficArea: string;
+    licenceType: string;
+    vehicleIds: number[];
+  }
+
+  const { data: oLicences } = useQuery<OLicenceWithVehicles[]>({
+    queryKey: ["operator-licences-with-vehicles", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/operator-licences/${companyId}/with-vehicles`);
+      if (!res.ok) throw new Error("Failed to fetch operator licences");
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
   const { data: trailers } = useQuery({
     queryKey: ["trailers", companyId],
     queryFn: async () => {
@@ -183,11 +203,23 @@ export default function ManagerFleet() {
     enabled: !!companyId,
   });
 
-  const filteredVehicles = vehicles?.filter((v: any) => 
-    v.vrm.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.model.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const allAssignedVehicleIds = new Set(
+    (oLicences || []).flatMap(l => l.vehicleIds)
+  );
+
+  const filteredVehicles = vehicles?.filter((v: any) => {
+    const matchesSearch = 
+      v.vrm.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.model.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (oLicenceFilter === "all") return true;
+    if (oLicenceFilter === "unassigned") return !allAssignedVehicleIds.has(v.id);
+    const selectedLicence = oLicences?.find(l => String(l.id) === oLicenceFilter);
+    if (selectedLicence) return selectedLicence.vehicleIds.includes(v.id);
+    return true;
+  }) || [];
 
   const isMotDueSoon = (motDue: string | null) => {
     if (!motDue) return false;
@@ -388,17 +420,38 @@ export default function ManagerFleet() {
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by VRM, make, or model..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-            data-testid="input-vehicle-search"
-          />
+        {/* Search and O-Licence Filter */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by VRM, make, or model..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              data-testid="input-vehicle-search"
+            />
+          </div>
+          {oLicences && oLicences.length > 0 && (
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <select
+                value={oLicenceFilter}
+                onChange={(e) => setOLicenceFilter(e.target.value)}
+                className="h-11 pl-10 pr-8 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer min-w-[200px]"
+                data-testid="select-o-licence-filter"
+              >
+                <option value="all">All Vehicles</option>
+                {oLicences.map((licence) => (
+                  <option key={licence.id} value={String(licence.id)}>
+                    {licence.licenceNumber}
+                  </option>
+                ))}
+                <option value="unassigned">Unassigned</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Vehicles Grid */}

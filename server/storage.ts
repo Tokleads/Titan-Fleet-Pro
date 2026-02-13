@@ -21,7 +21,8 @@ import {
   type Referral, type InsertReferral,
   type Delivery, type InsertDelivery,
   type Message, type InsertMessage,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages
+  type CompanyCarRegister, type InsertCompanyCarRegister,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages, companyCarRegister
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, count, inArray } from "drizzle-orm";
@@ -149,6 +150,7 @@ export interface IStorage {
   getActiveTimesheet(driverId: number): Promise<Timesheet | undefined>;
   clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet>;
   clockOut(timesheetId: number, latitude: string, longitude: string): Promise<Timesheet>;
+  getTimesheetById(id: number): Promise<Timesheet | undefined>;
   updateTimesheet(id: number, updates: Partial<Timesheet>): Promise<Timesheet | undefined>;
   generateTimesheetCSV(timesheets: (Timesheet & { driver?: User })[]): Promise<string>;
   
@@ -207,6 +209,13 @@ export interface IStorage {
   getMessagesByCompany(companyId: number, options?: { limit?: number; offset?: number }): Promise<(Message & { sender?: User })[]>;
   getUnreadMessageCount(companyId: number): Promise<number>;
   markMessageRead(id: number): Promise<Message | undefined>;
+
+  // Company Car Register operations
+  createCarRegisterEntry(entry: InsertCompanyCarRegister): Promise<CompanyCarRegister>;
+  endCarRegisterEntry(id: number): Promise<CompanyCarRegister | undefined>;
+  getCarRegisterByDriver(driverId: number): Promise<CompanyCarRegister[]>;
+  getCarRegisterByCompany(companyId: number): Promise<CompanyCarRegister[]>;
+  getActiveCarAssignments(companyId: number): Promise<CompanyCarRegister[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1240,6 +1249,11 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
   
+  async getTimesheetById(id: number): Promise<Timesheet | undefined> {
+    const [timesheet] = await db.select().from(timesheets).where(eq(timesheets.id, id));
+    return timesheet || undefined;
+  }
+
   async updateTimesheet(id: number, updates: Partial<Timesheet>): Promise<Timesheet | undefined> {
     const [updated] = await db.update(timesheets)
       .set({ ...updates, updatedAt: new Date() })
@@ -1904,6 +1918,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messages.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async createCarRegisterEntry(entry: InsertCompanyCarRegister): Promise<CompanyCarRegister> {
+    const [newEntry] = await db.insert(companyCarRegister).values(entry).returning();
+    return newEntry;
+  }
+
+  async endCarRegisterEntry(id: number): Promise<CompanyCarRegister | undefined> {
+    const [updated] = await db.update(companyCarRegister)
+      .set({ endTime: new Date() })
+      .where(eq(companyCarRegister.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getCarRegisterByDriver(driverId: number): Promise<CompanyCarRegister[]> {
+    return await db.select().from(companyCarRegister)
+      .where(eq(companyCarRegister.driverId, driverId))
+      .orderBy(desc(companyCarRegister.startTime));
+  }
+
+  async getCarRegisterByCompany(companyId: number): Promise<CompanyCarRegister[]> {
+    return await db.select().from(companyCarRegister)
+      .where(eq(companyCarRegister.companyId, companyId))
+      .orderBy(desc(companyCarRegister.startTime));
+  }
+
+  async getActiveCarAssignments(companyId: number): Promise<CompanyCarRegister[]> {
+    return await db.select().from(companyCarRegister)
+      .where(and(
+        eq(companyCarRegister.companyId, companyId),
+        sql`${companyCarRegister.endTime} IS NULL`
+      ))
+      .orderBy(desc(companyCarRegister.startTime));
   }
 }
 export const storage = new DatabaseStorage();
