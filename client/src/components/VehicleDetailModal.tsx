@@ -774,8 +774,8 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-vehicle-detail">
-      <div className="bg-white border-b border-slate-200/80 flex items-center justify-between px-4 h-16 sticky top-0 z-10">
+    <div className="fixed inset-0 bg-white z-[9999] overflow-y-auto" data-testid="modal-vehicle-detail">
+      <div className="bg-white border-b border-slate-200/80 flex items-center justify-between px-4 h-16 sticky top-0 z-[10000]">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
