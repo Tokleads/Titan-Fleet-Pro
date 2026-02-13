@@ -263,10 +263,10 @@ export default function Deliveries() {
     { key: "invoiced", label: "Invoiced" },
   ];
 
-  const statCards = [
-    { label: "Today", value: stats?.today ?? "—", icon: Package, color: "text-blue-600 bg-blue-50" },
-    { label: "This Week", value: stats?.thisWeek ?? "—", icon: Calendar, color: "text-purple-600 bg-purple-50" },
-    { label: "This Month", value: stats?.thisMonth ?? "—", icon: BarChart3, color: "text-emerald-600 bg-emerald-50" },
+  const statCards: { label: string; value: string | number; icon: any; color: string; preset?: DateRangePreset }[] = [
+    { label: "Today", value: stats?.today ?? "—", icon: Package, color: "text-blue-600 bg-blue-50", preset: "today" },
+    { label: "This Week", value: stats?.thisWeek ?? "—", icon: Calendar, color: "text-purple-600 bg-purple-50", preset: "7days" },
+    { label: "This Month", value: stats?.thisMonth ?? "—", icon: BarChart3, color: "text-emerald-600 bg-emerald-50", preset: "30days" },
     { label: "Avg per Driver", value: stats?.avgPerDriver ?? "—", icon: Users, color: "text-orange-600 bg-orange-50" },
   ];
 
@@ -287,9 +287,20 @@ export default function Deliveries() {
         {/* Stats Cards */}
         <div className="grid grid-cols-4 gap-4" data-testid="stats-grid">
           {statCards.map((card) => (
-            <div
+            <button
               key={card.label}
-              className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4"
+              type="button"
+              className={`bg-white rounded-xl border p-5 flex items-center gap-4 text-left transition-all ${
+                card.preset && datePreset === card.preset
+                  ? "border-blue-400 ring-2 ring-blue-100 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+              } ${card.preset ? "cursor-pointer" : "cursor-default"}`}
+              onClick={() => {
+                if (card.preset) {
+                  setDatePreset(datePreset === card.preset ? "all" : card.preset);
+                  setPage(0);
+                }
+              }}
               data-testid={`stat-card-${card.label.toLowerCase().replace(/\s/g, "-")}`}
             >
               <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${card.color}`}>
@@ -301,7 +312,7 @@ export default function Deliveries() {
                   {statsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : card.value}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
