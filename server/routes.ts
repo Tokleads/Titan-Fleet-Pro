@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc, isNull, sql } from "drizzle-orm";
-import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users, fuelEntries } from "@shared/schema";
+import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users, fuelEntries, operatorLicences, operatorLicenceVehicles } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
 import { generateInspectionPDF, getInspectionFilename } from "./pdfService";
@@ -4279,6 +4279,160 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to delete delivery:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== OPERATOR LICENCES ====================
+
+  // Get count of vehicles without an operator licence (must be before :companyId route)
+  app.get("/api/operator-licences/unassigned-count/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const allVehicles = await db.select({ id: vehicles.id })
+        .from(vehicles)
+        .where(and(eq(vehicles.companyId, companyId), eq(vehicles.active, true)));
+      
+      const assignedVehicleIds = await db.select({ vehicleId: operatorLicenceVehicles.vehicleId })
+        .from(operatorLicenceVehicles)
+        .innerJoin(operatorLicences, eq(operatorLicenceVehicles.licenceId, operatorLicences.id))
+        .where(eq(operatorLicences.companyId, companyId));
+      
+      const assignedSet = new Set(assignedVehicleIds.map(v => v.vehicleId));
+      const unassignedCount = allVehicles.filter(v => !assignedSet.has(v.id)).length;
+      
+      res.json({ count: unassignedCount, total: allVehicles.length });
+    } catch (error) {
+      console.error("Failed to fetch unassigned count:", error);
+      res.status(500).json({ error: "Failed to fetch unassigned count" });
+    }
+  });
+
+  // Get all operator licences for company
+  app.get("/api/operator-licences/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const licences = await db.select().from(operatorLicences)
+        .where(eq(operatorLicences.companyId, companyId))
+        .orderBy(desc(operatorLicences.createdAt));
+      
+      const result = await Promise.all(licences.map(async (licence) => {
+        const assignedVehicles = await db.select({ count: sql<number>`count(*)::int` })
+          .from(operatorLicenceVehicles)
+          .where(eq(operatorLicenceVehicles.licenceId, licence.id));
+        
+        return {
+          ...licence,
+          actualVehicles: assignedVehicles[0]?.count || 0,
+          actualTrailers: 0,
+        };
+      }));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to fetch operator licences:", error);
+      res.status(500).json({ error: "Failed to fetch operator licences" });
+    }
+  });
+
+  // Create operator licence
+  app.post("/api/operator-licences", async (req, res) => {
+    try {
+      const { companyId, licenceNumber, trafficArea, licenceType } = req.body;
+      if (!companyId || !licenceNumber || !trafficArea || !licenceType) {
+        return res.status(400).json({ error: "Missing required fields: companyId, licenceNumber, trafficArea, licenceType" });
+      }
+      const [licence] = await db.insert(operatorLicences).values(req.body).returning();
+      res.json(licence);
+    } catch (error) {
+      console.error("Failed to create operator licence:", error);
+      res.status(500).json({ error: "Failed to create operator licence" });
+    }
+  });
+
+  // Update operator licence
+  app.put("/api/operator-licences/:id", async (req, res) => {
+    try {
+      const { companyId, ...updateData } = req.body;
+      if (!companyId) return res.status(400).json({ error: "Missing companyId" });
+      const existing = await db.select().from(operatorLicences).where(eq(operatorLicences.id, Number(req.params.id)));
+      if (!existing.length || existing[0].companyId !== companyId) {
+        return res.status(403).json({ error: "Not authorised" });
+      }
+      const [licence] = await db.update(operatorLicences)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(eq(operatorLicences.id, Number(req.params.id)))
+        .returning();
+      res.json(licence);
+    } catch (error) {
+      console.error("Failed to update operator licence:", error);
+      res.status(500).json({ error: "Failed to update operator licence" });
+    }
+  });
+
+  // Delete operator licence
+  app.delete("/api/operator-licences/:id", async (req, res) => {
+    try {
+      const { companyId } = req.query;
+      if (!companyId) return res.status(400).json({ error: "Missing companyId" });
+      const existing = await db.select().from(operatorLicences).where(eq(operatorLicences.id, Number(req.params.id)));
+      if (!existing.length || existing[0].companyId !== Number(companyId)) {
+        return res.status(403).json({ error: "Not authorised" });
+      }
+      await db.delete(operatorLicenceVehicles)
+        .where(eq(operatorLicenceVehicles.licenceId, Number(req.params.id)));
+      await db.delete(operatorLicences)
+        .where(eq(operatorLicences.id, Number(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete operator licence:", error);
+      res.status(500).json({ error: "Failed to delete operator licence" });
+    }
+  });
+
+  // Get vehicles assigned to a licence
+  app.get("/api/operator-licences/:id/vehicles", async (req, res) => {
+    try {
+      const assignments = await db.select({
+        id: operatorLicenceVehicles.id,
+        vehicleId: operatorLicenceVehicles.vehicleId,
+        assignedAt: operatorLicenceVehicles.assignedAt,
+        vrm: vehicles.vrm,
+        make: vehicles.make,
+        model: vehicles.model,
+      })
+      .from(operatorLicenceVehicles)
+      .innerJoin(vehicles, eq(operatorLicenceVehicles.vehicleId, vehicles.id))
+      .where(eq(operatorLicenceVehicles.licenceId, Number(req.params.id)));
+      res.json(assignments);
+    } catch (error) {
+      console.error("Failed to fetch licence vehicles:", error);
+      res.status(500).json({ error: "Failed to fetch licence vehicles" });
+    }
+  });
+
+  // Assign vehicle to licence
+  app.post("/api/operator-licences/:id/vehicles", async (req, res) => {
+    try {
+      const { vehicleId } = req.body;
+      const [assignment] = await db.insert(operatorLicenceVehicles)
+        .values({ licenceId: Number(req.params.id), vehicleId })
+        .returning();
+      res.json(assignment);
+    } catch (error) {
+      console.error("Failed to assign vehicle:", error);
+      res.status(500).json({ error: "Failed to assign vehicle" });
+    }
+  });
+
+  // Remove vehicle from licence
+  app.delete("/api/operator-licence-vehicles/:id", async (req, res) => {
+    try {
+      await db.delete(operatorLicenceVehicles)
+        .where(eq(operatorLicenceVehicles.id, Number(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to remove vehicle:", error);
+      res.status(500).json({ error: "Failed to remove vehicle" });
     }
   });
 

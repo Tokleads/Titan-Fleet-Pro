@@ -1189,3 +1189,37 @@ export const vehiclePenalties = pgTable("vehicle_penalties", {
 export const insertVehiclePenaltySchema = createInsertSchema(vehiclePenalties).omit({ id: true, createdAt: true, updatedAt: true });
 export type VehiclePenalty = typeof vehiclePenalties.$inferSelect;
 export type InsertVehiclePenalty = z.infer<typeof insertVehiclePenaltySchema>;
+
+// Operator Licences - UK O-Licence management
+export const operatorLicences = pgTable("operator_licences", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  licenceNumber: varchar("licence_number", { length: 50 }).notNull(),
+  trafficArea: varchar("traffic_area", { length: 100 }).notNull(),
+  licenceType: varchar("licence_type", { length: 50 }).notNull(),
+  vehicleCategory: varchar("vehicle_category", { length: 10 }).notNull().default("HGV"),
+  inForceFrom: timestamp("in_force_from"),
+  reviewDate: timestamp("review_date"),
+  authorisedVehicles: integer("authorised_vehicles").notNull().default(0),
+  authorisedTrailers: integer("authorised_trailers").notNull().default(0),
+  safetyInspectionFrequency: varchar("safety_inspection_frequency", { length: 20 }).default("6 weeks"),
+  notes: text("notes"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertOperatorLicenceSchema = createInsertSchema(operatorLicences).omit({ id: true, createdAt: true, updatedAt: true });
+export type OperatorLicence = typeof operatorLicences.$inferSelect;
+export type InsertOperatorLicence = z.infer<typeof insertOperatorLicenceSchema>;
+
+// Operator Licence Vehicle Assignments
+export const operatorLicenceVehicles = pgTable("operator_licence_vehicles", {
+  id: serial("id").primaryKey(),
+  licenceId: integer("licence_id").references(() => operatorLicences.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull()
+});
+
+export const insertOperatorLicenceVehicleSchema = createInsertSchema(operatorLicenceVehicles).omit({ id: true });
+export type OperatorLicenceVehicle = typeof operatorLicenceVehicles.$inferSelect;

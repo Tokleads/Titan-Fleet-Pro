@@ -43,6 +43,7 @@ import Drivers from './pages/manager/Drivers';
 import Referrals from './pages/manager/Referrals';
 import Deliveries from './pages/manager/Deliveries';
 import VehicleManagement from './pages/manager/VehicleManagement';
+import OperatorLicence from './pages/manager/OperatorLicence';
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCompanies from "@/pages/admin/Companies";
@@ -107,6 +108,7 @@ function Router() {
       <Route path="/manager/notification-history" component={NotificationHistory} />
       <Route path="/manager/referrals" component={Referrals} />
       <Route path="/manager/deliveries" component={Deliveries} />
+      <Route path="/manager/operator-licence" component={OperatorLicence} />
       <Route path="/manager/vehicle-management" component={VehicleManagement} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/login" component={AdminLogin} />

@@ -27,7 +27,8 @@ import {
   PoundSterling,
   TrendingUp,
   Gift,
-  CarFront
+  CarFront,
+  ScrollText
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -49,6 +50,7 @@ const navItems = [
   { path: "/manager/defects", icon: AlertTriangle, label: "Defects" },
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log" },
   { path: "/manager/fleet", icon: Truck, label: "Fleet" },
+  { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence" },
   { path: "/manager/vehicle-management", icon: CarFront, label: "Vehicle Mgmt" },
   { path: "/manager/documents", icon: FileText, label: "Documents" },
   { path: "/manager/fleet-documents", icon: FolderOpen, label: "Fleet Docs" },
