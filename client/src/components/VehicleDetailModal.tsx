@@ -777,9 +777,22 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-vehicle-detail">
       <div className="bg-white border-b border-slate-200/80 flex items-center justify-between px-4 h-16 sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm bg-slate-900">
-            TF
-          </div>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            data-testid="button-logo-home"
+          >
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm bg-slate-900">
+              TF
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-lg tracking-tight">
+                <span className="font-bold text-slate-900">Titan</span>
+                <span className="font-normal text-slate-600 ml-1">Fleet</span>
+              </span>
+            </div>
+          </button>
+          <div className="w-px h-8 bg-slate-200 mx-1" />
           <div className="flex items-center gap-2">
             <h1 className="text-base font-semibold text-slate-900">Vehicle Details</h1>
             {data && <span className="text-slate-500 text-sm">— {data.vrm}</span>}
