@@ -65,6 +65,8 @@ export default function ManagerLicense() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
 
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
   const { data: license, isLoading } = useQuery<LicenseInfo>({
     queryKey: ["license", companyId],
     queryFn: async () => {
@@ -74,6 +76,58 @@ export default function ManagerLicense() {
     },
     enabled: !!companyId,
   });
+
+  const { data: stripeProducts } = useQuery<any>({
+    queryKey: ["stripe-products"],
+    queryFn: async () => {
+      const res = await fetch("/api/stripe/products");
+      if (!res.ok) throw new Error("Failed to fetch products");
+      return res.json();
+    },
+  });
+
+  const handlePlanUpgrade = async (planKey: string) => {
+    if (!stripeProducts?.products?.length) return;
+
+    const planNameMap: Record<string, string[]> = {
+      starter: ["starter", "core", "lite"],
+      growth: ["growth"],
+      pro: ["pro", "professional"],
+      scale: ["scale", "operator", "enterprise", "unlimited"],
+    };
+
+    const matchNames = planNameMap[planKey] || [planKey];
+    const product = stripeProducts.products.find((p: any) =>
+      matchNames.some((name: string) => p.name.toLowerCase().includes(name))
+    );
+
+    const priceId = product?.prices?.[0]?.id;
+    if (!priceId) {
+      window.open("https://titanfleet.co.uk/pricing", "_blank");
+      return;
+    }
+
+    setCheckoutLoading(planKey);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId,
+          companyName: company?.name,
+          companyEmail: company?.contactEmail || user?.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const upgradeMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -237,8 +291,19 @@ export default function ManagerLicense() {
                   { key: 'scale', name: 'Scale', price: '£399', vehicles: 'Unlimited vehicles', aliases: ['operator'] },
                 ].map((plan) => {
                   const isCurrent = license.tier === plan.key || plan.aliases.includes(license.tier);
+                  const isLoading = checkoutLoading === plan.key;
                   return (
-                    <div key={plan.key} className={`p-4 rounded-xl border-2 ${isCurrent ? 'border-blue-500 bg-white' : 'border-slate-200 bg-white'}`}>
+                    <button
+                      key={plan.key}
+                      onClick={() => !isCurrent && handlePlanUpgrade(plan.key)}
+                      disabled={isCurrent || isLoading}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                        isCurrent 
+                          ? 'border-blue-500 bg-white cursor-default' 
+                          : 'border-slate-200 bg-white hover:border-blue-400 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                      } ${isLoading ? 'opacity-70' : ''}`}
+                      data-testid={`button-plan-${plan.key}`}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-slate-900">{plan.name}</span>
                         {isCurrent && (
@@ -247,7 +312,12 @@ export default function ManagerLicense() {
                       </div>
                       <p className="text-lg font-bold text-slate-900">{plan.price}<span className="text-xs font-normal text-slate-500">/mo</span></p>
                       <p className="text-sm text-slate-500 mt-1">{plan.vehicles}</p>
-                    </div>
+                      {!isCurrent && (
+                        <p className="text-xs text-blue-600 font-medium mt-2">
+                          {isLoading ? 'Redirecting...' : 'Click to upgrade →'}
+                        </p>
+                      )}
+                    </button>
                   );
                 })}
               </div>
