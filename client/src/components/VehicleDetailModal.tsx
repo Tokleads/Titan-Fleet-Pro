@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  Menu,
-  X,
   Save,
   LayoutGrid,
   Info,
@@ -79,10 +77,10 @@ function StatusBadge({ status }: { status: string }) {
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-slate-200 rounded mb-4">
+    <div className="border border-slate-200/80 rounded-xl mb-4 bg-white">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200 text-left"
+        className={`w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 text-left transition-colors ${open ? 'rounded-t-xl border-b border-slate-200/80' : 'rounded-xl'}`}
         data-testid={`toggle-section-${title.toLowerCase().replace(/\s/g, "-")}`}
       >
         <span className="text-sm font-semibold text-slate-800">{title}</span>
@@ -105,7 +103,7 @@ function InputField({ label, value, onChange, type = "text", readonly = false, p
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         readOnly={readonly}
         placeholder={placeholder}
-        className={`w-full h-10 px-3 border border-slate-300 rounded text-sm ${readonly ? "bg-slate-100" : "bg-white"} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+        className={`w-full h-10 px-3 border border-slate-200 rounded-xl text-sm ${readonly ? "bg-slate-100" : "bg-slate-50 focus:bg-white"} focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all`}
         data-testid={testId || `input-${label.toLowerCase().replace(/\s/g, "-")}`}
       />
     </div>
@@ -121,7 +119,7 @@ function SelectField({ label, value, onChange, options, testId }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-10 px-3 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
         data-testid={testId || `select-${label.toLowerCase().replace(/\s/g, "-")}`}
       >
         {options.map((o) => (
@@ -137,7 +135,7 @@ function CheckboxField({ label, checked, onChange, testId }: {
 }) {
   return (
     <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer" data-testid={testId || `checkbox-${label.toLowerCase().replace(/\s/g, "-")}`}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="rounded border-slate-300" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="rounded-lg border-slate-200" />
       {label}
     </label>
   );
@@ -149,33 +147,33 @@ function OverviewTabContent({ data }: { data: any }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-total-inspections">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-total-inspections">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Inspections</p>
           <p className="text-2xl font-bold text-blue-600">{data.inspections?.length || 0}</p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-open-defects">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-open-defects">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Open Defects</p>
           <p className="text-2xl font-bold text-red-600">{openDefects}</p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-vor-status">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-vor-status">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">VOR Status</p>
           <p className={`text-2xl font-bold ${data.vorStatus ? "text-red-600" : "text-green-600"}`}>
             {data.vorStatus ? "Off Road" : "Active"}
           </p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-last-inspection">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-last-inspection">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Last Inspection</p>
           <p className="text-lg font-bold text-slate-700">
             {lastInspection ? new Date(lastInspection.createdAt).toLocaleDateString("en-GB") : "None"}
           </p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-mot-due">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-mot-due">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">MOT Due</p>
           <p className="text-lg font-bold text-slate-700">
             {data.motDue ? new Date(data.motDue).toLocaleDateString("en-GB") : "Not Set"}
           </p>
         </div>
-        <div className="bg-white rounded-lg border border-slate-200 p-4" data-testid="kpi-tax-due">
+        <div className="bg-white rounded-xl border border-slate-200 p-4" data-testid="kpi-tax-due">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tax Due</p>
           <p className="text-lg font-bold text-slate-700">
             {data.taxDue ? new Date(data.taxDue).toLocaleDateString("en-GB") : "Not Set"}
@@ -226,11 +224,11 @@ function VehicleDetailsTabContent({ data, formData, setFormData, categories, cos
                   type="text"
                   value={formData.vrm || ""}
                   readOnly
-                  className="flex-1 h-10 px-3 bg-slate-100 border border-slate-300 rounded text-sm"
+                  className="flex-1 h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-sm"
                   data-testid="input-registration"
                 />
-                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-300 rounded hover:bg-slate-50" data-testid="button-edit-registration">Edit Registration</button>
-                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-300 rounded hover:bg-slate-50" data-testid="button-view-history">View History</button>
+                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50" data-testid="button-edit-registration">Edit Registration</button>
+                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50" data-testid="button-view-history">View History</button>
               </div>
             </div>
             <InputField label="Simplified Model" value={formData.simplifiedModel || ""} onChange={(v) => set("simplifiedModel", v)} />
@@ -357,7 +355,7 @@ function VehicleDetailsTabContent({ data, formData, setFormData, categories, cos
           <textarea
             value={formData.statusMessage || ""}
             onChange={(e) => set("statusMessage", e.target.value)}
-            className="w-full h-20 px-3 py-2 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full h-20 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             data-testid="textarea-status-message"
           />
         </div>
@@ -777,18 +775,20 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
 
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto" data-testid="modal-vehicle-detail">
-      <div className="bg-slate-800 text-white flex items-center justify-between px-4 h-14 sticky top-0 z-10">
+      <div className="bg-white border-b border-slate-200/80 flex items-center justify-between px-4 h-16 sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 hover:bg-slate-700 rounded" data-testid="button-toggle-sidebar">
-            <Menu className="h-5 w-5" />
-          </button>
-          <h1 className="text-base font-semibold">Vehicle Details</h1>
-          {data && <span className="text-slate-400 text-sm">— {data.vrm}</span>}
+          <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm bg-slate-900">
+            TF
+          </div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-base font-semibold text-slate-900">Vehicle Details</h1>
+            {data && <span className="text-slate-500 text-sm">— {data.vrm}</span>}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 rounded transition-colors"
+            className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
             data-testid="button-cancel"
           >
             Cancel
@@ -796,7 +796,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
           <button
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
             data-testid="button-save"
           >
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -805,9 +805,9 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-slate-200/80">
         <button
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
           data-testid="button-recheck-alerts"
         >
           <RefreshCw className="h-4 w-4" />
@@ -816,19 +816,19 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
         <button
           onClick={() => vorMutation.mutate(data?.vorStatus ? "resolve" : "set")}
           disabled={vorMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-sm font-medium text-slate-700 rounded hover:bg-slate-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-sm font-medium text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
           data-testid="button-set-vor"
         >
           {data?.vorStatus ? "Resolve VOR" : "Set As VOR"}
         </button>
         <button
-          className="px-4 py-2 bg-white border border-slate-300 text-sm font-medium text-slate-700 rounded hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 bg-white border border-slate-200 text-sm font-medium text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
           data-testid="button-sorn"
         >
           Set Vehicle SORN
         </button>
         <button
-          className="px-4 py-2 bg-white border border-slate-300 text-sm font-medium text-slate-700 rounded hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 bg-white border border-slate-200 text-sm font-medium text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
           data-testid="button-disposal"
         >
           Vehicle Disposal
@@ -837,8 +837,8 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
 
       <div className="flex min-h-[calc(100vh-7.5rem)]">
         {sidebarOpen && (
-          <div className="w-56 bg-slate-800 text-white shrink-0" data-testid="sidebar-tabs">
-            <nav className="py-2">
+          <div className="w-56 bg-white border-r border-slate-200/80 shrink-0 relative" data-testid="sidebar-tabs">
+            <nav className="p-3 space-y-1">
               {SIDEBAR_TABS.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -846,23 +846,39 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left rounded-xl transition-all duration-150 ${
                       isActive
-                        ? "bg-slate-700 border-l-4 border-blue-500 text-white"
-                        : "border-l-4 border-transparent text-slate-300 hover:bg-slate-700 hover:text-white"
+                        ? "bg-blue-50 text-blue-600 shadow-sm"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                     data-testid={`tab-${tab.id}`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{tab.label}</span>
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span className="truncate font-medium">{tab.label}</span>
                   </button>
                 );
               })}
             </nav>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="absolute -right-3 top-4 h-6 w-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow z-10"
+              data-testid="button-toggle-sidebar"
+            >
+              <ChevronDown className="h-3.5 w-3.5 text-slate-500 -rotate-90" />
+            </button>
           </div>
         )}
 
-        <div className="flex-1 p-6 bg-white overflow-y-auto">
+        <div className="flex-1 p-6 bg-slate-100/50 overflow-y-auto">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mb-4 h-8 w-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+              data-testid="button-toggle-sidebar"
+            >
+              <ChevronDown className="h-3.5 w-3.5 text-slate-500 rotate-90" />
+            </button>
+          )}
           {renderContent()}
         </div>
       </div>
