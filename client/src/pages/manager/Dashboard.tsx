@@ -306,7 +306,7 @@ export default function ManagerDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-drivers-active">
+            <button onClick={() => setLocation("/manager/drivers")} className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm text-left hover:shadow-md hover:border-slate-300 transition-all cursor-pointer" data-testid="stat-drivers-active">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-500">Drivers on Shift</p>
@@ -317,9 +317,9 @@ export default function ManagerDashboard() {
                   <Users className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-inspections-today">
+            <button onClick={() => setLocation("/manager/inspections")} className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm text-left hover:shadow-md hover:border-slate-300 transition-all cursor-pointer" data-testid="stat-inspections-today">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-500">Inspections Today</p>
@@ -344,9 +344,9 @@ export default function ManagerDashboard() {
                   <ClipboardCheck className="h-6 w-6 text-emerald-600" />
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-open-defects">
+            <button onClick={() => setLocation("/manager/defects")} className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm text-left hover:shadow-md hover:border-slate-300 transition-all cursor-pointer" data-testid="stat-open-defects">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-500">Open Defects</p>
@@ -367,9 +367,9 @@ export default function ManagerDashboard() {
                   <AlertTriangle className="h-6 w-6 text-amber-600" />
                 </div>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm" data-testid="stat-vor-vehicles">
+            <button onClick={() => setLocation("/manager/fleet")} className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm text-left hover:shadow-md hover:border-slate-300 transition-all cursor-pointer" data-testid="stat-vor-vehicles">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-500">VOR Vehicles</p>
@@ -380,7 +380,7 @@ export default function ManagerDashboard() {
                   <Truck className={`h-6 w-6 ${vorVehicles > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         )}
 
