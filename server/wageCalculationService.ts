@@ -61,7 +61,7 @@ export async function calculateWages(
     isBankHoliday
   );
   
-  // Calculate overtime (>8 hours/day)
+  // Calculate overtime (>14 hours/day by default)
   const dailyOvertimeThreshold = payRate.dailyOvertimeThreshold;
   const netMinutes = totalMinutes - (totalMinutes > 360 ? 30 : 0); // Subtract break time
   const overtimeMinutes = Math.max(0, netMinutes - dailyOvertimeThreshold);

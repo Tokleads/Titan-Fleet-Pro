@@ -942,7 +942,7 @@ export const payRates = pgTable("pay_rates", {
   // Time thresholds
   nightStartHour: integer("night_start_hour").notNull().default(22), // 10 PM
   nightEndHour: integer("night_end_hour").notNull().default(6), // 6 AM
-  dailyOvertimeThreshold: integer("daily_overtime_threshold").notNull().default(480), // 8 hours in minutes
+  dailyOvertimeThreshold: integer("daily_overtime_threshold").notNull().default(840), // 14 hours in minutes
   weeklyOvertimeThreshold: integer("weekly_overtime_threshold").notNull().default(2400), // 40 hours in minutes
   
   // Settings

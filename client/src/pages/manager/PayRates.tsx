@@ -754,7 +754,7 @@ export default function PayRates() {
                   <li>Night hours ({defaultRate?.nightStartHour || 22}:00 - {defaultRate?.nightEndHour || 6}:00) get the night rate</li>
                   <li>Saturday and Sunday shifts get the weekend rate</li>
                   <li>Bank holiday dates get the holiday premium</li>
-                  <li>Hours over {(defaultRate?.dailyOvertimeThreshold || 480) / 60} per day get overtime multiplier ({defaultRate?.overtimeMultiplier || '1.5'}x)</li>
+                  <li>Hours over {(defaultRate?.dailyOvertimeThreshold || 840) / 60} per day get overtime multiplier ({defaultRate?.overtimeMultiplier || '1.5'}x)</li>
                 </ul>
               </div>
             </div>
