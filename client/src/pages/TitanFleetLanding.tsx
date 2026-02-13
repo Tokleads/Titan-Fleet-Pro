@@ -43,17 +43,12 @@ export default function TitanFleetLandingPage() {
       (window.navigator as any).standalone;
 
     if (isStandalone) {
-      setLocation("/app");
-      return;
-    }
-
-    const lastRole = localStorage.getItem("titanfleet_last_role");
-    if (lastRole === "driver") {
-      setLocation("/app");
-      return;
-    }
-    if (lastRole === "manager") {
-      setLocation("/manager/login");
+      const lastRole = localStorage.getItem("titanfleet_last_role");
+      if (lastRole === "manager") {
+        setLocation("/manager/login");
+      } else {
+        setLocation("/app");
+      }
       return;
     }
 
