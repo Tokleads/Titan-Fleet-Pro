@@ -297,9 +297,7 @@ export default function Landing() {
       
       <div className="absolute bottom-6 left-0 right-0 text-center z-10 space-y-2">
         <div className="flex items-center justify-center gap-4">
-          <Link href="/manager/login">
-            <a className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-manager-login">Manager Login</a>
-          </Link>
+          <Link href="/manager/login" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-manager-login">Manager Login</Link>
           <span className="text-slate-600">·</span>
           <a href="/?marketing=true" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-view-website">View our website</a>
         </div>

@@ -280,9 +280,7 @@ export default function ManagerLogin() {
         </TitanCard>
 
         <div className="mt-6 text-center flex items-center justify-center gap-4">
-          <Link href="/app">
-            <a className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-driver-login">Driver Login</a>
-          </Link>
+          <Link href="/app" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-driver-login">Driver Login</Link>
           <span className="text-slate-600">·</span>
           <a href="/?marketing=true" className="text-xs text-slate-400 hover:text-white transition-colors" data-testid="link-view-website">View our website</a>
         </div>
