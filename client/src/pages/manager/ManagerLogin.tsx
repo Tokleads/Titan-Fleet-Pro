@@ -13,8 +13,8 @@ export default function ManagerLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loginMode, setLoginMode] = useState<'pin' | 'email'>('pin');
-  const [companyCode, setCompanyCode] = useState("");
-  const [pin, setPin] = useState("");
+  const [companyCode, setCompanyCode] = useState("APEX");
+  const [pin, setPin] = useState("0000");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -204,10 +204,8 @@ export default function ManagerLogin() {
 
                   {loginMode === 'email' && (
                     <div className="text-center">
-                      <Link href="/forgot-password">
-                        <a className="text-sm text-blue-600 hover:text-blue-700 font-medium" data-testid="link-forgot-password">
+                      <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium" data-testid="link-forgot-password">
                           Forgot your password?
-                        </a>
                       </Link>
                     </div>
                   )}
@@ -270,13 +268,6 @@ export default function ManagerLogin() {
             )}
           </AnimatePresence>
 
-          {!requiresTwoFactor && loginMode === 'pin' && (
-            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-              <p className="text-sm text-slate-500">
-                Demo: Company Code <span className="font-mono font-bold">APEX</span>, PIN <span className="font-mono font-bold">0000</span>
-              </p>
-            </div>
-          )}
         </TitanCard>
 
         <div className="mt-6 text-center flex items-center justify-center gap-4">
