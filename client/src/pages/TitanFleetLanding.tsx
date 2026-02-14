@@ -115,6 +115,9 @@ export default function TitanFleetLandingPage() {
               <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium">
                 Platform
               </a>
+              <a href="#ai-agent" className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium">
+                AI Agent
+              </a>
               <a href="#pricing" className="text-slate-600 hover:text-slate-900 transition-colors text-sm font-medium">
                 Pricing
               </a>
@@ -167,6 +170,13 @@ export default function TitanFleetLandingPage() {
                 className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
               >
                 Platform
+              </a>
+              <a
+                href="#ai-agent"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+              >
+                AI Agent
               </a>
               <a
                 href="#pricing"
@@ -477,8 +487,125 @@ export default function TitanFleetLandingPage() {
         </div>
       </section>
 
+      {/* Autonomous Compliance Agent */}
+      <section id="ai-agent" className="py-20 lg:py-28 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(91,108,255,0.05)_0%,_transparent_60%)]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#5B6CFF]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="text-center mb-16"
+          >
+            <motion.div
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 bg-[#5B6CFF]/10 text-[#5B6CFF] text-sm font-semibold px-4 py-2 rounded-full mb-6"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#5B6CFF] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#5B6CFF]"></span>
+              </span>
+              AI-Powered
+            </motion.div>
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.5, delay: 0.05 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-6"
+            >
+              Beyond Software:{" "}
+              <span className="text-[#5B6CFF]">Your Autonomous<br className="hidden sm:block" /> Compliance Agent</span>
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-lg text-slate-600 max-w-2xl mx-auto"
+            >
+              Most platforms are just digital filing cabinets. Titan Fleet is different. Our built-in AI Agent works in the background to protect your fleet — 24/7, without being asked.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="grid md:grid-cols-3 gap-8"
+          >
+            {[
+              {
+                icon: "🔍",
+                gradient: "from-rose-500/10 to-orange-500/10",
+                border: "border-rose-200/60",
+                iconBg: "bg-rose-50",
+                title: "Auto-Triage Defects",
+                description: "Instantly recognises safety-critical issues from driver photos. A cracked windscreen or bald tyre gets escalated before your morning coffee — not buried in a spreadsheet.",
+                tag: "Real-Time",
+                tagColor: "bg-rose-100 text-rose-700",
+              },
+              {
+                icon: "⚡",
+                gradient: "from-amber-500/10 to-yellow-500/10",
+                border: "border-amber-200/60",
+                iconBg: "bg-amber-50",
+                title: "Predictive Maintenance",
+                description: "Flags patterns that lead to breakdowns before the VOR light hits the dash. Recurring defects, overdue services, and mileage trends are surfaced automatically.",
+                tag: "Proactive",
+                tagColor: "bg-amber-100 text-amber-700",
+              },
+              {
+                icon: "🛡️",
+                gradient: "from-emerald-500/10 to-teal-500/10",
+                border: "border-emerald-200/60",
+                iconBg: "bg-emerald-50",
+                title: "Active Compliance",
+                description: "It doesn't just record data — it hunts for gaps in your audit trail so you don't have to. Missing inspections, expiring MOTs, and unsigned checks are caught before DVSA asks.",
+                tag: "Always-On",
+                tagColor: "bg-emerald-100 text-emerald-700",
+              },
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                variants={fadeUp}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+                className={`relative bg-gradient-to-br ${item.gradient} rounded-2xl p-8 border ${item.border} hover:shadow-xl transition-all duration-300 group`}
+                data-testid={`ai-feature-${index}`}
+              >
+                <div className={`${item.iconBg} w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                  {item.icon}
+                </div>
+                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 ${item.tagColor}`}>
+                  {item.tag}
+                </span>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
+                <p className="text-slate-600 leading-relaxed">{item.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="mt-12 text-center"
+          >
+            <div className="inline-flex items-center gap-3 bg-slate-900 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              Your compliance agent is always working — even when you're not
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* More Built-In Features */}
-      <section className="py-20 lg:py-28 bg-white">
+      <section className="py-20 lg:py-28 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
