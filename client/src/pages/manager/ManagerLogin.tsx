@@ -14,7 +14,7 @@ export default function ManagerLogin() {
   const { toast } = useToast();
   const [loginMode, setLoginMode] = useState<'pin' | 'email'>('pin');
   const [companyCode, setCompanyCode] = useState("APEX");
-  const [pin, setPin] = useState("0000");
+  const [pin, setPin] = useState("7429");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);

@@ -35,7 +35,7 @@ async function seed() {
     email: "manager@apex.com",
     name: "Sarah Connor",
     role: "MANAGER",
-    pin: "0000"
+    pin: "7429"
   }).returning();
 
   // Create drivers
