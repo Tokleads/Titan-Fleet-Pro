@@ -16,7 +16,10 @@ import {
   Gauge,
   Save,
   ChevronDown,
-  Plus
+  Plus,
+  Brain,
+  Sparkles,
+  Bot
 } from "lucide-react";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
@@ -148,6 +151,42 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
               <p className="text-sm text-slate-700">{defect.description}</p>
             </div>
           </div>
+
+          {defect.aiTriaged && (
+            <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl p-4 border border-violet-200/50">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-7 w-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-violet-900">AI Analysis</h3>
+                  <p className="text-[10px] text-violet-500">Autonomous Compliance Agent</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1 text-xs text-violet-600">
+                  <Sparkles className="h-3 w-3" />
+                  {defect.aiConfidence}% confidence
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-white/60 rounded-lg p-2">
+                  <p className="text-[10px] text-violet-500 mb-0.5">AI Severity</p>
+                  <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-semibold ${severityColors[defect.aiSeverity] || 'bg-slate-100 text-slate-600'}`}>
+                    {defect.aiSeverity}
+                  </span>
+                </div>
+                <div className="bg-white/60 rounded-lg p-2">
+                  <p className="text-[10px] text-violet-500 mb-0.5">AI Category</p>
+                  <p className="text-xs font-medium text-slate-800">{defect.aiCategory}</p>
+                </div>
+              </div>
+              {defect.aiAnalysis && (
+                <div className="bg-white/60 rounded-lg p-2">
+                  <p className="text-[10px] text-violet-500 mb-0.5">AI Assessment</p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{defect.aiAnalysis}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -325,6 +364,19 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
         <div className="sticky bottom-0 bg-white border-t border-slate-200 rounded-b-2xl px-6 py-4 flex items-center justify-between">
           <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium" data-testid="button-cancel-defect">
             Cancel
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await fetch(`/api/defects/${defect.id}/triage`, { method: 'POST' });
+                window.location.reload();
+              } catch {}
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 transition-colors"
+            data-testid="button-retriage-defect"
+          >
+            <Brain className="h-3.5 w-3.5" />
+            AI Re-analyze
           </button>
           <button
             onClick={handleSave}
@@ -579,6 +631,14 @@ export default function ManagerDefects() {
                               {defect.severity}
                             </span>
                           </div>
+                          {defect.aiTriaged && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <div className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                                <Bot className="h-2.5 w-2.5" />
+                                AI: {defect.aiCategory || defect.category} · {defect.aiConfidence}%
+                              </div>
+                            </div>
+                          )}
                           
                           <p className="text-sm font-medium text-slate-900 mb-1">{defect.category}</p>
                           <p className="text-sm text-slate-600 line-clamp-2 mb-3">{defect.description}</p>

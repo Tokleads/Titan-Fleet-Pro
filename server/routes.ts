@@ -17,6 +17,9 @@ import driverRoutes from "./driverRoutes";
 import authRoutes from "./authRoutes";
 import { ObjectStorageService } from "./objectStorage";
 import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome, checkMOTExpiryWarnings } from "./notificationTriggers";
+import { triageDefect } from "./aiTriageService";
+import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
+import { maintenanceAlerts } from "@shared/schema";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -703,9 +706,74 @@ export async function registerRoutes(
         });
       });
       
+      // Trigger AI triage (async, non-blocking)
+      setImmediate(() => {
+        triageDefect(defect.id).catch(err => 
+          console.error('[AI Triage] Background triage failed:', err)
+        );
+      });
+      
       res.status(201).json(defect);
     } catch (error) {
       console.error("Failed to create defect:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // AI Maintenance Alerts API
+  app.get("/api/maintenance-alerts", async (req, res) => {
+    try {
+      const companyId = Number(req.query.companyId);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const alerts = await getMaintenanceAlerts(companyId);
+      res.json(alerts);
+    } catch (error) {
+      console.error("Failed to get maintenance alerts:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/maintenance-alerts/run", async (req, res) => {
+    try {
+      const { companyId } = req.body;
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      await runPredictiveMaintenance(companyId);
+      const alerts = await getMaintenanceAlerts(companyId);
+      res.json({ success: true, alerts });
+    } catch (error) {
+      console.error("Failed to run predictive maintenance:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/maintenance-alerts/:id/acknowledge", async (req, res) => {
+    try {
+      const alertId = Number(req.params.id);
+      const { userId, companyId } = req.body;
+
+      const [alert] = await db.select().from(maintenanceAlerts).where(eq(maintenanceAlerts.id, alertId));
+      if (!alert) return res.status(404).json({ error: "Alert not found" });
+      if (companyId && alert.companyId !== companyId) return res.status(403).json({ error: "Access denied" });
+
+      await db.update(maintenanceAlerts)
+        .set({ status: "ACKNOWLEDGED", acknowledgedBy: userId || null, acknowledgedAt: new Date() })
+        .where(eq(maintenanceAlerts.id, alertId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to acknowledge alert:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // AI Triage - manually trigger for existing defect
+  app.post("/api/defects/:id/triage", async (req, res) => {
+    try {
+      const defectId = Number(req.params.id);
+      await triageDefect(defectId);
+      const defect = await db.select().from(defects).where(eq(defects.id, defectId));
+      res.json(defect[0] || { error: "Defect not found" });
+    } catch (error) {
+      console.error("Failed to triage defect:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

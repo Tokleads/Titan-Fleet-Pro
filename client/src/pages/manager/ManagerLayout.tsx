@@ -28,7 +28,8 @@ import {
   TrendingUp,
   Gift,
   CarFront,
-  ScrollText
+  ScrollText,
+  Brain
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -48,6 +49,7 @@ const navItems = [
   { path: "/manager/inspections", icon: ClipboardCheck, label: "Inspections", permissionKey: "inspections" },
   { path: "/manager/deliveries", icon: Package, label: "Deliveries", permissionKey: "deliveries" },
   { path: "/manager/defects", icon: AlertTriangle, label: "Defects", permissionKey: "defects" },
+  { path: "/manager/ai-insights", icon: Brain, label: "AI Insights", permissionKey: "ai-insights" },
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log", permissionKey: "fuel-log" },
   { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence", permissionKey: "o-licence" },
   { path: "/manager/fleet", icon: Truck, label: "Fleet", permissionKey: "fleet" },

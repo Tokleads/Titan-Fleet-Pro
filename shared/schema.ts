@@ -104,6 +104,7 @@ export const DASHBOARD_PERMISSION_KEYS = [
   { key: "user-roles", label: "User Roles", path: "/manager/user-roles", adminOnly: true },
   { key: "notifications", label: "Notifications", path: "/manager/notifications" },
   { key: "referrals", label: "Referrals", path: "/manager/referrals" },
+  { key: "ai-insights", label: "AI Insights", path: "/manager/ai-insights" },
   { key: "audit-log", label: "Audit Log", path: "/manager/audit-log" },
   { key: "settings", label: "Settings", path: "/manager/settings", adminOnly: true },
 ] as const;
@@ -279,6 +280,14 @@ export const defects = pgTable("defects", {
   resolvedBy: integer("resolved_by").references(() => users.id),
   photo: text("photo"),
   
+  // AI Triage fields
+  aiSeverity: varchar("ai_severity", { length: 20 }), // AI-suggested severity: LOW | MEDIUM | HIGH | CRITICAL
+  aiCategory: varchar("ai_category", { length: 50 }), // AI-suggested category
+  aiConfidence: integer("ai_confidence"), // 0-100 confidence score
+  aiAnalysis: text("ai_analysis"), // AI analysis text explanation
+  aiTriaged: boolean("ai_triaged").default(false), // Whether AI has analyzed this defect
+  aiTriagedAt: timestamp("ai_triaged_at"), // When AI analysis was performed
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -1276,3 +1285,26 @@ export const companyCarRegister = pgTable("company_car_register", {
 export const insertCompanyCarRegisterSchema = createInsertSchema(companyCarRegister).omit({ id: true, createdAt: true });
 export type CompanyCarRegister = typeof companyCarRegister.$inferSelect;
 export type InsertCompanyCarRegister = z.infer<typeof insertCompanyCarRegisterSchema>;
+
+// Predictive Maintenance Alerts - AI-generated risk assessments
+export const maintenanceAlerts = pgTable("maintenance_alerts", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  riskLevel: varchar("risk_level", { length: 20 }).notNull(), // LOW | MEDIUM | HIGH | CRITICAL
+  riskScore: integer("risk_score").notNull(), // 0-100
+  prediction: text("prediction").notNull(), // What the AI predicts
+  recommendation: text("recommendation").notNull(), // What action to take
+  basedOnDefects: integer("based_on_defects").notNull().default(0), // Number of defects analyzed
+  category: varchar("category", { length: 50 }), // Which system is at risk
+  status: varchar("status", { length: 20 }).notNull().default("ACTIVE"), // ACTIVE | ACKNOWLEDGED | RESOLVED
+  acknowledgedBy: integer("acknowledged_by").references(() => users.id),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  expiresAt: timestamp("expires_at"), // Alert validity period
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertMaintenanceAlertSchema = createInsertSchema(maintenanceAlerts).omit({ id: true, createdAt: true, updatedAt: true });
+export type MaintenanceAlert = typeof maintenanceAlerts.$inferSelect;
+export type InsertMaintenanceAlert = z.infer<typeof insertMaintenanceAlertSchema>;

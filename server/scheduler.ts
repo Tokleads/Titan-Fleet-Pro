@@ -17,6 +17,10 @@ import {
   checkServiceDue
 } from './notificationService';
 import { checkDefectEscalation, checkFuelAnomalies } from './notificationTriggers';
+import { runPredictiveMaintenance } from './predictiveMaintenanceService';
+import { db } from './db';
+import { companies } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 let isSchedulerRunning = false;
 let lastRunTime: Date | null = null;
@@ -36,6 +40,7 @@ export async function runNotificationChecks(): Promise<{
     serviceDue: { success: boolean; error?: string };
     defectEscalation: { success: boolean; error?: string };
     fuelAnomalies: { success: boolean; error?: string };
+    predictiveMaintenance: { success: boolean; error?: string };
   };
 }> {
   const timestamp = new Date();
@@ -47,6 +52,7 @@ export async function runNotificationChecks(): Promise<{
     serviceDue: { success: false, error: undefined as string | undefined },
     defectEscalation: { success: false, error: undefined as string | undefined },
     fuelAnomalies: { success: false, error: undefined as string | undefined },
+    predictiveMaintenance: { success: false, error: undefined as string | undefined },
   };
 
   // Check MOT expiry
@@ -102,6 +108,20 @@ export async function runNotificationChecks(): Promise<{
     results.fuelAnomalies.success = false;
     results.fuelAnomalies.error = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Scheduler] ✗ Fuel anomaly check failed:', error);
+  }
+
+  // Run predictive maintenance for all active companies
+  try {
+    const activeCompanies = await db.select({ id: companies.id }).from(companies).where(eq(companies.isActive, true));
+    for (const company of activeCompanies) {
+      await runPredictiveMaintenance(company.id);
+    }
+    results.predictiveMaintenance.success = true;
+    console.log('[Scheduler] ✓ Predictive maintenance check complete');
+  } catch (error) {
+    results.predictiveMaintenance.success = false;
+    results.predictiveMaintenance.error = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Scheduler] ✗ Predictive maintenance check failed:', error);
   }
 
   // Note: License expiry check not implemented yet
