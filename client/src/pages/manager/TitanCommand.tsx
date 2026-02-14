@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { useLocation } from "wouter";
 import { 
   Send, 
   Radio,
@@ -8,7 +9,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Zap,
-  Bell
+  Bell,
+  ChevronRight
 } from "lucide-react";
 import { useState } from "react";
 
@@ -25,6 +27,7 @@ export default function TitanCommand() {
   const manager = session.getUser();
   const companyId = company?.id;
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const [messageType, setMessageType] = useState<"broadcast" | "individual">("broadcast");
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
@@ -277,21 +280,27 @@ export default function TitanCommand() {
               <div className="space-y-3">
                 {drivers && drivers.length > 0 ? (
                   drivers.slice(0, 5).map((driver) => (
-                    <div key={driver.id} className="flex items-center gap-3">
+                    <button
+                      key={driver.id}
+                      onClick={() => navigate("/manager/drivers")}
+                      className="flex items-center gap-3 w-full text-left rounded-xl p-2 -mx-2 hover:bg-blue-50/60 transition-colors group cursor-pointer"
+                      data-testid={`link-driver-${driver.id}`}
+                    >
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <span className="text-sm font-medium text-blue-600">
                           {driver.name.charAt(0)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">
+                        <p className="text-sm font-medium text-slate-900 truncate group-hover:text-blue-700 transition-colors">
                           {driver.name}
                         </p>
                         <p className="text-xs text-slate-500 truncate">
                           {driver.email}
                         </p>
                       </div>
-                    </div>
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+                    </button>
                   ))
                 ) : (
                   <p className="text-sm text-slate-400">No active drivers</p>
