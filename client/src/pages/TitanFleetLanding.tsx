@@ -720,19 +720,21 @@ export default function TitanFleetLandingPage() {
             </p>
             <div className="flex gap-3 mb-8">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/titan.fleet"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
+                aria-label="Follow Titan Fleet on Instagram"
+                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500 hover:text-white hover:scale-110 transition-all duration-200"
                 data-testid="link-instagram"
               >
                 <Instagram className="h-4 w-4" />
               </a>
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/people/Titan-Fleet/61586509495375/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors"
+                aria-label="Follow Titan Fleet on Facebook"
+                className="h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 hover:text-white hover:scale-110 transition-all duration-200"
                 data-testid="link-facebook"
               >
                 <Facebook className="h-4 w-4" />
@@ -747,6 +749,7 @@ export default function TitanFleetLandingPage() {
                   <li><a href="#pricing" className="text-xs sm:text-sm hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>Pricing</a></li>
                   <li><Link href="/help"><span className="text-xs sm:text-sm hover:text-white transition-colors cursor-pointer">Help Centre</span></Link></li>
                   <li><a href="/procurement-faq" className="text-xs sm:text-sm hover:text-white transition-colors">FAQs</a></li>
+                  <li><Link href="/blog"><span className="text-xs sm:text-sm hover:text-white transition-colors cursor-pointer">Blog</span></Link></li>
                 </ul>
               </div>
 
