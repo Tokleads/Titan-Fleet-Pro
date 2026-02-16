@@ -404,6 +404,19 @@ router.get("/referrals", verifyAdminToken, async (req: Request, res: Response) =
   }
 });
 
+router.put("/users/:id", verifyAdminToken, async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const updates = req.body;
+    const updated = await storage.updateUser(userId, updates);
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin user update error:", error);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
 router.post("/companies/:id/bulk-import", verifyAdminToken, async (req: Request, res: Response) => {
   try {
     const companyId = parseInt(req.params.id, 10);
