@@ -106,8 +106,9 @@ export default function TitanFleetLandingPage() {
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-slate-900">Titan</span>
               <span className="text-xl text-slate-500">Fleet</span>
-              <span className="hidden sm:inline-block bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-full ml-1">
-                EARLY ACCESS
+              <span className="hidden sm:inline-flex items-center gap-1 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded ml-2 shadow-sm border border-slate-600/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Early Access
               </span>
             </div>
 
