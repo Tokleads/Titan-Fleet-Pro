@@ -1,0 +1,239 @@
+🚀 TITANFLEET API INTEGRATION - IMPLEMENTATION PROMPT FOR REPLIT
+
+═══════════════════════════════════════════════════════════════════
+
+📋 WHAT TO BUILD:
+
+Implement a complete API integration system for TitanFleet that includes:
+
+1. Customer-facing API key management (Resend, Stripe, Xero, QuickBooks, OpenStreetMap)
+2. Agentic AI system that automatically monitors and fixes broken API integrations
+3. Landing page section showcasing integrations with company logos
+
+═══════════════════════════════════════════════════════════════════
+
+📦 FILES PROVIDED:
+
+Backend:
+- api_health_monitor.ts (Core monitoring + AI agent)
+- agentic_api_schema.sql (Database tables)
+- email.ts (Resend email service)
+- email_settings_schema.sql (Email tables)
+- trpc_email_procedures.ts (Email tRPC procedures)
+- trpc_api_health_procedures.ts (Health monitoring tRPC procedures)
+
+Frontend:
+- ApiHealthDashboard.tsx (Admin dashboard)
+- EmailSettings.tsx (Customer email settings)
+- IntegrationsPage.tsx (Customer integrations management)
+- LandingPageIntegrations.tsx (Landing page section)
+
+Documentation:
+- REPLIT_IMPLEMENTATION_GUIDE.md (Complete step-by-step guide)
+- RESEND_INTEGRATION_GUIDE.md (Email integration docs)
+- AGENTIC_API_GUIDE.md (Auto-repair system docs)
+
+═══════════════════════════════════════════════════════════════════
+
+🎯 QUICK START (3 HOURS):
+
+STEP 1: Database (15 min)
+- Run email_settings_schema.sql
+- Run agentic_api_schema.sql
+
+STEP 2: Dependencies (5 min)
+- pnpm add resend node-cron p-queue
+
+STEP 3: Backend (45 min)
+- Copy email.ts to server/services/
+- Copy api_health_monitor.ts to server/services/
+- Add email router to server/routers/email.ts
+- Add apiHealth router to server/routers/apiHealth.ts
+- Update server/routers.ts to include new routers
+- Add cron job to server/index.ts:
+  
+  import cron from 'node-cron';
+  import { runAllHealthChecks } from './services/api_health_monitor';
+  
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Running API health checks...');
+    await runAllHealthChecks();
+  });
+
+STEP 4: Frontend (60 min)
+- Copy EmailSettings.tsx to client/src/pages/
+- Copy IntegrationsPage.tsx to client/src/pages/
+- Copy ApiHealthDashboard.tsx to client/src/pages/admin/
+- Copy LandingPageIntegrations.tsx to client/src/components/
+- Add routes to client/src/App.tsx:
+  
+  <Route path="/settings/email" element={<EmailSettings />} />
+  <Route path="/settings/integrations" element={<IntegrationsPage />} />
+  <Route path="/admin/api-health" element={<ApiHealthDashboard />} />
+  
+- Add integrations section to landing page (Home.tsx):
+  
+  import LandingPageIntegrations from '@/components/LandingPageIntegrations';
+  
+  <LandingPageIntegrations />
+
+STEP 5: Logos (30 min)
+- Create client/public/integrations/ directory
+- Download and save company logos:
+  * resend-logo.svg (https://resend.com/brand)
+  * stripe-logo.svg (https://stripe.com/newsroom/brand-assets)
+  * xero-logo.svg (https://www.xero.com/uk/about/media/)
+  * quickbooks-logo.svg (https://quickbooks.intuit.com/press-room/)
+  * openstreetmap-logo.svg (https://wiki.openstreetmap.org/wiki/Logo)
+
+STEP 6: Environment Variables
+- Add to .env:
+  
+  RESEND_API_KEY=re_your_key_here
+  STRIPE_SECRET_KEY=sk_test_your_key_here
+  XERO_CLIENT_ID=your_client_id
+  XERO_CLIENT_SECRET=your_client_secret
+  QUICKBOOKS_CLIENT_ID=your_client_id
+  QUICKBOOKS_CLIENT_SECRET=your_client_secret
+
+STEP 7: Testing (30 min)
+- Navigate to /settings/email and test email integration
+- Navigate to /admin/api-health and run health check
+- Check landing page displays integration logos
+
+═══════════════════════════════════════════════════════════════════
+
+✅ DEFINITION OF DONE:
+
+Integration is complete when:
+
+✓ Customer can add Resend API key and send emails
+✓ Landing page displays integration logos (Resend, Stripe, Xero, QuickBooks, OSM)
+✓ API health checks run hourly (cron job)
+✓ Admin can view API health dashboard
+✓ AI agent generates fixes for API failures
+✓ Admin can approve/reject AI-generated fixes
+✓ All routes accessible
+✓ All tests pass
+
+═══════════════════════════════════════════════════════════════════
+
+🎨 LANDING PAGE REQUIREMENTS:
+
+The integrations section should:
+
+1. Display company logos in a grid layout
+2. Show integration categories (Email, Payments, Accounting, Maps)
+3. List key features for each integration
+4. Include "API Access" card highlighting REST API
+5. Add trust bar with company logos at bottom
+6. Highlight "Auto-Healing APIs" feature (AI-powered monitoring)
+7. Include CTA button "View All Integrations"
+
+Visual hierarchy:
+- Section header with "Seamless Integrations" badge
+- Large heading: "Connect with the tools you already use"
+- Subheading explaining benefits
+- Grid of integration cards (3 columns on desktop)
+- Features grid (3 columns): Auto-Healing APIs, Zero Downtime, Easy Setup
+- CTA button
+- Trust bar with logos
+
+═══════════════════════════════════════════════════════════════════
+
+🔒 SECURITY CHECKLIST:
+
+Before deploying:
+
+✓ API keys encrypted in database
+✓ Environment variables not committed to git
+✓ Rate limiting enabled on API endpoints
+✓ Admin-only access to API health dashboard
+✓ Input validation on all API key fields
+✓ Audit logging for API key changes
+✓ Sandbox testing for AI-generated fixes
+✓ Error messages don't expose sensitive data
+✓ API keys never logged or exposed
+
+═══════════════════════════════════════════════════════════════════
+
+📊 KEY FEATURES TO IMPLEMENT:
+
+1. EMAIL INTEGRATION (Resend)
+   - Customer adds Resend API key
+   - Configure from address, from name, reply-to
+   - Toggle notifications (delivery completed, maintenance due, etc.)
+   - Send test emails
+   - View email logs
+
+2. API HEALTH MONITORING
+   - Hourly health checks for all APIs
+   - Track response times
+   - Detect failures and create incidents
+   - Admin dashboard showing API status
+
+3. AGENTIC AUTO-REPAIR
+   - AI diagnoses API failures
+   - AI generates code fixes
+   - Sandbox testing of fixes
+   - Admin approval workflow
+   - Knowledge base that learns from fixes
+
+4. LANDING PAGE INTEGRATIONS
+   - Display company logos (Resend, Stripe, Xero, QuickBooks, OSM)
+   - Show integration features
+   - Highlight API access
+   - Build authority through brand recognition
+
+═══════════════════════════════════════════════════════════════════
+
+💡 PRO TIPS:
+
+1. Start with email integration (easiest and most valuable)
+2. Test health checks manually before relying on cron
+3. Use staging environment to test AI fixes
+4. Monitor LLM costs (track token usage)
+5. Gather customer feedback on which integrations they want
+
+═══════════════════════════════════════════════════════════════════
+
+📚 DETAILED GUIDES:
+
+For step-by-step instructions, see:
+- REPLIT_IMPLEMENTATION_GUIDE.md (Complete implementation guide)
+- RESEND_INTEGRATION_GUIDE.md (Email integration details)
+- AGENTIC_API_GUIDE.md (Auto-repair system details)
+
+═══════════════════════════════════════════════════════════════════
+
+🆘 TROUBLESHOOTING:
+
+Issue: Health checks not running
+→ Check cron job is started in server/index.ts
+
+Issue: Email not sending
+→ Verify Resend API key is valid in /settings/email
+
+Issue: Logos not displaying
+→ Check file paths in client/public/integrations/
+
+Issue: AI agent not generating fixes
+→ Check invokeLLM function has valid API key
+
+═══════════════════════════════════════════════════════════════════
+
+⏱️ ESTIMATED TIME: ~3 hours
+
+- Database setup: 15 minutes
+- Backend integration: 45 minutes
+- Frontend integration: 60 minutes
+- Logo assets: 30 minutes
+- Testing: 30 minutes
+
+═══════════════════════════════════════════════════════════════════
+
+🚀 LET'S BUILD THIS!
+
+Follow the REPLIT_IMPLEMENTATION_GUIDE.md for detailed step-by-step instructions.
+
+Good luck! 🎉
