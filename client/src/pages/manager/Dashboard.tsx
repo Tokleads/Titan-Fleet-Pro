@@ -27,6 +27,13 @@ import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Ske
 import { HelpTooltip } from "@/components/titan-ui/HelpTooltip";
 import UKDriverMap from "@/components/UKDriverMap";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DriverMessage {
   id: number;
@@ -93,6 +100,7 @@ export default function ManagerDashboard() {
   const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [showMissedInspections, setShowMissedInspections] = useState(false);
 
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
@@ -396,7 +404,7 @@ export default function ManagerDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {missedInspections.length > 0 && (
                 <button
-                  onClick={() => setLocation("/manager/inspections")}
+                  onClick={() => setShowMissedInspections(true)}
                   className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-amber-300 transition-all cursor-pointer"
                   data-testid="attention-missed-inspections"
                 >
@@ -762,6 +770,50 @@ export default function ManagerDashboard() {
       {selectedVehicleId && (
         <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
       )}
+
+      <Dialog open={showMissedInspections} onOpenChange={setShowMissedInspections}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileWarning className="h-5 w-5 text-amber-600" />
+              Missed Inspections Today
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500 -mt-2">
+            {missedInspections.length} vehicle{missedInspections.length !== 1 ? 's' : ''} not yet inspected today
+          </p>
+          <ScrollArea className="max-h-[400px]">
+            <div className="space-y-2">
+              {missedInspections.map((v: any) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center">
+                      <Truck className="h-4 w-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{v.vrm}</p>
+                      <p className="text-xs text-slate-500">{v.make} {v.model}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMissedInspections(false);
+                      setSelectedVehicleId(v.id);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                    data-testid={`view-vehicle-${v.id}`}
+                  >
+                    View
+                  </button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </ManagerLayout>
   );
 }
