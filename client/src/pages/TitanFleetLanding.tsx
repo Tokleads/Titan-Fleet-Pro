@@ -717,7 +717,7 @@ export default function TitanFleetLandingPage() {
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="shrink-0">
                 <img 
-                  src="/images/founder.jpg" 
+                  src="/images/founder-headshot.png" 
                   alt="Jon - Founder" 
                   className="w-20 h-20 rounded-full object-cover border-4 border-slate-100"
                   data-testid="founder-image"
