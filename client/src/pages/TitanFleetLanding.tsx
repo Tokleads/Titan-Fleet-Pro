@@ -748,10 +748,10 @@ export default function TitanFleetLandingPage() {
       <footer className="bg-slate-900 text-slate-400 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
-            <div className="flex items-center gap-2 mb-2">
+            <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="inline-flex items-center gap-2 mb-2 cursor-pointer hover:opacity-80 transition-opacity">
               <span className="text-xl font-bold text-white">Titan</span>
               <span className="text-xl text-slate-400">Fleet</span>
-            </div>
+            </a>
             <p className="text-sm text-slate-500 mb-4">
               UK-built compliance for transport operators.
             </p>
