@@ -39,7 +39,8 @@ import {
   Shield,
   Zap,
   Crown,
-  Loader2
+  Loader2,
+  Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,7 +66,8 @@ interface Pagination {
 const TIER_CONFIG: Record<string, { label: string; price: number; icon: React.ElementType; color: string; bgColor: string }> = {
   core: { label: "Starter", price: 49, icon: Shield, color: "text-slate-400", bgColor: "bg-slate-500/10" },
   pro: { label: "Pro", price: 149, icon: Zap, color: "text-blue-400", bgColor: "bg-blue-500/10" },
-  operator: { label: "Enterprise", price: 349, icon: Crown, color: "text-amber-400", bgColor: "bg-amber-500/10" }
+  operator: { label: "Enterprise", price: 349, icon: Crown, color: "text-amber-400", bgColor: "bg-amber-500/10" },
+  lifetime: { label: "Lifetime", price: 0, icon: Star, color: "text-emerald-400", bgColor: "bg-emerald-500/10" }
 };
 
 function generateCompanyCode(): string {
@@ -546,6 +548,12 @@ export default function Companies() {
                       <span>Enterprise - £349/mo</span>
                     </div>
                   </SelectItem>
+                  <SelectItem value="lifetime" className="text-white hover:bg-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 text-emerald-400" />
+                      <span>Lifetime - Free</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -643,6 +651,12 @@ export default function Companies() {
                     <div className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-amber-400" />
                       <span>Enterprise - £349/mo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="lifetime" className="text-white hover:bg-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 text-emerald-400" />
+                      <span>Lifetime - Free</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
