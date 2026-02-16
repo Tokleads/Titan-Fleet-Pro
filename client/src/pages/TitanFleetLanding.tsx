@@ -719,7 +719,7 @@ export default function TitanFleetLandingPage() {
                 <img 
                   src="/images/founder-headshot.png" 
                   alt="Jon - Founder" 
-                  className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-md"
+                  className="w-20 h-20 rounded-full object-cover border-4 border-slate-100"
                   data-testid="founder-image"
                 />
               </div>
