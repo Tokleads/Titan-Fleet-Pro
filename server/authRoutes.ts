@@ -165,8 +165,8 @@ router.post('/forgot-password', async (req, res) => {
       expiresAt,
     });
     
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
-    const baseUrl = domain ? `https://${domain}` : 'http://localhost:5000';
+    const appDomain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0];
+    const baseUrl = appDomain ? `https://${appDomain}` : 'http://localhost:5000';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
     
     await sendPasswordResetEmail({

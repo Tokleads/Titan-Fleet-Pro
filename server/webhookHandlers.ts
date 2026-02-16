@@ -103,8 +103,8 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
     }
   }
   
-  const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
-  const baseUrl = domain ? `https://${domain}` : 'http://localhost:5000';
+  const appDomain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0];
+  const baseUrl = appDomain ? `https://${appDomain}` : 'http://localhost:5000';
   const setupUrl = `${baseUrl}/setup-account?token=${token}`;
   
   const result = await sendAccountSetupEmail({
