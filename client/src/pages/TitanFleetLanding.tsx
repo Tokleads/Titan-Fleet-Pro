@@ -537,46 +537,34 @@ export default function TitanFleetLandingPage() {
             {[
               {
                 icon: "🔍",
-                gradient: "from-rose-500/10 to-orange-500/10",
-                border: "border-rose-200/60",
-                iconBg: "bg-rose-50",
                 title: "Auto-Triage Defects",
                 description: "Instantly recognises safety-critical issues from driver photos. A cracked windscreen or bald tyre gets escalated before your morning coffee — not buried in a spreadsheet.",
                 tag: "Real-Time",
-                tagColor: "bg-rose-100 text-rose-700",
               },
               {
                 icon: "⚡",
-                gradient: "from-amber-500/10 to-yellow-500/10",
-                border: "border-amber-200/60",
-                iconBg: "bg-amber-50",
                 title: "Predictive Maintenance",
                 description: "Flags patterns that lead to breakdowns before the VOR light hits the dash. Recurring defects, overdue services, and mileage trends are surfaced automatically.",
                 tag: "Proactive",
-                tagColor: "bg-amber-100 text-amber-700",
               },
               {
                 icon: "🛡️",
-                gradient: "from-emerald-500/10 to-teal-500/10",
-                border: "border-emerald-200/60",
-                iconBg: "bg-emerald-50",
                 title: "Active Compliance",
                 description: "It doesn't just record data — it hunts for gaps in your audit trail so you don't have to. Missing inspections, expiring MOTs, and unsigned checks are caught before DVSA asks.",
                 tag: "Always-On",
-                tagColor: "bg-emerald-100 text-emerald-700",
               },
             ].map((item, index) => (
               <motion.div
                 key={index}
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: index * 0.15 }}
-                className={`relative bg-gradient-to-br ${item.gradient} rounded-2xl p-8 border ${item.border} hover:shadow-xl transition-all duration-300 group`}
+                className="relative bg-slate-50 rounded-2xl p-8 border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 group"
                 data-testid={`ai-feature-${index}`}
               >
-                <div className={`${item.iconBg} w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                <div className="bg-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform duration-300">
                   {item.icon}
                 </div>
-                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 ${item.tagColor}`}>
+                <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 bg-[#5B6CFF]/10 text-[#5B6CFF]">
                   {item.tag}
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
