@@ -65,6 +65,7 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   name: text("name").notNull(),
   role: varchar("role", { length: 20 }).notNull(), // ADMIN | TRANSPORT_MANAGER | DRIVER | MECHANIC | AUDITOR | OFFICE
+  phone: varchar("phone", { length: 20 }),
   pin: varchar("pin", { length: 4 }), // Optional driver PIN
   password: text("password"), // Hashed password for local auth (optional)
   active: boolean("active").default(true),
