@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 const FROM_EMAIL = 'Titan Fleet <support@titanfleet.co.uk>';
 
 function getResendClient() {
-  const apiKey = process.env.TITAN_RESEND_KEY || process.env.Titanfleet_uk || process.env.RESEND_API_KEY;
+  const apiKey = process.env.Titanfleet_uk || process.env.RESEND_API_KEY || process.env.TITAN_RESEND_KEY;
   
   if (!apiKey) {
     throw new Error('Resend API key not configured. Set TITAN_RESEND_KEY secret.');
