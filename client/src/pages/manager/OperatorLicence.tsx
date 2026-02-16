@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
-import { Truck, Plus, X, Trash2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { Truck, Plus, X, Trash2, AlertTriangle, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -544,6 +544,14 @@ export default function OperatorLicence() {
                               : <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                             }
                             <span className="text-sm font-semibold text-slate-900">{licence.licenceNumber}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openEdit(licence); }}
+                              className="ml-1 p-1 rounded-md hover:bg-blue-100 text-slate-400 hover:text-blue-600 transition-colors"
+                              title="Edit licence"
+                              data-testid={`button-inline-edit-${licence.id}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-600">{licence.trafficArea}</td>
