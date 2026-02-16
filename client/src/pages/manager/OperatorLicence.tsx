@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
-import { Truck, Plus, X, Trash2, AlertTriangle } from "lucide-react";
+import { Truck, Plus, X, Trash2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -338,6 +338,15 @@ export default function OperatorLicence() {
   const [editingLicence, setEditingLicence] = useState<OperatorLicenceData | null>(null);
   const [selectedLicenceId, setSelectedLicenceId] = useState<number | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const assignmentsPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedLicenceId && assignmentsPanelRef.current) {
+      setTimeout(() => {
+        assignmentsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [selectedLicenceId]);
   const [formData, setFormData] = useState<LicenceFormData>({ ...emptyForm });
 
   const { data: licences = [], isLoading } = useQuery<OperatorLicenceData[]>({
@@ -524,12 +533,18 @@ export default function OperatorLicence() {
                     return (
                       <tr
                         key={licence.id}
-                        className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedLicenceId === licence.id ? "bg-blue-50" : ""}`}
+                        className={`hover:bg-slate-50 cursor-pointer transition-colors ${selectedLicenceId === licence.id ? "bg-blue-50 border-l-4 border-l-blue-500" : ""}`}
                         onClick={() => setSelectedLicenceId(selectedLicenceId === licence.id ? null : licence.id)}
                         data-testid={`row-licence-${licence.id}`}
                       >
                         <td className="px-5 py-3.5">
-                          <span className="text-sm font-semibold text-slate-900">{licence.licenceNumber}</span>
+                          <div className="flex items-center gap-2">
+                            {selectedLicenceId === licence.id
+                              ? <ChevronDown className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                              : <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            }
+                            <span className="text-sm font-semibold text-slate-900">{licence.licenceNumber}</span>
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 text-sm text-slate-600">{licence.trafficArea}</td>
                         <td className="px-5 py-3.5">
@@ -590,7 +605,7 @@ export default function OperatorLicence() {
         </div>
 
         {selectedLicenceId && companyId && (
-          <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-5" data-testid="panel-vehicle-assignments">
+          <div ref={assignmentsPanelRef} className="bg-white rounded-xl border border-blue-200 shadow-md p-5 ring-2 ring-blue-100" data-testid="panel-vehicle-assignments">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">
                 Vehicle Assignments — {licences.find((l) => l.id === selectedLicenceId)?.licenceNumber}
