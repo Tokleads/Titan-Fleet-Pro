@@ -19,15 +19,16 @@ const staggerContainer = {
 interface PricingTier {
   name: string;
   price: number;
+  annualPrice: number;
   maxVehicles: number;
   popular?: boolean;
 }
 
 const pricingTiers: PricingTier[] = [
-  { name: "Starter", price: 59, maxVehicles: 10 },
-  { name: "Growth", price: 129, maxVehicles: 25, popular: true },
-  { name: "Pro", price: 249, maxVehicles: 50 },
-  { name: "Scale", price: 399, maxVehicles: 100 },
+  { name: "Starter", price: 59, annualPrice: 47, maxVehicles: 10 },
+  { name: "Growth", price: 129, annualPrice: 103, maxVehicles: 25, popular: true },
+  { name: "Pro", price: 249, annualPrice: 199, maxVehicles: 50 },
+  { name: "Scale", price: 399, annualPrice: 319, maxVehicles: 100 },
 ];
 
 const allFeatures = [
@@ -74,6 +75,7 @@ function getBestValueTier(vehicles: number): string {
 
 export default function PricingSection({ referralCode }: { referralCode?: string } = {}) {
   const [vehicleCount, setVehicleCount] = useState<number>(10);
+  const [isAnnual, setIsAnnual] = useState<boolean>(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const calculatedPrice = useMemo(() => calculateOveragePrice(vehicleCount), [vehicleCount]);
@@ -135,10 +137,45 @@ export default function PricingSection({ referralCode }: { referralCode?: string
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-300 max-w-2xl mx-auto"
+            className="text-lg text-slate-300 max-w-2xl mx-auto mb-8"
           >
             Every plan includes all features. The only difference is the number of vehicles.
           </motion.p>
+
+          <motion.div
+            variants={fadeUp}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="inline-flex items-center gap-4 bg-slate-800/80 rounded-full p-1.5 border border-slate-700"
+            data-testid="toggle-billing-period"
+          >
+            <button
+              onClick={() => setIsAnnual(false)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                !isAnnual
+                  ? "bg-white text-slate-900 shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setIsAnnual(true)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
+                isAnnual
+                  ? "bg-white text-slate-900 shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Annual
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                isAnnual
+                  ? "bg-[#22c55e] text-white"
+                  : "bg-[#22c55e]/20 text-[#22c55e]"
+              }`}>
+                Save 20%
+              </span>
+            </button>
+          </motion.div>
         </motion.div>
 
         <motion.div
@@ -258,49 +295,61 @@ export default function PricingSection({ referralCode }: { referralCode?: string
         >
           {pricingTiers.map((tier, index) => {
             const isHighlighted = tier.name === bestValueTier;
+            const isPopular = tier.popular;
+            const displayPrice = isAnnual ? tier.annualPrice : tier.price;
+            const monthlySaving = tier.price - tier.annualPrice;
             return (
               <motion.div
                 key={tier.name}
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className={`relative rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center transition-all duration-300 ${
-                  isHighlighted
-                    ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
-                    : "bg-slate-800 border border-slate-700"
+                  isPopular
+                    ? "bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-2xl shadow-[#22c55e]/30 scale-[1.05] ring-2 ring-[#22c55e]/50 z-10"
+                    : isHighlighted
+                      ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
+                      : "bg-slate-800 border border-slate-700"
                 }`}
                 data-testid={`pricing-card-${tier.name.toLowerCase()}`}
               >
-                {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#0f172a] text-[#22c55e] text-xs font-bold px-4 py-1.5 rounded-full border border-[#22c55e]">
-                    MOST POPULAR
+                {isPopular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-white text-[#0f172a] text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg">
+                    Most Popular
                   </div>
                 )}
 
-                <h3 className={`text-lg font-bold mb-1 ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
+                <h3 className={`text-lg font-bold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
                   {tier.name}
                 </h3>
-                <p className={`text-sm mb-4 ${isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}`}>
+                <p className={`text-sm mb-4 ${isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}`}>
                   Up to {tier.maxVehicles} vehicles
                 </p>
 
                 <div className="mb-1">
-                  <span className={`text-4xl font-bold ${isHighlighted ? "text-[#0f172a]" : "text-white"}`}>
-                    £{tier.price}
+                  <span className={`text-4xl font-bold ${isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
+                    £{displayPrice}
                   </span>
-                  <span className={isHighlighted ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
+                  <span className={isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
                 </div>
-                <p className={`text-xs mb-6 ${isHighlighted ? "text-[#0f172a]/60" : "text-slate-500"}`}>
-                  Per month · Prices exclude VAT
+                {isAnnual && (
+                  <p className={`text-xs font-semibold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-[#22c55e]"}`}>
+                    Save £{monthlySaving}/mo (£{monthlySaving * 12}/yr)
+                  </p>
+                )}
+                <p className={`text-xs mb-6 ${isHighlighted || isPopular ? "text-[#0f172a]/60" : "text-slate-500"}`}>
+                  {isAnnual ? "Billed annually" : "Billed monthly"} · Prices exclude VAT
                 </p>
 
                 <div className="mt-auto w-full">
                   <button
                     onClick={() => handleCheckout(tier.name)}
                     disabled={checkoutLoading === tier.name}
-                    className={`w-full h-12 font-semibold rounded-xl transition-colors ${
-                      isHighlighted
-                        ? "bg-[#0f172a] text-white hover:bg-slate-800"
-                        : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
+                    className={`w-full h-12 font-semibold rounded-xl transition-all ${
+                      isPopular
+                        ? "bg-[#0f172a] text-white hover:bg-slate-800 shadow-lg"
+                        : isHighlighted
+                          ? "bg-[#0f172a] text-white hover:bg-slate-800"
+                          : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                     data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
                   >
