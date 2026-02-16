@@ -8,8 +8,6 @@ import {
   Facebook,
   Menu,
   X,
-  Plug2,
-  Zap,
 } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
 
@@ -669,179 +667,48 @@ export default function TitanFleetLandingPage() {
       <PricingSection referralCode={referralCode || undefined} />
 
       {/* Integrations Section */}
-      <section id="integrations" className="py-20 lg:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="integrations" className="py-16 lg:py-20 bg-slate-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
             transition={{ duration: 0.5 }}
-            className="text-center max-w-3xl mx-auto mb-16"
+            className="text-center"
           >
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              <Plug2 className="w-4 h-4" />
-              Seamless Integrations
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
-              Connect with the tools you already use
-            </h2>
-            <p className="text-lg text-slate-600">
-              TitanFleet integrates with your favourite services to streamline fleet operations.
-              No manual data entry, no switching between apps.
+            <p className="text-sm font-medium text-slate-500 mb-8 tracking-wide uppercase">
+              Integrates with the tools you already use
             </p>
-          </motion.div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
-          >
-            {[
-              {
-                name: 'Resend',
-                logo: '/integrations/resend-logo.svg',
-                description: 'Automated email notifications',
-                category: 'Email',
-                features: ['Delivery confirmations', 'POD notifications', 'Maintenance alerts'],
-              },
-              {
-                name: 'Stripe',
-                logo: '/integrations/stripe-logo.svg',
-                description: 'Secure payment processing',
-                category: 'Payments',
-                features: ['Subscription billing', 'Invoice payments', 'Secure checkout'],
-              },
-              {
-                name: 'Xero',
-                logo: '/integrations/xero-logo.svg',
-                description: 'Accounting automation',
-                category: 'Accounting',
-                features: ['Invoice sync', 'Expense tracking', 'Financial reports'],
-              },
-              {
-                name: 'QuickBooks',
-                logo: '/integrations/quickbooks-logo.svg',
-                description: 'Bookkeeping integration',
-                category: 'Accounting',
-                features: ['Invoice creation', 'Payment tracking', 'Tax reporting'],
-              },
-              {
-                name: 'OpenStreetMap',
-                logo: '/integrations/openstreetmap-logo.svg',
-                description: 'Route optimisation',
-                category: 'Maps',
-                features: ['Geocoding', 'Route planning', 'Distance calculation'],
-              },
-            ].map((integration) => (
-              <div
-                key={integration.name}
-                className="group bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all duration-300"
-                data-testid={`card-integration-${integration.name.toLowerCase()}`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-                    <img
-                      src={integration.logo}
-                      alt={`${integration.name} logo`}
-                      className="h-8 w-auto object-contain"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        target.style.display = 'none';
-                        if (target.parentElement) {
-                          target.parentElement.innerHTML = `<span class="text-lg font-bold text-slate-700">${integration.name}</span>`;
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
-                    {integration.category}
-                  </span>
+            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 lg:gap-16 mb-10">
+              {[
+                { name: 'Stripe', src: '/integrations/stripe-logo.png' },
+                { name: 'Xero', src: '/integrations/xero-logo.png' },
+                { name: 'QuickBooks', src: '/integrations/quickbooks-logo.png' },
+                { name: 'OpenStreetMap', src: '/integrations/openstreetmap-logo.png' },
+                { name: 'Resend', src: '/integrations/resend-logo.svg' },
+              ].map((logo) => (
+                <div
+                  key={logo.name}
+                  className="flex items-center justify-center w-24 h-12 sm:w-28 sm:h-14"
+                  data-testid={`logo-integration-${logo.name.toLowerCase()}`}
+                >
+                  <img
+                    src={logo.src}
+                    alt={`${logo.name} logo`}
+                    className="max-h-10 sm:max-h-12 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{integration.name}</h3>
-                <p className="text-slate-500 text-sm mb-4">{integration.description}</p>
-                <ul className="space-y-2">
-                  {integration.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-sm text-slate-600">
-                      <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-
-            {/* API Access Card */}
-            <div className="group bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 flex flex-col" data-testid="card-integration-api">
-              <div className="bg-blue-100 p-3 rounded-xl w-fit mb-4">
-                <Zap className="w-8 h-8 text-blue-700" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Full API Access</h3>
-              <p className="text-slate-500 text-sm mb-4 flex-grow">
-                Build custom integrations with our comprehensive REST API. Complete documentation and code examples included.
-              </p>
-              <ul className="space-y-2 mb-4">
-                {['RESTful API endpoints', 'Webhook support', 'Real-time data sync'].map((feat) => (
-                  <li key={feat} className="flex items-start gap-2 text-sm text-slate-600">
-                    <Check className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-
-          {/* Bottom features row */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12"
-          >
-            {[
-              { icon: 'Zap', title: 'Auto-Healing APIs', desc: 'AI-powered monitoring automatically detects and fixes API issues before you notice' },
-              { icon: 'Check', title: 'Zero Downtime', desc: 'Automatic failover and redundancy ensure your integrations always work' },
-              { icon: 'Plug2', title: 'Easy Setup', desc: 'Connect your accounts in minutes with our simple configuration wizard' },
-            ].map((item) => (
-              <div key={item.title} className="text-center">
-                <div className="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {item.icon === 'Zap' && <Zap className="w-6 h-6 text-blue-700" />}
-                  {item.icon === 'Check' && <Check className="w-6 h-6 text-blue-700" />}
-                  {item.icon === 'Plug2' && <Plug2 className="w-6 h-6 text-blue-700" />}
-                </div>
-                <h3 className="font-bold text-slate-900 mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-500">{item.desc}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Trust Bar */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="pt-8 border-t border-slate-200"
-          >
-            <p className="text-center text-sm text-slate-500 mb-6">
-              Trusted by UK haulage companies to power their operations
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 opacity-60">
-              {['/integrations/resend-logo.svg', '/integrations/stripe-logo.svg', '/integrations/xero-logo.svg', '/integrations/quickbooks-logo.svg'].map((logo) => (
-                <img
-                  key={logo}
-                  src={logo}
-                  alt="Integration partner"
-                  className="h-6 w-auto object-contain grayscale hover:grayscale-0 transition-all"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
               ))}
+            </div>
+
+            <div className="max-w-xl mx-auto">
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                Full REST API available to connect TitanFleet with your existing software.
+                Link your accounting, mapping, and communication tools in minutes.
+              </p>
             </div>
           </motion.div>
         </div>
