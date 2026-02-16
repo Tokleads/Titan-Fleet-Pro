@@ -13,6 +13,7 @@ import { getPerformanceStats, getSlowQueries } from "./performanceMonitoring";
 import { runNotificationChecks, getSchedulerStatus } from "./scheduler";
 import { registerFuelIntelligenceRoutes } from "./fuelIntelligenceRoutes";
 import { registerVehicleManagementRoutes } from "./vehicleManagementRoutes";
+import { registerApiHealthRoutes } from "./apiHealthRoutes";
 import driverRoutes from "./driverRoutes";
 import authRoutes from "./authRoutes";
 import { ObjectStorageService } from "./objectStorage";
@@ -160,6 +161,7 @@ export async function registerRoutes(
   // Fuel Intelligence routes
   registerFuelIntelligenceRoutes(app);
   registerVehicleManagementRoutes(app);
+  registerApiHealthRoutes(app);
   
   // Driver management routes
   app.use("/api/drivers", driverRoutes);

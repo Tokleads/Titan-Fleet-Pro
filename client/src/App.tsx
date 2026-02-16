@@ -46,6 +46,7 @@ import Deliveries from './pages/manager/Deliveries';
 import VehicleManagement from './pages/manager/VehicleManagement';
 import OperatorLicence from './pages/manager/OperatorLicence';
 import AIInsights from './pages/manager/AIInsights';
+import ApiHealth from './pages/manager/ApiHealth';
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCompanies from "@/pages/admin/Companies";
@@ -115,6 +116,7 @@ function Router() {
       <Route path="/manager/operator-licence" component={OperatorLicence} />
       <Route path="/manager/vehicle-management" component={VehicleManagement} />
       <Route path="/manager/ai-insights" component={AIInsights} />
+      <Route path="/manager/api-health" component={ApiHealth} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/companies" component={AdminCompanies} />

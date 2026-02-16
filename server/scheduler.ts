@@ -18,6 +18,7 @@ import {
 } from './notificationService';
 import { checkDefectEscalation, checkFuelAnomalies } from './notificationTriggers';
 import { runPredictiveMaintenance } from './predictiveMaintenanceService';
+import { runAllHealthChecks } from './apiHealthService';
 import { db } from './db';
 import { companies } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -174,6 +175,16 @@ export function startScheduler(): void {
       console.error('[Scheduler] Error in cron job:', error);
       lastRunStatus = 'error';
       lastRunError = error instanceof Error ? error.message : 'Unknown error';
+    }
+  });
+
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Scheduler] Running hourly API health checks...');
+    try {
+      await runAllHealthChecks();
+      console.log('[Scheduler] API health checks completed successfully');
+    } catch (error) {
+      console.error('[Scheduler] API health check error:', error);
     }
   });
 

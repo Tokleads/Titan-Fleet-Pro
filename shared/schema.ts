@@ -1308,3 +1308,62 @@ export const maintenanceAlerts = pgTable("maintenance_alerts", {
 export const insertMaintenanceAlertSchema = createInsertSchema(maintenanceAlerts).omit({ id: true, createdAt: true, updatedAt: true });
 export type MaintenanceAlert = typeof maintenanceAlerts.$inferSelect;
 export type InsertMaintenanceAlert = z.infer<typeof insertMaintenanceAlertSchema>;
+
+// API Health Checks - stores health check results
+export const apiHealthChecks = pgTable("api_health_checks", {
+  id: serial("id").primaryKey(),
+  apiType: varchar("api_type", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull(),
+  responseTime: integer("response_time").notNull(),
+  errorMessage: text("error_message"),
+  errorDetails: jsonb("error_details"),
+  checkedAt: timestamp("checked_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const insertApiHealthCheckSchema = createInsertSchema(apiHealthChecks).omit({ id: true, createdAt: true });
+export type ApiHealthCheck = typeof apiHealthChecks.$inferSelect;
+export type InsertApiHealthCheck = z.infer<typeof insertApiHealthCheckSchema>;
+
+// API Health Incidents - tracks API failure incidents
+export const apiHealthIncidents = pgTable("api_health_incidents", {
+  id: serial("id").primaryKey(),
+  apiType: varchar("api_type", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  errorMessage: text("error_message").notNull(),
+  errorDetails: jsonb("error_details"),
+  failureCount: integer("failure_count").default(1),
+  detectedAt: timestamp("detected_at").notNull(),
+  lastFailedAt: timestamp("last_failed_at").notNull(),
+  resolvedAt: timestamp("resolved_at"),
+  resolutionNotes: text("resolution_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertApiHealthIncidentSchema = createInsertSchema(apiHealthIncidents).omit({ id: true, createdAt: true, updatedAt: true });
+export type ApiHealthIncident = typeof apiHealthIncidents.$inferSelect;
+export type InsertApiHealthIncident = z.infer<typeof insertApiHealthIncidentSchema>;
+
+// API Health Fixes - AI-generated fixes for API issues
+export const apiHealthFixes = pgTable("api_health_fixes", {
+  id: serial("id").primaryKey(),
+  incidentId: integer("incident_id").references(() => apiHealthIncidents.id).notNull(),
+  apiType: varchar("api_type", { length: 50 }).notNull(),
+  diagnosis: text("diagnosis").notNull(),
+  fixDescription: text("fix_description").notNull(),
+  fixCode: text("fix_code").notNull(),
+  fixType: varchar("fix_type", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("pending_approval"),
+  testedAt: timestamp("tested_at"),
+  testResult: jsonb("test_result"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  appliedAt: timestamp("applied_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const insertApiHealthFixSchema = createInsertSchema(apiHealthFixes).omit({ id: true, createdAt: true });
+export type ApiHealthFix = typeof apiHealthFixes.$inferSelect;
+export type InsertApiHealthFix = z.infer<typeof insertApiHealthFixSchema>;
