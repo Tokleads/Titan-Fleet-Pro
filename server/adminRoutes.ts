@@ -404,4 +404,86 @@ router.get("/referrals", verifyAdminToken, async (req: Request, res: Response) =
   }
 });
 
+router.post("/companies/:id/bulk-import", verifyAdminToken, async (req: Request, res: Response) => {
+  try {
+    const companyId = parseInt(req.params.id, 10);
+    const { drivers, vehicleList, licences } = req.body;
+    
+    const results = { drivers: 0, vehicles: 0, licences: 0 };
+    
+    if (vehicleList && Array.isArray(vehicleList)) {
+      for (const v of vehicleList) {
+        try {
+          await db.insert(vehicles).values({
+            companyId,
+            vrm: v.vrm,
+            make: v.make,
+            model: v.model || "Unknown",
+            vehicleCategory: v.vehicleCategory || "HGV",
+            currentMileage: v.currentMileage || 0,
+            fleetNumber: v.fleetNumber || null,
+            active: true,
+          });
+          results.vehicles++;
+        } catch (e: any) {
+          console.error(`Vehicle ${v.vrm} failed:`, e.message);
+        }
+      }
+    }
+    
+    if (drivers && Array.isArray(drivers)) {
+      const seenEmails = new Set<string>();
+      for (const d of drivers) {
+        const emailLower = d.email.toLowerCase();
+        if (seenEmails.has(emailLower)) continue;
+        seenEmails.add(emailLower);
+        try {
+          await db.insert(users).values({
+            companyId,
+            email: d.email,
+            name: d.name,
+            role: d.role || "DRIVER",
+            phone: d.phone || null,
+            active: true,
+          });
+          results.drivers++;
+        } catch (e: any) {
+          console.error(`Driver ${d.email} failed:`, e.message);
+        }
+      }
+    }
+    
+    if (licences && Array.isArray(licences)) {
+      const { operatorLicences } = await import("@shared/schema");
+      for (const l of licences) {
+        try {
+          await db.insert(operatorLicences).values({
+            companyId,
+            licenceNumber: l.licenceNumber,
+            trafficArea: l.trafficArea,
+            licenceType: l.licenceType,
+            vehicleCategory: l.vehicleCategory || "HGV",
+            inForceFrom: l.inForceFrom ? new Date(l.inForceFrom) : null,
+            reviewDate: l.reviewDate ? new Date(l.reviewDate) : null,
+            authorisedVehicles: l.authorisedVehicles || 0,
+            authorisedTrailers: l.authorisedTrailers || 0,
+            safetyInspectionFrequency: l.safetyInspectionFrequency || "6 weeks",
+            active: true,
+          });
+          results.licences++;
+        } catch (e: any) {
+          console.error(`Licence ${l.licenceNumber} failed:`, e.message);
+        }
+      }
+    }
+    
+    await db.update(companies).set({ vehicleAllowance: 60 }).where(eq(companies.id, companyId));
+    
+    res.json({ success: true, imported: results });
+  } catch (error) {
+    console.error("Bulk import error:", error);
+    res.status(500).json({ error: "Bulk import failed" });
+  }
+});
+
 export default router;
