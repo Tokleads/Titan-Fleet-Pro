@@ -1680,14 +1680,33 @@ export async function registerRoutes(
         active: true,
       });
       
-      // Send welcome notification to new drivers
+      // Send welcome notification and email to new drivers
       if (validated.role === 'DRIVER' && validated.managerId) {
-        setImmediate(() => {
+        setImmediate(async () => {
           triggerNewDriverWelcome({
             companyId: validated.companyId,
             newDriverId: user.id,
             addedByManagerId: validated.managerId!,
           });
+
+          if (user.email && validated.pin) {
+            try {
+              const { sendWelcomeEmail } = await import("./emailService");
+              const company = await storage.getCompanyById(validated.companyId);
+              if (company) {
+                await sendWelcomeEmail({
+                  email: user.email,
+                  name: user.name,
+                  companyName: company.name,
+                  companyCode: company.companyCode,
+                  pin: validated.pin,
+                });
+                console.log(`Welcome email sent to new driver ${user.name} (${user.email})`);
+              }
+            } catch (emailErr) {
+              console.error("Failed to send welcome email:", emailErr);
+            }
+          }
         });
       }
       

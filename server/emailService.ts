@@ -112,6 +112,9 @@ export async function sendWelcomeEmail(params: {
   companyCode: string;
   pin: string;
 }): Promise<{ success: boolean; error?: string }> {
+  const appDomain = process.env.APP_DOMAIN || 'www.titanfleet.co.uk';
+  const appUrl = `https://${appDomain}/app`;
+
   return sendEmail({
     to: params.email,
     subject: `Welcome to ${params.companyName} - Your Titan Fleet Login`,
@@ -144,9 +147,42 @@ export async function sendWelcomeEmail(params: {
             </table>
           </div>
           
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${appUrl}" style="background: #3b82f6; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold; font-size: 16px;">
+              Open Titan Fleet App
+            </a>
+          </div>
+
           <p style="color: #64748b; font-size: 14px;">
             ⚠️ Keep your PIN secure and don't share it with others.
           </p>
+
+          <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <h3 style="color: #1e293b; margin: 0 0 12px 0;">📱 Add to Home Screen</h3>
+            <p style="color: #475569; font-size: 14px; margin: 0 0 16px 0;">
+              For the best experience, add Titan Fleet to your phone's home screen:
+            </p>
+            
+            <div style="margin-bottom: 16px;">
+              <p style="color: #1e293b; font-weight: bold; font-size: 14px; margin: 0 0 8px 0;">🍎 iPhone / iPad:</p>
+              <ol style="color: #475569; font-size: 13px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <li>Open <strong>${appUrl}</strong> in Safari</li>
+                <li>Tap the <strong>Share</strong> button (square with arrow)</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> to confirm</li>
+              </ol>
+            </div>
+            
+            <div>
+              <p style="color: #1e293b; font-weight: bold; font-size: 14px; margin: 0 0 8px 0;">🤖 Android:</p>
+              <ol style="color: #475569; font-size: 13px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                <li>Open <strong>${appUrl}</strong> in Chrome</li>
+                <li>Tap the <strong>three dots menu</strong> (⋮) in the top right</li>
+                <li>Tap <strong>"Add to Home screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> to confirm</li>
+              </ol>
+            </div>
+          </div>
         </div>
         
         <div style="background: #1e293b; padding: 16px 24px; border-radius: 0 0 12px 12px; text-align: center;">

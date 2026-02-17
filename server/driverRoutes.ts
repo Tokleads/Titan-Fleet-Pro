@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, driverLocations, timesheets, inspections, vehicles } from "@shared/schema";
+import { users, driverLocations, timesheets, inspections, vehicles, companies } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { sendWelcomeEmail } from "./emailService";
 
 const router = Router();
 
@@ -168,6 +169,32 @@ router.post("/", async (req, res) => {
       })
       .returning();
 
+    // Send welcome email with app link and login details
+    if (newDriver.email) {
+      setImmediate(async () => {
+        try {
+          const [company] = await db
+            .select()
+            .from(companies)
+            .where(eq(companies.id, Number(companyId)))
+            .limit(1);
+
+          if (company) {
+            await sendWelcomeEmail({
+              email: newDriver.email!,
+              name: newDriver.name,
+              companyName: company.name,
+              companyCode: company.companyCode,
+              pin: pin,
+            });
+            console.log(`Welcome email sent to new driver ${newDriver.name} (${newDriver.email})`);
+          }
+        } catch (emailErr) {
+          console.error("Failed to send welcome email:", emailErr);
+        }
+      });
+    }
+
     res.status(201).json({
       id: newDriver.id,
       name: newDriver.name,
@@ -179,6 +206,54 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Error creating driver:", error);
     res.status(500).json({ error: "Failed to create driver" });
+  }
+});
+
+const pinAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCKOUT_MS = 15 * 60 * 1000;
+
+// POST /api/drivers/verify-pin - Verify a driver's current PIN
+router.post("/verify-pin", async (req, res) => {
+  try {
+    const { driverId, companyId, pin } = req.body;
+
+    if (!driverId || !companyId || !pin) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const attemptKey = `${driverId}-${companyId}`;
+    const attempt = pinAttempts.get(attemptKey);
+    if (attempt && attempt.count >= PIN_MAX_ATTEMPTS && (Date.now() - attempt.lastAttempt) < PIN_LOCKOUT_MS) {
+      return res.status(429).json({ error: "Too many attempts. Please try again in 15 minutes." });
+    }
+
+    const [driver] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.id, Number(driverId)),
+          eq(users.companyId, Number(companyId))
+        )
+      )
+      .limit(1);
+
+    if (!driver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    const valid = driver.pin === pin;
+    if (!valid) {
+      const current = pinAttempts.get(attemptKey) || { count: 0, lastAttempt: 0 };
+      pinAttempts.set(attemptKey, { count: current.count + 1, lastAttempt: Date.now() });
+    } else {
+      pinAttempts.delete(attemptKey);
+    }
+    res.json({ valid });
+  } catch (error) {
+    console.error("Error verifying PIN:", error);
+    res.status(500).json({ error: "Failed to verify PIN" });
   }
 });
 
