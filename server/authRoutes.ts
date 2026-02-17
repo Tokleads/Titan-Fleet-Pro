@@ -9,6 +9,28 @@ import { storage } from './storage';
 
 const router = Router();
 
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const forgotPasswordAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const resetPasswordAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+function checkRateLimit(attemptsMap: Map<string, { count: number; lastAttempt: number }>, key: string): boolean {
+  const attempt = attemptsMap.get(key);
+  if (attempt && attempt.count >= RATE_LIMIT_MAX && (Date.now() - attempt.lastAttempt) < RATE_LIMIT_WINDOW_MS) {
+    return false;
+  }
+  if (attempt && (Date.now() - attempt.lastAttempt) >= RATE_LIMIT_WINDOW_MS) {
+    attemptsMap.delete(key);
+  }
+  return true;
+}
+
+function recordFailedAttempt(attemptsMap: Map<string, { count: number; lastAttempt: number }>, key: string): void {
+  const current = attemptsMap.get(key) || { count: 0, lastAttempt: 0 };
+  attemptsMap.set(key, { count: current.count + 1, lastAttempt: Date.now() });
+}
+
 router.get('/verify-setup-token', async (req, res) => {
   try {
     const { token } = req.query;
@@ -147,6 +169,12 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
     
+    const emailKey = email.toLowerCase().trim();
+    if (!checkRateLimit(forgotPasswordAttempts, emailKey)) {
+      return res.status(429).json({ error: 'Too many requests. Please try again in 15 minutes.' });
+    }
+    recordFailedAttempt(forgotPasswordAttempts, emailKey);
+    
     const successResponse = { success: true, message: 'If an account exists with that email, a reset link has been sent.' };
     
     const [user] = await db.select().from(users)
@@ -188,6 +216,10 @@ router.post('/reset-password', async (req, res) => {
     
     if (!token || !password) {
       return res.status(400).json({ error: 'Token and password are required' });
+    }
+    
+    if (!checkRateLimit(resetPasswordAttempts, token)) {
+      return res.status(429).json({ error: 'Too many attempts. Please try again in 15 minutes.' });
     }
     
     if (password.length < 8) {
@@ -261,15 +293,22 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     
+    const emailKey = email.toLowerCase().trim();
+    if (!checkRateLimit(loginAttempts, emailKey)) {
+      return res.status(429).json({ error: 'Too many login attempts. Please try again in 15 minutes.' });
+    }
+    
     const [user] = await db.select().from(users)
-      .where(eq(users.email, email.toLowerCase().trim()));
+      .where(eq(users.email, emailKey));
     
     if (!user || !user.active || !user.password) {
+      recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
@@ -295,6 +334,8 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid verification code' });
       }
     }
+    
+    loginAttempts.delete(emailKey);
     
     res.json({
       manager: {

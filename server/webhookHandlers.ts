@@ -30,11 +30,11 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
   
   let event;
   try {
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } else {
-      event = JSON.parse(payload.toString());
+    if (!webhookSecret) {
+      console.error("Stripe webhook secret not configured - rejecting webhook");
+      throw new Error("Webhook secret not configured");
     }
+    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return;
@@ -127,11 +127,11 @@ export async function handleInvoicePaid(payload: Buffer, signature: string): Pro
   
   let event;
   try {
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } else {
-      event = JSON.parse(payload.toString());
+    if (!webhookSecret) {
+      console.error("Stripe webhook secret not configured - rejecting webhook");
+      throw new Error("Webhook secret not configured");
     }
+    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return;

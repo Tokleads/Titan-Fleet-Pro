@@ -90,7 +90,6 @@ router.get("/", async (req, res) => {
           email: driver.email,
           role: driver.role,
           active: driver.active,
-          pin: driver.pin,
           currentLocation: latestLocation
             ? {
                 latitude: latestLocation.latitude,

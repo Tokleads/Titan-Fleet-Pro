@@ -6,13 +6,13 @@ import { eq, sql, like, or, desc } from "drizzle-orm";
 
 const router = Router();
 
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "titan-admin-secret-2024";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 export function verifyAdminToken(req: Request, res: Response, next: NextFunction) {
   const token = req.headers["x-admin-token"] as string;
   
-  if (!token || token !== ADMIN_TOKEN) {
-    return res.status(401).json({ error: "Unauthorized - Invalid admin token" });
+  if (!ADMIN_TOKEN || !token || token !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
   
   next();
@@ -29,7 +29,7 @@ router.post("/login", async (req: Request, res: Response) => {
     const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
     
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !ADMIN_TOKEN) {
       return res.status(500).json({ error: "Admin credentials not configured" });
     }
     
