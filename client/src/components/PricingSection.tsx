@@ -331,6 +331,9 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                   </span>
                   <span className={isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
                 </div>
+                <p className={`text-sm font-semibold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-slate-300"}`}>
+                  £{(displayPrice / tier.maxVehicles).toFixed(2)}/vehicle
+                </p>
                 {isAnnual && (
                   <p className={`text-xs font-semibold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-[#22c55e]"}`}>
                     Save £{monthlySaving}/mo (£{monthlySaving * 12}/yr)
