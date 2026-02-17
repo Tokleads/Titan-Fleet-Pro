@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { ProductTour, TourStep } from "@/components/ProductTour";
 import { 
   ClipboardCheck, 
   AlertTriangle, 
@@ -20,7 +21,8 @@ import {
   Mail,
   FileWarning,
   Package,
-  MapPin
+  MapPin,
+  HelpCircle
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Skeleton";
@@ -101,6 +103,17 @@ export default function ManagerDashboard() {
   const [, setLocation] = useLocation();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [showMissedInspections, setShowMissedInspections] = useState(false);
+  const [showTour, setShowTour] = useState(() => !localStorage.getItem("tourSeen_manager"));
+
+  const managerTourSteps: TourStep[] = [
+    { target: '[data-testid="header-greeting"]', title: "Welcome to Your Dashboard", description: "This is your command centre. Get a real-time overview of your fleet's status, compliance, and driver activity — all in one place.", placement: "bottom" },
+    { target: '[data-testid="stat-drivers-active"]', title: "Shift Overview", description: "See how many drivers are on shift, inspections completed today, open defects, and VOR vehicles at a glance.", placement: "bottom" },
+    { target: '[data-testid="section-attention-required"]', title: "Attention Required", description: "Urgent items that need your action appear here — missed inspections, critical defects, unread messages, and expiring documents.", placement: "bottom" },
+    { target: '[data-testid="section-driver-map"]', title: "Live Driver Map", description: "See where your drivers are in real-time. Track locations and monitor routes across your fleet.", placement: "top" },
+    { target: '[data-testid="widget-compliance-score"]', title: "Compliance Score", description: "Your fleet's overall compliance health at a glance. This score is based on inspections, defects, MOT status, and VOR records.", placement: "left" },
+    { target: '[data-testid="section-driver-messages"]', title: "Driver Messages", description: "Read and respond to messages from your drivers. Stay connected with your team without leaving the dashboard.", placement: "left" },
+    { target: '[data-testid="quick-link-fleet"]', title: "Quick Links", description: "Jump straight to your fleet overview, defect management, fuel logs, deliveries, and more from these shortcuts.", placement: "top" },
+  ];
 
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
@@ -285,6 +298,14 @@ export default function ManagerDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowTour(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors"
+                data-testid="button-take-tour"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+                Take a Tour
+              </button>
               <div className="text-right">
                 <p className="text-xs text-white/60 uppercase tracking-wide">Fleet Status</p>
                 <p className="text-xl font-bold">{fleetStatusLabel}</p>
@@ -814,6 +835,13 @@ export default function ManagerDashboard() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <ProductTour
+        steps={managerTourSteps}
+        storageKey="tourSeen_manager"
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
     </ManagerLayout>
   );
 }

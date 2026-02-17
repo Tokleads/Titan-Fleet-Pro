@@ -1,6 +1,6 @@
 import { useBrand } from "@/hooks/use-brand";
 import { useLocation, useRoute } from "wouter";
-import { LogOut, Home, History, UploadCloud, Settings, Menu, X, Truck, FileText } from "lucide-react";
+import { LogOut, Home, History, UploadCloud, Settings, Menu, X, Truck, FileText, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +32,13 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
             
             {/* Notifications and Status */}
             <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("driver-tour-replay"))}
+                  className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+                  data-testid="button-driver-help"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
                 <NotificationBell />
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </div>

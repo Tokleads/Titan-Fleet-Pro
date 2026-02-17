@@ -25,6 +25,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { HelpTooltip } from "@/components/titan-ui/HelpTooltip";
+import { ProductTour, TourStep } from "@/components/ProductTour";
+
+const driverTourSteps: TourStep[] = [
+  { target: ".titan-title", title: "Welcome to Driver Home", description: "This is your home base. From here you can start inspections, clock in/out, message your manager, and more.", placement: "bottom" },
+  { target: '[data-testid="input-search-vrm"]', title: "Start an Inspection", description: "Enter a vehicle registration number to begin your walk-around check. Just type the VRM and hit search.", placement: "bottom" },
+  { target: '[data-testid="section-clock-in-out"]', title: "Clock In & Out", description: "Start and end your shift here to track your working hours. Your manager can see when you're on duty.", placement: "bottom" },
+  { target: '[data-testid="button-message-transport"]', title: "Message Transport", description: "Need to report something? Send a message directly to your transport manager from here.", placement: "top" },
+  { target: '[data-testid="button-car-register"]', title: "Company Car Register", description: "Log which company vehicle you're using today. This keeps fleet records up to date.", placement: "top" },
+  { target: '[data-testid="button-complete-delivery"]', title: "Proof of Delivery", description: "Capture signatures, photos, and notes as proof of delivery. No more paperwork!", placement: "top" },
+];
 
 export default function DriverDashboard() {
   const { currentCompany } = useBrand();
@@ -47,6 +57,7 @@ export default function DriverDashboard() {
   const [messageContent, setMessageContent] = useState("");
   const [messagePriority, setMessagePriority] = useState("normal");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [showTour, setShowTour] = useState(() => !localStorage.getItem("tourSeen_driver"));
   const { toast } = useToast();
 
   const user = session.getUser();
@@ -63,6 +74,12 @@ export default function DriverDashboard() {
     enabled: !!user?.id,
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    const handler = () => setShowTour(true);
+    window.addEventListener("driver-tour-replay", handler);
+    return () => window.removeEventListener("driver-tour-replay", handler);
+  }, []);
 
   // Redirect to login if not logged in
   useEffect(() => {
@@ -356,17 +373,19 @@ export default function DriverDashboard() {
         </AnimatePresence>
 
         {/* Clock In/Out */}
-        {user?.id && company?.id ? (
-          <ClockInOut 
-            companyId={company.id} 
-            driverId={user.id}
-            driverName={user.name || 'Driver'}
-          />
-        ) : (
-          <div className="titan-card p-4 text-center text-muted-foreground">
-            <p>Clock in/out requires login. Please log in again.</p>
-          </div>
-        )}
+        <div data-testid="section-clock-in-out">
+          {user?.id && company?.id ? (
+            <ClockInOut 
+              companyId={company.id} 
+              driverId={user.id}
+              driverName={user.name || 'Driver'}
+            />
+          ) : (
+            <div className="titan-card p-4 text-center text-muted-foreground">
+              <p>Clock in/out requires login. Please log in again.</p>
+            </div>
+          )}
+        </div>
 
         {/* GPS Tracking - runs silently in background */}
         {user?.id && (
@@ -743,6 +762,13 @@ export default function DriverDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProductTour
+        steps={driverTourSteps}
+        storageKey="tourSeen_driver"
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
     </DriverLayout>
   );
 }
