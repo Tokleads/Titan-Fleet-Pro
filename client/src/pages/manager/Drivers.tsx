@@ -73,8 +73,10 @@ interface Driver {
     model: string;
   };
   currentShift?: {
-    startTime: string;
-    endTime?: string;
+    id: number;
+    depotName: string;
+    arrivalTime: string;
+    status: string;
   };
 }
 
@@ -638,15 +640,7 @@ export default function Drivers() {
       return { status: "off", label: "Off Shift", color: "bg-slate-400" };
     }
 
-    const now = new Date();
-    const shiftStart = new Date(driver.currentShift.startTime);
-    const timeUntilShift = (shiftStart.getTime() - now.getTime()) / (1000 * 60);
-
-    if (timeUntilShift > 0 && timeUntilShift <= 60) {
-      return { status: "starting", label: "Starting Soon", color: "bg-amber-500" };
-    }
-
-    if (driver.currentShift.endTime) {
+    if (driver.currentShift.status === "COMPLETED") {
       return { status: "off", label: "Off Shift", color: "bg-slate-400" };
     }
 
@@ -1024,12 +1018,12 @@ export default function Drivers() {
                     )}
 
                     {/* Shift Time */}
-                    {driver.currentShift && status.status !== "off" && status.status !== "inactive" && (
+                    {driver.currentShift && status.status === "active" && (
                       <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
                         <Clock className="h-3 w-3" />
                         <span>
-                          Shift: {new Date(driver.currentShift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {driver.currentShift.endTime && ` - ${new Date(driver.currentShift.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                          Since: {new Date(driver.currentShift.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {driver.currentShift.depotName && driver.currentShift.depotName !== "GPS Location" && ` at ${driver.currentShift.depotName}`}
                         </span>
                       </div>
                     )}
