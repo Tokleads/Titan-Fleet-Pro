@@ -122,7 +122,57 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/drivers - Create a new driver
+const exportAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const EXPORT_MAX_ATTEMPTS = 3;
+const EXPORT_LOCKOUT_MS = 30 * 60 * 1000;
+
+router.post("/export-pins", async (req, res) => {
+  try {
+    const { companyId, managerId, pin: managerPin } = req.body;
+    if (!companyId || !managerId || !managerPin) {
+      return res.status(400).json({ error: "Manager verification required" });
+    }
+
+    const attemptKey = `${managerId}-${companyId}`;
+    const attempt = exportAttempts.get(attemptKey);
+    if (attempt && attempt.count >= EXPORT_MAX_ATTEMPTS && (Date.now() - attempt.lastAttempt) < EXPORT_LOCKOUT_MS) {
+      return res.status(429).json({ error: "Too many export attempts. Please try again in 30 minutes." });
+    }
+
+    const [manager] = await db.select().from(users)
+      .where(and(
+        eq(users.id, Number(managerId)),
+        eq(users.companyId, Number(companyId)),
+        eq(users.pin, managerPin),
+        eq(users.active, true)
+      ));
+
+    if (!manager || !['TRANSPORT_MANAGER', 'ADMIN', 'MANAGER'].includes(manager.role)) {
+      const current = exportAttempts.get(attemptKey) || { count: 0, lastAttempt: 0 };
+      exportAttempts.set(attemptKey, { count: current.count + 1, lastAttempt: Date.now() });
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    exportAttempts.delete(attemptKey);
+
+    const allDrivers = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      pin: users.pin,
+      role: users.role,
+      active: users.active,
+    }).from(users).where(eq(users.companyId, Number(companyId)));
+
+    console.log(`[Audit] PIN export by manager ${manager.name} (ID:${manager.id}) for company ${companyId} - ${allDrivers.length} records`);
+
+    res.json(allDrivers);
+  } catch (error) {
+    console.error("Error exporting pins:", error);
+    res.status(500).json({ error: "Failed to export driver data" });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     const { companyId, name, email, phone, pin, licenseNumber, role } = req.body;

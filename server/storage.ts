@@ -384,11 +384,15 @@ export class DatabaseStorage implements IStorage {
 
   // Manager auth
   async getUserByCompanyAndPin(companyId: number, pin: string, role: string): Promise<User | undefined> {
+    const roleCondition = role === 'manager'
+      ? sql`LOWER(${users.role}) IN ('manager', 'transport_manager', 'admin')`
+      : sql`LOWER(${users.role}) = LOWER(${role})`;
+
     const [user] = await db.select().from(users)
       .where(and(
         eq(users.companyId, companyId),
         eq(users.pin, pin),
-        sql`LOWER(${users.role}) = LOWER(${role})`,
+        roleCondition,
         eq(users.active, true)
       ));
     return user || undefined;

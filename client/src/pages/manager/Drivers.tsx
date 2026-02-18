@@ -563,26 +563,51 @@ export default function Drivers() {
     ...inactiveDrivers,
   ];
 
-  const downloadPinsCsv = () => {
-    if (!drivers || drivers.length === 0) return;
-    const sorted = [...drivers].sort((a, b) => a.name.localeCompare(b.name));
-    const rows = [
-      ["Name", "Email", "PIN", "Role"],
-      ...sorted.map((d) => [
-        d.name,
-        d.email,
-        d.pin || "",
-        ROLE_OPTIONS.find((r) => r.value === d.role)?.label || d.role,
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `driver-pins-${session.getCompany()?.companyCode || "unknown"}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const downloadPinsCsv = async () => {
+    const user = session.getUser();
+    if (!companyId || !user?.id || !user?.pin) {
+      toast.error("Manager verification required");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const res = await fetch("/api/drivers/export-pins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, managerId: user.id, pin: user.pin }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to export");
+      }
+      const data: { name: string; email: string; pin: string; role: string; active: boolean }[] = await res.json();
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+      const rows = [
+        ["Name", "Email", "PIN", "Role", "Active"],
+        ...sorted.map((d) => [
+          d.name,
+          d.email,
+          d.pin || "",
+          ROLE_OPTIONS.find((r) => r.value === d.role)?.label || d.role,
+          d.active ? "Yes" : "No",
+        ]),
+      ];
+      const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `driver-pins-${session.getCompany()?.companyCode || "company"}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Driver PINs exported successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to export PINs");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -598,9 +623,9 @@ export default function Drivers() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={downloadPinsCsv} data-testid="button-download-pins">
+            <Button variant="outline" onClick={downloadPinsCsv} disabled={isExporting} data-testid="button-download-pins">
               <Download className="h-4 w-4 mr-2" />
-              Download PINs
+              {isExporting ? "Exporting..." : "Download PINs"}
             </Button>
           {/* Add Driver Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
