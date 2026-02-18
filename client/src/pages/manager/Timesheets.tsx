@@ -16,7 +16,9 @@ import {
   Pencil,
   Check,
   X,
-  ClipboardList
+  ClipboardList,
+  ChevronRight,
+  ArrowLeft
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -82,6 +84,9 @@ export default function Timesheets() {
   const [editDeparture, setEditDeparture] = useState("");
   const [editNote, setEditNote] = useState("");
 
+  const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [selectedDriverName, setSelectedDriverName] = useState<string>("");
+
   const { data: timesheets, isLoading } = useQuery<Timesheet[]>({
     queryKey: ["timesheets", companyId, statusFilter, dateRange],
     queryFn: async () => {
@@ -127,6 +132,49 @@ export default function Timesheets() {
     },
     enabled: !!companyId,
   });
+
+  const driverPanelStartDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 14);
+    return d.toISOString().split('T')[0];
+  }, []);
+  const driverPanelEndDate = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const { data: driverTimesheets, isLoading: driverTimesheetsLoading } = useQuery<Timesheet[]>({
+    queryKey: ["driver-timesheets", companyId, selectedDriverId, driverPanelStartDate, driverPanelEndDate],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        driverId: String(selectedDriverId),
+        startDate: driverPanelStartDate,
+        endDate: driverPanelEndDate,
+      });
+      const res = await fetch(`/api/timesheets/${companyId}?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch driver timesheets");
+      return res.json();
+    },
+    enabled: !!companyId && !!selectedDriverId,
+  });
+
+  const driverTimesheetsByDay = useMemo(() => {
+    if (!driverTimesheets) return [];
+    const grouped: Record<string, Timesheet[]> = {};
+    for (const ts of driverTimesheets) {
+      const dateKey = new Date(ts.arrivalTime).toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+      });
+      if (!grouped[dateKey]) grouped[dateKey] = [];
+      grouped[dateKey].push(ts);
+    }
+    return Object.entries(grouped).map(([date, entries]) => ({
+      date,
+      entries,
+      totalMinutes: entries.reduce((sum, e) => sum + (e.totalMinutes || 0), 0),
+    }));
+  }, [driverTimesheets]);
+
+  const driverGrandTotalMinutes = useMemo(() => {
+    return driverTimesheetsByDay.reduce((sum, day) => sum + day.totalMinutes, 0);
+  }, [driverTimesheetsByDay]);
 
   const adjustMutation = useMutation({
     mutationFn: async ({ id, arrivalTime, departureTime, note }: { id: number; arrivalTime: string; departureTime: string; note: string }) => {
@@ -599,9 +647,17 @@ export default function Timesheets() {
                                   {timesheet.driver?.name?.charAt(0) || "?"}
                                 </span>
                               </div>
-                              <span className="font-medium text-slate-900">
+                              <button
+                                onClick={() => {
+                                  setSelectedDriverId(timesheet.driverId);
+                                  setSelectedDriverName(timesheet.driver?.name || "Unknown");
+                                }}
+                                className="font-medium text-slate-900 hover:text-blue-600 hover:underline cursor-pointer transition-colors"
+                                data-testid={`link-driver-${timesheet.driverId}`}
+                              >
                                 {timesheet.driver?.name || "Unknown"}
-                              </span>
+                              </button>
+                              <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -754,6 +810,117 @@ export default function Timesheets() {
           </>
         )}
       </div>
+
+      {/* Driver Detail Slide-Over Panel */}
+      {selectedDriverId && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 z-40 transition-opacity"
+            onClick={() => { setSelectedDriverId(null); setSelectedDriverName(""); }}
+            data-testid="panel-backdrop"
+          />
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden" data-testid="panel-driver-detail">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setSelectedDriverId(null); setSelectedDriverName(""); }}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors"
+                  data-testid="button-panel-back"
+                >
+                  <ArrowLeft className="h-5 w-5 text-slate-600" />
+                </button>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900" data-testid="text-panel-driver-name">{selectedDriverName}</h2>
+                  <p className="text-xs text-slate-500">Last 14 days of timesheets</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setSelectedDriverId(null); setSelectedDriverName(""); }}
+                className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors"
+                data-testid="button-panel-close"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Grand Total */}
+            <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-700">Total Hours (14 days)</span>
+                <span className="text-lg font-bold text-blue-800" data-testid="text-grand-total-hours">
+                  {Math.floor(driverGrandTotalMinutes / 60)}h {driverGrandTotalMinutes % 60}m
+                </span>
+              </div>
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {driverTimesheetsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-sm text-slate-400">Loading timesheets...</div>
+                </div>
+              ) : driverTimesheetsByDay.length > 0 ? (
+                driverTimesheetsByDay.map((day) => (
+                  <div key={day.date} className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-700" data-testid={`text-day-heading-${day.date}`}>
+                        <Calendar className="h-3.5 w-3.5 inline mr-1.5 text-slate-400" />
+                        {day.date}
+                      </span>
+                      <span className="text-xs font-medium text-slate-500" data-testid={`text-day-total-${day.date}`}>
+                        {Math.floor(day.totalMinutes / 60)}h {day.totalMinutes % 60}m
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {day.entries.map((entry) => (
+                        <div key={entry.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors" data-testid={`row-driver-entry-${entry.id}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                              <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                              {entry.depotName}
+                            </div>
+                            {entry.status === "COMPLETED" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Completed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                <Clock className="h-3 w-3" />
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span>
+                              In: {new Date(entry.arrivalTime).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span>
+                              Out: {entry.departureTime
+                                ? new Date(entry.departureTime).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                                : "—"}
+                            </span>
+                            <span className="font-medium text-slate-700">
+                              {formatDuration(entry.totalMinutes)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                  <p className="text-slate-500 font-medium">No timesheets found</p>
+                  <p className="text-sm text-slate-400 mt-1">No entries for the last 14 days</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </ManagerLayout>
   );
 }

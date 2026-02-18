@@ -3077,12 +3077,13 @@ export async function registerRoutes(
   // Get timesheets for company
   app.get("/api/timesheets/:companyId", async (req, res) => {
     try {
-      const { status, startDate, endDate } = req.query;
+      const { status, startDate, endDate, driverId } = req.query;
       const timesheets = await storage.getTimesheets(
         Number(req.params.companyId),
         status as string,
         startDate as string,
-        endDate as string
+        endDate as string,
+        driverId ? Number(driverId) : undefined
       );
       res.json(timesheets);
     } catch (error) {

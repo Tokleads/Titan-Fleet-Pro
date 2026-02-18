@@ -146,7 +146,7 @@ export interface IStorage {
   checkGeofences(driverId: number, companyId: number, latitude: string, longitude: string): Promise<void>;
   
   // Timesheet operations
-  getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string): Promise<(Timesheet & { driver?: User })[]>;
+  getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string, driverId?: number): Promise<(Timesheet & { driver?: User })[]>;
   getActiveTimesheet(driverId: number): Promise<Timesheet | undefined>;
   clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet>;
   clockOut(timesheetId: number, latitude: string, longitude: string): Promise<Timesheet>;
@@ -1135,9 +1135,12 @@ export class DatabaseStorage implements IStorage {
   
   // ==================== TIMESHEETS ====================
   
-  async getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string): Promise<(Timesheet & { driver?: User })[]> {
+  async getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string, driverId?: number): Promise<(Timesheet & { driver?: User })[]> {
     let conditions = [eq(timesheets.companyId, companyId)];
     
+    if (driverId) {
+      conditions.push(eq(timesheets.driverId, driverId));
+    }
     if (status) {
       conditions.push(eq(timesheets.status, status));
     }
