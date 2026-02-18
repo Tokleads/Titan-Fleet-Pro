@@ -259,28 +259,32 @@ app.use((req, res, next) => {
   }
 
   try {
+    const { db: db2 } = await import('./db');
+    const { companies: companies2, users: users2 } = await import('@shared/schema');
+    const { eq: eq2, and: and2, sql: sql2, isNull: isNull2 } = await import('drizzle-orm');
+
     const migrationName2 = 'abtso_assign_missing_pins_v2';
-    const existing2 = await db.execute(sql`SELECT name FROM _migrations WHERE name = ${migrationName2}`);
+    const existing2 = await db2.execute(sql2`SELECT name FROM _migrations WHERE name = ${migrationName2}`);
     if (!existing2.rows || existing2.rows.length === 0) {
-      const [abtsoCompany] = await db.select().from(companies)
-        .where(sql`${companies.companyCode} = 'ABTSO'`).limit(1);
+      const [abtsoCompany] = await db2.select().from(companies2)
+        .where(sql2`${companies2.companyCode} = 'ABTSO'`).limit(1);
       if (abtsoCompany) {
-        const usersWithoutPin = await db.select({ id: users.id, name: users.name, role: users.role }).from(users)
-          .where(and(eq(users.companyId, abtsoCompany.id), isNull(users.pin)));
+        const usersWithoutPin = await db2.select({ id: users2.id, name: users2.name, role: users2.role }).from(users2)
+          .where(and2(eq2(users2.companyId, abtsoCompany.id), isNull2(users2.pin)));
         if (usersWithoutPin.length > 0) {
-          const existingPins = await db.select({ pin: users.pin }).from(users)
-            .where(and(eq(users.companyId, abtsoCompany.id), sql`${users.pin} IS NOT NULL`));
+          const existingPins = await db2.select({ pin: users2.pin }).from(users2)
+            .where(and2(eq2(users2.companyId, abtsoCompany.id), sql2`${users2.pin} IS NOT NULL`));
           const usedPins = new Set(existingPins.map(p => p.pin));
           let nextPin = 1001;
           for (const u of usersWithoutPin) {
             while (usedPins.has(String(nextPin))) nextPin++;
-            await db.update(users).set({ pin: String(nextPin) }).where(eq(users.id, u.id));
+            await db2.update(users2).set({ pin: String(nextPin) }).where(eq2(users2.id, u.id));
             console.log(`[Migration v2] Assigned PIN ${nextPin} to ${u.name} (${u.role})`);
             usedPins.add(String(nextPin));
             nextPin++;
           }
         }
-        await db.execute(sql`INSERT INTO _migrations (name) VALUES (${migrationName2})`);
+        await db2.execute(sql2`INSERT INTO _migrations (name) VALUES (${migrationName2})`);
         console.log('[Migration v2] Assigned PINs to all remaining users without PINs');
       }
     }
