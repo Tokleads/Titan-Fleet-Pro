@@ -86,6 +86,11 @@ export default function Timesheets() {
 
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [selectedDriverName, setSelectedDriverName] = useState<string>("");
+  const [driverPanelDates, setDriverPanelDates] = useState({
+    start: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0],
+  });
+  const [driverExporting, setDriverExporting] = useState(false);
 
   const { data: timesheets, isLoading } = useQuery<Timesheet[]>({
     queryKey: ["timesheets", companyId, statusFilter, dateRange],
@@ -133,20 +138,13 @@ export default function Timesheets() {
     enabled: !!companyId,
   });
 
-  const driverPanelStartDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14);
-    return d.toISOString().split('T')[0];
-  }, []);
-  const driverPanelEndDate = useMemo(() => new Date().toISOString().split('T')[0], []);
-
   const { data: driverTimesheets, isLoading: driverTimesheetsLoading } = useQuery<Timesheet[]>({
-    queryKey: ["driver-timesheets", companyId, selectedDriverId, driverPanelStartDate, driverPanelEndDate],
+    queryKey: ["driver-timesheets", companyId, selectedDriverId, driverPanelDates.start, driverPanelDates.end],
     queryFn: async () => {
       const params = new URLSearchParams({
         driverId: String(selectedDriverId),
-        startDate: driverPanelStartDate,
-        endDate: driverPanelEndDate,
+        startDate: driverPanelDates.start,
+        endDate: driverPanelDates.end,
       });
       const res = await fetch(`/api/timesheets/${companyId}?${params}`);
       if (!res.ok) throw new Error("Failed to fetch driver timesheets");
@@ -263,6 +261,38 @@ export default function Timesheets() {
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export timesheets");
+    }
+  };
+
+  const handleDriverExportCSV = async () => {
+    if (!selectedDriverId || !companyId) return;
+    setDriverExporting(true);
+    try {
+      const res = await fetch('/api/timesheets/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId,
+          startDate: driverPanelDates.start,
+          endDate: driverPanelDates.end,
+          driverId: selectedDriverId,
+        })
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedDriverName.replace(/\s+/g, '-')}-timesheets-${driverPanelDates.start}-to-${driverPanelDates.end}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Driver export error:", error);
+      alert("Failed to export timesheets");
+    } finally {
+      setDriverExporting(false);
     }
   };
 
@@ -832,7 +862,7 @@ export default function Timesheets() {
                 </button>
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900" data-testid="text-panel-driver-name">{selectedDriverName}</h2>
-                  <p className="text-xs text-slate-500">Last 14 days of timesheets</p>
+                  <p className="text-xs text-slate-500">Timesheet history</p>
                 </div>
               </div>
               <button
@@ -844,10 +874,75 @@ export default function Timesheets() {
               </button>
             </div>
 
+            {/* Date Range & Download */}
+            <div className="px-6 py-3 border-b border-slate-200 bg-white space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={driverPanelDates.start}
+                  onChange={(e) => setDriverPanelDates(prev => ({ ...prev, start: e.target.value }))}
+                  className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="input-driver-panel-start-date"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={driverPanelDates.end}
+                  onChange={(e) => setDriverPanelDates(prev => ({ ...prev, end: e.target.value }))}
+                  className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="input-driver-panel-end-date"
+                />
+                <div className="flex gap-1 ml-auto">
+                  <button
+                    onClick={() => {
+                      const end = new Date().toISOString().split('T')[0];
+                      const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                      setDriverPanelDates({ start, end });
+                    }}
+                    className="px-2 py-1 text-xs rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                    data-testid="button-driver-panel-7days"
+                  >
+                    7d
+                  </button>
+                  <button
+                    onClick={() => {
+                      const end = new Date().toISOString().split('T')[0];
+                      const start = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                      setDriverPanelDates({ start, end });
+                    }}
+                    className="px-2 py-1 text-xs rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                    data-testid="button-driver-panel-14days"
+                  >
+                    14d
+                  </button>
+                  <button
+                    onClick={() => {
+                      const end = new Date().toISOString().split('T')[0];
+                      const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                      setDriverPanelDates({ start, end });
+                    }}
+                    className="px-2 py-1 text-xs rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                    data-testid="button-driver-panel-30days"
+                  >
+                    30d
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={handleDriverExportCSV}
+                disabled={driverExporting || driverTimesheetsLoading || !driverTimesheets?.length}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="button-driver-export-csv"
+              >
+                <Download className="h-4 w-4" />
+                {driverExporting ? 'Downloading...' : `Download CSV`}
+              </button>
+            </div>
+
             {/* Grand Total */}
             <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-700">Total Hours (14 days)</span>
+                <span className="text-sm font-medium text-blue-700">Total Hours</span>
                 <span className="text-lg font-bold text-blue-800" data-testid="text-grand-total-hours">
                   {Math.floor(driverGrandTotalMinutes / 60)}h {driverGrandTotalMinutes % 60}m
                 </span>

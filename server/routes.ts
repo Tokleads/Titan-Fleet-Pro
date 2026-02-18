@@ -3133,7 +3133,7 @@ export async function registerRoutes(
   // Export timesheets as CSV
   app.post("/api/timesheets/export", async (req, res) => {
     try {
-      const { companyId, startDate, endDate } = req.body;
+      const { companyId, startDate, endDate, driverId } = req.body;
       
       if (!companyId) {
         return res.status(400).json({ error: "Missing companyId" });
@@ -3141,9 +3141,10 @@ export async function registerRoutes(
       
       const timesheets = await storage.getTimesheets(
         Number(companyId),
-        "COMPLETED",
+        undefined,
         startDate,
-        endDate
+        endDate,
+        driverId ? Number(driverId) : undefined
       );
       
       // Generate CSV
