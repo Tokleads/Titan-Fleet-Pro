@@ -292,6 +292,14 @@ router.put("/:id", async (req, res) => {
       }
     }
 
+    const [existingDriverRecord] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, Number(id)))
+      .limit(1);
+
+    const hadNoPinBefore = existingDriverRecord && !existingDriverRecord.pin;
+
     const [updatedDriver] = await db
       .update(users)
       .set(updateData)
@@ -300,6 +308,31 @@ router.put("/:id", async (req, res) => {
 
     if (!updatedDriver) {
       return res.status(404).json({ error: "Driver not found" });
+    }
+
+    if (hadNoPinBefore && pin && updatedDriver.email) {
+      setImmediate(async () => {
+        try {
+          const [company] = await db
+            .select()
+            .from(companies)
+            .where(eq(companies.id, Number(updatedDriver.companyId)))
+            .limit(1);
+
+          if (company) {
+            await sendWelcomeEmail({
+              email: updatedDriver.email!,
+              name: updatedDriver.name,
+              companyName: company.name,
+              companyCode: company.companyCode,
+              pin: pin,
+            });
+            console.log(`Welcome email sent to updated driver ${updatedDriver.name} (${updatedDriver.email})`);
+          }
+        } catch (emailErr) {
+          console.error("Failed to send welcome email:", emailErr);
+        }
+      });
     }
 
     res.json({
