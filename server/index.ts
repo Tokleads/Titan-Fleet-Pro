@@ -183,6 +183,58 @@ app.use((req, res, next) => {
     console.error('Demo seed check (non-fatal):', seedErr);
   }
 
+  // One-time ABTSO setup: company code, driver PINs, and Robert as Transport Manager
+  try {
+    const { db } = await import('./db');
+    const { companies, users } = await import('@shared/schema');
+    const { eq, and, sql, isNull } = await import('drizzle-orm');
+
+    const [abtsoCompany] = await db.select().from(companies).where(eq(companies.name, 'ABTSO')).limit(1);
+    if (abtsoCompany) {
+      if (abtsoCompany.companyCode !== 'ABTSO') {
+        await db.update(companies).set({ companyCode: 'ABTSO' }).where(eq(companies.id, abtsoCompany.id));
+        console.log('[ABTSO] Updated company code to ABTSO');
+      }
+
+      const [robert] = await db.select().from(users)
+        .where(and(eq(users.email, 'abtsorobert@gmail.com'), eq(users.companyId, abtsoCompany.id)))
+        .limit(1);
+      if (robert && robert.role !== 'TRANSPORT_MANAGER') {
+        await db.update(users).set({ role: 'TRANSPORT_MANAGER' }).where(eq(users.id, robert.id));
+        console.log('[ABTSO] Promoted Robert Bekas to TRANSPORT_MANAGER');
+      }
+      if (robert && !robert.pin) {
+        await db.update(users).set({ pin: '1000' }).where(eq(users.id, robert.id));
+        console.log('[ABTSO] Set Robert PIN to 1000');
+      }
+
+      const driversWithoutPin = await db.select({ id: users.id, name: users.name }).from(users)
+        .where(and(
+          eq(users.companyId, abtsoCompany.id),
+          eq(users.role, 'DRIVER'),
+          isNull(users.pin)
+        ))
+        .orderBy(users.name);
+
+      if (driversWithoutPin.length > 0) {
+        const existingPins = await db.select({ pin: users.pin }).from(users)
+          .where(and(eq(users.companyId, abtsoCompany.id), sql`${users.pin} IS NOT NULL`));
+        let nextPin = 1001;
+        const usedPins = new Set(existingPins.map(p => p.pin));
+        for (const driver of driversWithoutPin) {
+          while (usedPins.has(String(nextPin).padStart(4, '0'))) nextPin++;
+          const pinStr = String(nextPin).padStart(4, '0');
+          await db.update(users).set({ pin: pinStr }).where(eq(users.id, driver.id));
+          usedPins.add(pinStr);
+          nextPin++;
+        }
+        console.log(`[ABTSO] Assigned PINs to ${driversWithoutPin.length} drivers`);
+      }
+    }
+  } catch (abtsoErr) {
+    console.error('ABTSO setup (non-fatal):', abtsoErr);
+  }
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
 
