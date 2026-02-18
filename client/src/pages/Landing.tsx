@@ -88,8 +88,9 @@ export default function Landing() {
           totpEnabled: null,
         });
         refreshCompany();
-        localStorage.setItem("titanfleet_last_role", "driver");
-        setLocation("/driver");
+        const isManager = ['TRANSPORT_MANAGER', 'ADMIN', 'MANAGER'].includes(user.role);
+        localStorage.setItem("titanfleet_last_role", isManager ? "manager" : "driver");
+        setLocation(isManager ? "/manager" : "/driver");
       } else {
         const company = await api.getCompanyByCode(companyCode);
         session.setCompany(company);

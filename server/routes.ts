@@ -917,23 +917,19 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid company code" });
       }
 
-      const driver = await storage.getUserByCompanyAndPin(company.id, pin, "driver");
-      if (!driver) {
-        const managerCheck = await storage.getUserByCompanyAndPin(company.id, pin, "manager");
-        if (managerCheck) {
-          return res.status(401).json({ error: "This PIN belongs to a manager account. Please use the Manager Login instead." });
-        }
+      const user = await storage.getUserByCompanyAndPin(company.id, pin, "any");
+      if (!user) {
         return res.status(401).json({ error: "Invalid PIN" });
       }
 
       res.json({
         user: {
-          id: driver.id,
-          companyId: driver.companyId,
-          name: driver.name,
-          email: driver.email,
-          role: driver.role,
-          active: driver.active,
+          id: user.id,
+          companyId: user.companyId,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          active: user.active,
         },
         company,
       });
