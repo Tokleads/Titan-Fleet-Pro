@@ -919,6 +919,10 @@ export async function registerRoutes(
 
       const driver = await storage.getUserByCompanyAndPin(company.id, pin, "driver");
       if (!driver) {
+        const managerCheck = await storage.getUserByCompanyAndPin(company.id, pin, "manager");
+        if (managerCheck) {
+          return res.status(401).json({ error: "This PIN belongs to a manager account. Please use the Manager Login instead." });
+        }
         return res.status(401).json({ error: "Invalid PIN" });
       }
 

@@ -258,6 +258,36 @@ app.use((req, res, next) => {
     console.error('ABTSO migration (non-fatal):', abtsoErr);
   }
 
+  try {
+    const migrationName2 = 'abtso_assign_missing_pins_v2';
+    const existing2 = await db.execute(sql`SELECT name FROM _migrations WHERE name = ${migrationName2}`);
+    if (!existing2.rows || existing2.rows.length === 0) {
+      const [abtsoCompany] = await db.select().from(companies)
+        .where(sql`${companies.companyCode} = 'ABTSO'`).limit(1);
+      if (abtsoCompany) {
+        const usersWithoutPin = await db.select({ id: users.id, name: users.name, role: users.role }).from(users)
+          .where(and(eq(users.companyId, abtsoCompany.id), isNull(users.pin)));
+        if (usersWithoutPin.length > 0) {
+          const existingPins = await db.select({ pin: users.pin }).from(users)
+            .where(and(eq(users.companyId, abtsoCompany.id), sql`${users.pin} IS NOT NULL`));
+          const usedPins = new Set(existingPins.map(p => p.pin));
+          let nextPin = 1001;
+          for (const u of usersWithoutPin) {
+            while (usedPins.has(String(nextPin))) nextPin++;
+            await db.update(users).set({ pin: String(nextPin) }).where(eq(users.id, u.id));
+            console.log(`[Migration v2] Assigned PIN ${nextPin} to ${u.name} (${u.role})`);
+            usedPins.add(String(nextPin));
+            nextPin++;
+          }
+        }
+        await db.execute(sql`INSERT INTO _migrations (name) VALUES (${migrationName2})`);
+        console.log('[Migration v2] Assigned PINs to all remaining users without PINs');
+      }
+    }
+  } catch (migErr2) {
+    console.error('Migration v2 (non-fatal):', migErr2);
+  }
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
 
