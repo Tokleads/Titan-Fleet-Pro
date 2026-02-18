@@ -20,7 +20,8 @@ import {
   Shield,
   LogOut,
   Activity,
-  User
+  User,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,7 +160,7 @@ function DriverForm({
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-pin" : "pin"}>Driver PIN (4 digits) *</Label>
+        <Label htmlFor={isEdit ? "edit-pin" : "pin"}>Driver PIN (4 digits) {isEdit ? "*" : "(auto-generated if blank)"}</Label>
         <div className="relative">
           <Input
             id={isEdit ? "edit-pin" : "pin"}
@@ -562,6 +563,28 @@ export default function Drivers() {
     ...inactiveDrivers,
   ];
 
+  const downloadPinsCsv = () => {
+    if (!drivers || drivers.length === 0) return;
+    const sorted = [...drivers].sort((a, b) => a.name.localeCompare(b.name));
+    const rows = [
+      ["Name", "Email", "PIN", "Role"],
+      ...sorted.map((d) => [
+        d.name,
+        d.email,
+        d.pin || "",
+        ROLE_OPTIONS.find((r) => r.value === d.role)?.label || d.role,
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `driver-pins-${session.getCompany()?.companyCode || "unknown"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <ManagerLayout>
       <div className="space-y-6">
@@ -574,6 +597,11 @@ export default function Drivers() {
             </p>
           </div>
           
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={downloadPinsCsv} data-testid="button-download-pins">
+              <Download className="h-4 w-4 mr-2" />
+              Download PINs
+            </Button>
           {/* Add Driver Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
@@ -611,7 +639,7 @@ export default function Drivers() {
                 </Button>
                 <Button
                   onClick={() => addDriverMutation.mutate(newDriver)}
-                  disabled={!newDriver.name || !newDriver.email || newDriver.pin.length !== 4 || addDriverMutation.isPending}
+                  disabled={!newDriver.name || !newDriver.email || (newDriver.pin.length > 0 && newDriver.pin.length !== 4) || addDriverMutation.isPending}
                   data-testid="button-submit-add-driver"
                 >
                   {addDriverMutation.isPending ? "Adding..." : "Add Driver"}
@@ -619,6 +647,7 @@ export default function Drivers() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Edit Driver Dialog */}
