@@ -172,20 +172,19 @@ function DriverForm({
             onChange={(e) => setData({ ...data, pin: e.target.value.replace(/\D/g, '') })}
             className="pr-10"
           />
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-            onClick={() => setShowPinToggle(!showPinToggle)}
+            className="absolute right-0 top-0 h-full px-3 flex items-center justify-center cursor-pointer z-10"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPinToggle(!showPinToggle); }}
             data-testid={isEdit ? "button-toggle-edit-pin" : "button-toggle-pin"}
+            style={{ minWidth: '44px', minHeight: '44px' }}
           >
             {showPinToggle ? (
-              <EyeOff className="h-4 w-4 text-slate-400" />
+              <EyeOff className="h-5 w-5 text-slate-500" />
             ) : (
-              <Eye className="h-4 w-4 text-slate-400" />
+              <Eye className="h-5 w-5 text-slate-500" />
             )}
-          </Button>
+          </button>
         </div>
       </div>
       <div className="space-y-2">
