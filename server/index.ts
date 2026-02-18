@@ -292,6 +292,37 @@ app.use((req, res, next) => {
     console.error('Migration v2 (non-fatal):', migErr2);
   }
 
+  // Migration v3: Create Jon Byrne test driver account
+  try {
+    const { db: db3 } = await import('./db');
+    const { companies: companies3, users: users3 } = await import('@shared/schema');
+    const { sql: sql3 } = await import('drizzle-orm');
+
+    const migrationName3 = 'abtso_create_jon_byrne_driver_v3';
+    const existing3 = await db3.execute(sql3`SELECT name FROM _migrations WHERE name = ${migrationName3}`);
+    if (!existing3.rows || existing3.rows.length === 0) {
+      const [abtsoCompany3] = await db3.select().from(companies3)
+        .where(sql3`UPPER(TRIM(${companies3.companyCode})) = 'ABTSO'`).limit(1);
+      if (abtsoCompany3) {
+        const existingUser = await db3.execute(
+          sql3`SELECT id FROM users WHERE company_id = ${abtsoCompany3.id} AND pin = '1184'`
+        );
+        if (!existingUser.rows || existingUser.rows.length === 0) {
+          await db3.execute(sql3`
+            INSERT INTO users (company_id, email, name, role, pin, active)
+            VALUES (${abtsoCompany3.id}, 'jonbyrne.driver@abtso.co.uk', 'Jon Byrne', 'DRIVER', '1184', true)
+          `);
+          console.log('[Migration v3] Created Jon Byrne driver account with PIN 1184');
+        } else {
+          console.log('[Migration v3] Jon Byrne driver account already exists');
+        }
+      }
+      await db3.execute(sql3`INSERT INTO _migrations (name) VALUES (${migrationName3})`);
+    }
+  } catch (migErr3) {
+    console.error('Migration v3 (non-fatal):', migErr3);
+  }
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
 
