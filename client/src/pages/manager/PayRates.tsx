@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { PoundSterling, Clock, Moon, Calendar, TrendingUp, Save, Download, User, ChevronDown, ChevronRight, Check, X, Pencil } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { PoundSterling, Clock, Moon, Calendar, TrendingUp, Save, Download, User, ChevronDown, ChevronRight, Check, X, Pencil, Search } from 'lucide-react';
 import { ManagerLayout } from './ManagerLayout';
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +63,7 @@ export default function PayRates() {
     end: new Date().toISOString().split('T')[0],
   });
   const [exporting, setExporting] = useState(false);
+  const [driverSearch, setDriverSearch] = useState('');
 
   useEffect(() => {
     fetchAll();
@@ -303,14 +304,26 @@ export default function PayRates() {
               </p>
             </div>
 
-            {drivers.length === 0 ? (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search driver by name..."
+                value={driverSearch}
+                onChange={(e) => setDriverSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-300"
+                data-testid="input-search-driver-pay"
+              />
+            </div>
+
+            {drivers.filter(d => d.name.toLowerCase().includes(driverSearch.toLowerCase())).length === 0 ? (
               <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
                 <User className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                 <p className="font-semibold text-slate-900">No drivers found</p>
                 <p className="text-sm text-slate-500 mt-1">Add drivers to your fleet to set their pay rates</p>
               </div>
             ) : (
-              drivers.map(driver => {
+              drivers.filter(d => d.name.toLowerCase().includes(driverSearch.toLowerCase())).map(driver => {
                 const driverRate = getDriverRate(driver.id);
                 const effectiveRate = getEffectiveRate(driver.id);
                 const isExpanded = expandedDriverId === driver.id;
