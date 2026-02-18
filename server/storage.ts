@@ -221,8 +221,9 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Company
   async getCompanyByCode(code: string): Promise<Company | undefined> {
-    const [company] = await db.select().from(companies).where(sql`UPPER(${companies.companyCode}) = UPPER(${code})`);
-    return company || undefined;
+    const normalizedCode = code.trim().toUpperCase();
+    const allCompanies = await db.select().from(companies);
+    return allCompanies.find(c => c.companyCode?.trim().toUpperCase() === normalizedCode) || undefined;
   }
 
   async createCompany(company: InsertCompany): Promise<Company> {

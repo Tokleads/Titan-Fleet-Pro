@@ -907,11 +907,13 @@ export async function registerRoutes(
   // Driver login
   app.post("/api/driver/login", async (req, res) => {
     try {
-      const { companyCode, pin } = req.body;
+      const companyCode = (req.body.companyCode || "").trim();
+      const pin = (req.body.pin || "").trim();
       if (!companyCode || !pin) {
         return res.status(400).json({ error: "Missing company code or PIN" });
       }
 
+      console.log(`[Driver Login] Attempting login with company code: "${companyCode}"`);
       const company = await storage.getCompanyByCode(companyCode);
       if (!company) {
         return res.status(401).json({ error: "Invalid company code" });
@@ -944,7 +946,9 @@ export async function registerRoutes(
   // Manager login
   app.post("/api/manager/login", async (req, res) => {
     try {
-      const { companyCode, pin, totpToken } = req.body;
+      const companyCode = (req.body.companyCode || "").trim();
+      const pin = (req.body.pin || "").trim();
+      const totpToken = req.body.totpToken;
       if (!companyCode || !pin) {
         return res.status(400).json({ error: "Missing company code or PIN" });
       }
