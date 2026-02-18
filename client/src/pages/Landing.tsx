@@ -41,7 +41,7 @@ export default function Landing() {
       
       setIsLoadingAnnouncements(true);
       try {
-        const response = await fetch(`/api/notifications/public/${companyCode}`);
+        const response = await fetch(`/api/notifications/public/${companyCode.toUpperCase()}`);
         if (response.ok) {
           const data = await response.json();
           setAnnouncements(data);
@@ -69,7 +69,7 @@ export default function Landing() {
         const response = await fetch("/api/driver/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ companyCode, pin }),
+          body: JSON.stringify({ companyCode: companyCode.toUpperCase(), pin }),
         });
         
         if (!response.ok) {
