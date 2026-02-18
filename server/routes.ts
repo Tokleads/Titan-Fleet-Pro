@@ -299,6 +299,44 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/global-search", async (req, res) => {
+    try {
+      const { companyId, q } = req.query;
+      if (!companyId || !q) {
+        return res.json({ drivers: [], vehicles: [] });
+      }
+      const query = String(q).toLowerCase().trim();
+      if (query.length < 2) {
+        return res.json({ drivers: [], vehicles: [] });
+      }
+
+      const [allUsers, allVehicles] = await Promise.all([
+        storage.getUsersByCompany(Number(companyId)),
+        storage.getVehicles(Number(companyId)),
+      ]);
+
+      const drivers = allUsers
+        .filter((u: any) => u.role === "DRIVER" && u.name.toLowerCase().includes(query))
+        .slice(0, 8)
+        .map((u: any) => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+
+      const vehicles = allVehicles
+        .filter((v: any) => {
+          const vrm = (v.registrationNumber || v.vrm || "").toLowerCase();
+          const make = (v.make || "").toLowerCase();
+          const model = (v.model || "").toLowerCase();
+          return vrm.includes(query) || make.includes(query) || model.includes(query);
+        })
+        .slice(0, 8)
+        .map((v: any) => ({ id: v.id, vrm: v.registrationNumber || v.vrm, make: v.make, model: v.model }));
+
+      res.json({ drivers, vehicles });
+    } catch (error) {
+      console.error("Global search error:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
   // Company lookup
   app.get("/api/company/:code", async (req, res) => {
     try {

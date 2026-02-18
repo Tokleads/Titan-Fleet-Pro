@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { 
   LayoutDashboard, 
@@ -63,12 +63,24 @@ const navItems = [
   { path: "/manager/settings", icon: Settings, label: "Settings", permissionKey: "settings" },
 ];
 
+interface SearchResults {
+  drivers: { id: number; name: string; email: string; role: string }[];
+  vehicles: { id: number; vrm: string; make: string; model: string }[];
+}
+
 export function ManagerLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const user = session.getUser();
   const company = session.getCompany();
   const companySettings = (company?.settings || {}) as Record<string, any>;
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAdmin = user?.role === 'ADMIN';
   const userPermissions = user?.permissions as string[] | null | undefined;
@@ -88,6 +100,55 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     session.clear();
     setLocation("/manager/login");
   };
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.length < 2 || !company?.id) {
+      setSearchResults(null);
+      setSearchOpen(false);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/global-search?companyId=${company.id}&q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+        setSearchOpen(true);
+      }
+    } catch (e) {
+      console.error("Search error", e);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [company?.id]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (value.length < 2) {
+      setSearchResults(null);
+      setSearchOpen(false);
+      return;
+    }
+    searchTimerRef.current = setTimeout(() => doSearch(value), 300);
+  };
+
+  const navigateToResult = (path: string) => {
+    setSearchQuery("");
+    setSearchResults(null);
+    setSearchOpen(false);
+    setLocation(path);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100/50 flex relative">
@@ -161,16 +222,80 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 mr-80">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-6 sticky top-0 z-10">
+        <header className="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-6 sticky top-0 z-20">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="relative" ref={searchRef}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
               <input
                 type="text"
-                placeholder="Search VRM, driver, inspection..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onFocus={() => { if (searchResults && searchQuery.length >= 2) setSearchOpen(true); }}
+                placeholder="Search driver or VRM..."
                 className="w-80 h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                 data-testid="input-global-search"
               />
+
+              {searchOpen && searchResults && (
+                <div className="absolute top-full left-0 mt-1 w-96 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden max-h-[400px] overflow-y-auto">
+                  {searchResults.drivers.length === 0 && searchResults.vehicles.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-slate-400">
+                      No results for "{searchQuery}"
+                    </div>
+                  ) : (
+                    <>
+                      {searchResults.drivers.length > 0 && (
+                        <div>
+                          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Drivers</span>
+                          </div>
+                          {searchResults.drivers.map((d) => (
+                            <button
+                              key={`d-${d.id}`}
+                              onClick={() => navigateToResult("/manager/drivers")}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left"
+                              data-testid={`search-result-driver-${d.id}`}
+                            >
+                              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <span className="text-xs font-bold text-blue-600">{d.name.charAt(0)}</span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-slate-900 truncate">{d.name}</p>
+                                <p className="text-xs text-slate-400 truncate">{d.email}</p>
+                              </div>
+                              <Users className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {searchResults.vehicles.length > 0 && (
+                        <div>
+                          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
+                            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Vehicles</span>
+                          </div>
+                          {searchResults.vehicles.map((v) => (
+                            <button
+                              key={`v-${v.id}`}
+                              onClick={() => navigateToResult("/manager/fleet")}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left"
+                              data-testid={`search-result-vehicle-${v.id}`}
+                            >
+                              <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                <Truck className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-slate-900 truncate">{v.vrm}</p>
+                                <p className="text-xs text-slate-400 truncate">{v.make} {v.model}</p>
+                              </div>
+                              <CarFront className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
