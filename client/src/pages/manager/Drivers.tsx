@@ -247,12 +247,25 @@ function DriverProfileModal({
     },
   });
 
+  const [showClockInForm, setShowClockInForm] = useState(false);
+  const [selectedDepotId, setSelectedDepotId] = useState<number | undefined>();
+  const [manualDepotName, setManualDepotName] = useState("Manual Clock-In");
+
+  const { data: depots } = useQuery<any[]>({
+    queryKey: ["geofences", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/geofences/${companyId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const clockOutMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/manager/clock-out-driver", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ driverId: driver.id, companyId }),
+        body: JSON.stringify({ driverId: driver.id, companyId, managerId: session.getUser()?.id }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -262,6 +275,35 @@ function DriverProfileModal({
     },
     onSuccess: () => {
       toast.success(`${driver.name} has been clocked out`);
+      queryClient.invalidateQueries({ queryKey: ["active-timesheet", driver.id] });
+      queryClient.invalidateQueries({ queryKey: ["drivers", companyId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const clockInMutation = useMutation({
+    mutationFn: async (data: { depotId?: number; depotName?: string }) => {
+      const res = await fetch("/api/manager/clock-in-driver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          driverId: driver.id, 
+          companyId,
+          managerId: session.getUser()?.id,
+          depotId: data.depotId,
+          depotName: data.depotName || "Manual Clock-In"
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to clock in driver");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success(`${driver.name} has been clocked in`);
       queryClient.invalidateQueries({ queryKey: ["active-timesheet", driver.id] });
       queryClient.invalidateQueries({ queryKey: ["drivers", companyId] });
     },
@@ -361,7 +403,7 @@ function DriverProfileModal({
             <p className="text-xs text-slate-400">Activity summary coming soon</p>
           </div>
 
-          {isOnShift && (
+          {isOnShift ? (
             <Button
               onClick={() => {
                 if (confirm(`Are you sure you want to clock out ${driver.name}?`)) {
@@ -375,6 +417,74 @@ function DriverProfileModal({
               <LogOut className="h-4 w-4 mr-2" />
               {clockOutMutation.isPending ? "Clocking Out..." : "Clock Out Driver"}
             </Button>
+          ) : driver.active && (
+            <div className="space-y-3">
+              {!showClockInForm ? (
+                <Button
+                  onClick={() => setShowClockInForm(true)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  data-testid="button-clock-in-driver"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Clock In Driver
+                </Button>
+              ) : (
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-emerald-600" />
+                    <span className="text-sm font-medium text-emerald-800">Manual Clock In</span>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-600">Select Depot (optional)</label>
+                    <select
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={selectedDepotId || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          setSelectedDepotId(Number(val));
+                          const depot = depots?.find((d: any) => d.id === Number(val));
+                          if (depot) setManualDepotName(depot.name);
+                        } else {
+                          setSelectedDepotId(undefined);
+                          setManualDepotName("Manual Clock-In");
+                        }
+                      }}
+                      data-testid="select-clock-in-depot"
+                    >
+                      <option value="">No depot (Manual Clock-In)</option>
+                      {depots?.map((depot: any) => (
+                        <option key={depot.id} value={depot.id}>{depot.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        clockInMutation.mutate({
+                          depotId: selectedDepotId,
+                          depotName: manualDepotName,
+                        });
+                        setShowClockInForm(false);
+                      }}
+                      disabled={clockInMutation.isPending}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      data-testid="button-confirm-clock-in"
+                    >
+                      {clockInMutation.isPending ? "Clocking In..." : "Confirm Clock In"}
+                    </Button>
+                    <Button
+                      onClick={() => setShowClockInForm(false)}
+                      variant="outline"
+                      className="px-4"
+                      data-testid="button-cancel-clock-in"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

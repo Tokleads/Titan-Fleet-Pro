@@ -3320,9 +3320,72 @@ export async function registerRoutes(
   });
   
   // Manager clock-out driver
+  app.post("/api/manager/clock-in-driver", async (req, res) => {
+    try {
+      const { driverId, companyId, depotId, depotName, managerId } = req.body;
+      
+      if (!driverId || !companyId || !managerId) {
+        return res.status(400).json({ error: "Missing required fields (driverId, companyId, managerId)" });
+      }
+
+      const manager = await storage.getUser(Number(managerId));
+      if (!manager || manager.companyId !== Number(companyId)) {
+        return res.status(403).json({ error: "Unauthorized: manager does not belong to this company" });
+      }
+      if (!["ADMIN", "TRANSPORT_MANAGER"].includes(manager.role)) {
+        return res.status(403).json({ error: "Unauthorized: only managers and admins can manually clock in drivers" });
+      }
+
+      const driver = await storage.getUser(Number(driverId));
+      if (!driver || driver.companyId !== Number(companyId)) {
+        return res.status(403).json({ error: "Driver does not belong to this company" });
+      }
+
+      const existing = await storage.getActiveTimesheet(Number(driverId));
+      if (existing) {
+        return res.status(409).json({ error: "Driver is already clocked in" });
+      }
+
+      const timesheet = await storage.clockIn(
+        Number(companyId),
+        Number(driverId),
+        depotId ? Number(depotId) : null,
+        "0",
+        "0",
+        null,
+        true
+      );
+
+      const finalDepotName = depotId ? timesheet.depotName : (depotName || "Manual Clock-In");
+      const updated = await storage.updateTimesheet(timesheet.id, { depotName: finalDepotName });
+
+      await storage.createAuditLog({
+        companyId: Number(companyId),
+        userId: Number(managerId),
+        action: "MANUAL_CLOCK_IN",
+        entity: "timesheet",
+        entityId: timesheet.id,
+        details: {
+          driverId: Number(driverId),
+          driverName: driver.name,
+          managerName: manager.name,
+          depotName: finalDepotName,
+          timesheetId: timesheet.id,
+        },
+      });
+
+      console.log(`[Manager Action] Manual clock-in: Driver ${driver.name} (ID:${driverId}) clocked in by ${manager.name} (ID:${managerId}) at "${finalDepotName}"`);
+      
+      res.json(updated || timesheet);
+    } catch (error) {
+      console.error("Manager clock in error:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to clock in driver" });
+    }
+  });
+
   app.post("/api/manager/clock-out-driver", async (req, res) => {
     try {
-      const { driverId, companyId } = req.body;
+      const { driverId, companyId, managerId } = req.body;
 
       if (!driverId || !companyId) {
         return res.status(400).json({ error: "Missing driverId or companyId" });
@@ -3343,6 +3406,26 @@ export async function registerRoutes(
         null as any,
         null
       );
+
+      if (managerId) {
+        const driver = await storage.getUser(Number(driverId));
+        const manager = await storage.getUser(Number(managerId));
+        await storage.createAuditLog({
+          companyId: Number(companyId),
+          userId: Number(managerId),
+          action: "MANUAL_CLOCK_OUT",
+          entity: "timesheet",
+          entityId: activeTimesheet.id,
+          details: {
+            driverId: Number(driverId),
+            driverName: driver?.name,
+            managerName: manager?.name,
+            totalMinutes: timesheet.totalMinutes,
+            timesheetId: activeTimesheet.id,
+          },
+        });
+        console.log(`[Manager Action] Manual clock-out: Driver ${driver?.name} (ID:${driverId}) clocked out by ${manager?.name} (ID:${managerId})`);
+      }
 
       res.json(timesheet);
     } catch (error) {
