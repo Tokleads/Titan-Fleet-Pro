@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';
 import { sendPasswordResetEmail } from './emailService';
 import { storage } from './storage';
+import { generateUniquePin, generateUniqueCompanyCode } from './pinUtils';
 
 const router = Router();
 
@@ -90,14 +91,7 @@ router.post('/setup-account', async (req, res) => {
       return res.status(410).json({ error: 'This setup link has expired' });
     }
     
-    const codeBase = companyName.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
-    const codeRandom = Math.floor(10 + Math.random() * 90);
-    let companyCode = `${codeBase}${codeRandom}`;
-    
-    const existing = await db.select().from(companies).where(eq(companies.companyCode, companyCode));
-    if (existing.length > 0) {
-      companyCode = `${codeBase}${Math.floor(100 + Math.random() * 900)}`;
-    }
+    const companyCode = await generateUniqueCompanyCode(companyName);
     
     const normalizedEmail = setupToken.email.toLowerCase().trim();
     
@@ -124,7 +118,7 @@ router.post('/setup-account', async (req, res) => {
       name: contactName,
       role: 'TRANSPORT_MANAGER',
       password: hashedPassword,
-      pin: String(Math.floor(1000 + Math.random() * 9000)),
+      pin: await generateUniquePin(company.id),
     }).returning();
     
     await db.update(accountSetupTokens)

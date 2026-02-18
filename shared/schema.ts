@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -64,20 +64,21 @@ export const users = pgTable("users", {
   companyId: integer("company_id").references(() => companies.id).notNull(),
   email: text("email").notNull(),
   name: text("name").notNull(),
-  role: varchar("role", { length: 20 }).notNull(), // ADMIN | TRANSPORT_MANAGER | DRIVER | MECHANIC | AUDITOR | OFFICE
+  role: varchar("role", { length: 20 }).notNull(),
   phone: varchar("phone", { length: 20 }),
-  pin: varchar("pin", { length: 4 }), // Optional driver PIN
-  password: text("password"), // Hashed password for local auth (optional)
+  pin: varchar("pin", { length: 4 }),
+  password: text("password"),
   active: boolean("active").default(true),
   
-  // Two-Factor Authentication (TOTP) for managers
-  totpSecret: text("totp_secret"), // Encrypted TOTP secret key
+  totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").default(false),
   
   permissions: text("permissions").array(),
   
   createdAt: timestamp("created_at").defaultNow().notNull()
-});
+}, (table) => [
+  uniqueIndex("users_company_pin_unique").on(table.companyId, table.pin).where(sql`${table.pin} IS NOT NULL`),
+]);
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export type User = typeof users.$inferSelect;

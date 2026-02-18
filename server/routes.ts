@@ -1671,12 +1671,24 @@ export async function registerRoutes(
         }
       }
       
+      let assignedPin = validated.pin || null;
+      if (assignedPin) {
+        const { validatePinAvailable } = await import('./pinUtils');
+        const pinFree = await validatePinAvailable(validated.companyId, assignedPin);
+        if (!pinFree) {
+          return res.status(409).json({ error: "This PIN is already in use by another driver in your company" });
+        }
+      } else {
+        const { generateUniquePin } = await import('./pinUtils');
+        assignedPin = await generateUniquePin(validated.companyId);
+      }
+
       const user = await storage.createUser({
         companyId: validated.companyId,
         name: validated.name,
         email: validated.email,
         role: validated.role,
-        pin: validated.pin || null,
+        pin: assignedPin,
         active: true,
       });
       
@@ -1762,7 +1774,14 @@ export async function registerRoutes(
         }
       }
       
-      // Build safe updates object (only allowed fields)
+      if (validated.pin !== undefined && validated.pin !== null) {
+        const { validatePinAvailable } = await import('./pinUtils');
+        const pinFree = await validatePinAvailable(targetUser.companyId, validated.pin, userId);
+        if (!pinFree) {
+          return res.status(409).json({ error: "This PIN is already in use by another driver in your company" });
+        }
+      }
+
       const updates: { name?: string; email?: string; pin?: string | null; active?: boolean } = {};
       if (validated.name !== undefined) updates.name = validated.name;
       if (validated.email !== undefined) updates.email = validated.email;

@@ -446,22 +446,43 @@ router.post("/companies/:id/bulk-import", verifyAdminToken, async (req: Request,
     
     if (drivers && Array.isArray(drivers)) {
       const seenEmails = new Set<string>();
-      for (const d of drivers) {
+      const uniqueDrivers = drivers.filter((d: any) => {
         const emailLower = d.email.toLowerCase();
-        if (seenEmails.has(emailLower)) continue;
+        if (seenEmails.has(emailLower)) return false;
         seenEmails.add(emailLower);
+        return true;
+      });
+
+      const { generateUniquePins, validatePinAvailable } = await import('./pinUtils');
+      const pins = await generateUniquePins(companyId, uniqueDrivers.length);
+
+      const assignedPins = new Set<string>(pins);
+
+      for (let i = 0; i < uniqueDrivers.length; i++) {
+        const d = uniqueDrivers[i];
         try {
+          let finalPin = pins[i];
+          if (d.pin) {
+            const isAvailableInDb = await validatePinAvailable(companyId, d.pin);
+            const isAvailableInBatch = !assignedPins.has(d.pin) || d.pin === pins[i];
+            if (isAvailableInDb && isAvailableInBatch) {
+              assignedPins.delete(pins[i]);
+              finalPin = d.pin;
+              assignedPins.add(finalPin);
+            }
+          }
           await db.insert(users).values({
             companyId,
             email: d.email,
             name: d.name,
             role: d.role || "DRIVER",
             phone: d.phone || null,
+            pin: finalPin,
             active: true,
           });
           results.drivers++;
         } catch (e: any) {
-          console.error(`Driver ${d.email} failed:`, e.message);
+          console.error(`Driver import failed for ${d.email}:`, e.message);
         }
       }
     }
@@ -489,8 +510,6 @@ router.post("/companies/:id/bulk-import", verifyAdminToken, async (req: Request,
         }
       }
     }
-    
-    await db.update(companies).set({ vehicleAllowance: 60 }).where(eq(companies.id, companyId));
     
     res.json({ success: true, imported: results });
   } catch (error) {

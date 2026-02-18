@@ -3,6 +3,7 @@ import { db } from "./db";
 import { users, driverLocations, timesheets, inspections, vehicles, companies } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { sendWelcomeEmail } from "./emailService";
+import { generateUniquePin, validatePinAvailable } from "./pinUtils";
 
 const router = Router();
 
@@ -124,22 +125,28 @@ router.get("/", async (req, res) => {
 // POST /api/drivers - Create a new driver
 router.post("/", async (req, res) => {
   try {
-    console.log("POST /api/drivers - Request body:", JSON.stringify(req.body));
     const { companyId, name, email, phone, pin, licenseNumber, role } = req.body;
 
-    if (!companyId || !name || !email || !pin) {
-      console.log("Missing fields - companyId:", companyId, "name:", name, "email:", email, "pin:", pin);
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!companyId || !name || !email) {
+      return res.status(400).json({ error: "Missing required fields (companyId, name, email)" });
     }
 
-    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      return res.status(400).json({ error: "PIN must be exactly 4 digits" });
+    let assignedPin = pin;
+    if (assignedPin) {
+      if (assignedPin.length !== 4 || !/^\d{4}$/.test(assignedPin)) {
+        return res.status(400).json({ error: "PIN must be exactly 4 digits" });
+      }
+      const pinFree = await validatePinAvailable(Number(companyId), assignedPin);
+      if (!pinFree) {
+        return res.status(409).json({ error: "This PIN is already in use by another driver in your company" });
+      }
+    } else {
+      assignedPin = await generateUniquePin(Number(companyId));
     }
 
     const validRoles = ["DRIVER", "TRANSPORT_MANAGER", "ADMIN"];
     const userRole = role && validRoles.includes(role) ? role : "DRIVER";
 
-    // Check if email already exists for this company
     const existingDriver = await db
       .select()
       .from(users)
@@ -155,7 +162,6 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ error: "A user with this email already exists" });
     }
 
-    // Create the driver
     const [newDriver] = await db
       .insert(users)
       .values({
@@ -163,7 +169,7 @@ router.post("/", async (req, res) => {
         name,
         email,
         role: userRole,
-        pin,
+        pin: assignedPin,
         active: true,
       })
       .returning();
@@ -184,7 +190,7 @@ router.post("/", async (req, res) => {
               name: newDriver.name,
               companyName: company.name,
               companyCode: company.companyCode,
-              pin: pin,
+              pin: assignedPin,
             });
             console.log(`Welcome email sent to new driver ${newDriver.name} (${newDriver.email})`);
           }
@@ -281,6 +287,13 @@ router.put("/:id", async (req, res) => {
     if (pin !== undefined) {
       if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
         return res.status(400).json({ error: "PIN must be exactly 4 digits" });
+      }
+      const driverCompanyId = companyId || (await db.select({ companyId: users.companyId }).from(users).where(eq(users.id, Number(id))).limit(1))[0]?.companyId;
+      if (driverCompanyId) {
+        const pinFree = await validatePinAvailable(Number(driverCompanyId), pin, Number(id));
+        if (!pinFree) {
+          return res.status(409).json({ error: "This PIN is already in use by another driver in your company" });
+        }
       }
       updateData.pin = pin;
     }
