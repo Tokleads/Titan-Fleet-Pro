@@ -6,6 +6,7 @@
 
 import type { Express, Request, Response } from "express";
 import * as fuelAnalytics from "./fuelAnalyticsService";
+import { storage } from "./storage";
 
 function endOfDay(date: Date): Date {
   const d = new Date(date);
@@ -160,6 +161,10 @@ export function registerFuelIntelligenceRoutes(app: Express) {
         return res.status(400).json({ error: "companyId is required" });
       }
       const vehicleId = parseInt(req.params.vehicleId);
+      const vehicle = await storage.getVehicleById(vehicleId);
+      if (vehicle && (req as any).user && vehicle.companyId !== (req as any).user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       const { startDate, endDate } = req.query;
 
       if (!startDate || !endDate) {
