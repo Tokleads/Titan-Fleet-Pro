@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
+import { ObjectStorageService } from './objectStorage';
 
 interface InspectionData {
   id: number;
@@ -21,7 +22,46 @@ interface InspectionData {
   createdAt: string;
 }
 
-export function generateInspectionPDF(inspection: InspectionData): PassThrough {
+async function downloadPhotoBuffer(photoPath: string): Promise<Buffer | null> {
+  try {
+    const storageService = new ObjectStorageService();
+    const file = await storageService.getObjectFile(photoPath);
+    const [buffer] = await file.download();
+    return buffer;
+  } catch (error) {
+    console.warn(`Failed to download photo: ${photoPath}`, error);
+    return null;
+  }
+}
+
+export async function generateInspectionPDF(inspection: InspectionData): Promise<PassThrough> {
+  const photoBuffers: Map<string, Buffer> = new Map();
+  const photoPaths: string[] = [];
+
+  if (inspection.defects) {
+    for (const defect of inspection.defects) {
+      if (defect.photo && typeof defect.photo === 'string') {
+        photoPaths.push(defect.photo);
+      }
+    }
+  }
+  if (inspection.cabPhotos) {
+    for (const photo of inspection.cabPhotos) {
+      if (photo && typeof photo === 'string') {
+        photoPaths.push(photo);
+      }
+    }
+  }
+
+  const results = await Promise.allSettled(
+    photoPaths.map(async (path) => {
+      const buffer = await downloadPhotoBuffer(path);
+      if (buffer) {
+        photoBuffers.set(path, buffer);
+      }
+    })
+  );
+
   const doc = new PDFDocument({ margin: 50, size: 'A4' });
   const stream = new PassThrough();
   doc.pipe(stream);
@@ -112,9 +152,21 @@ export function generateInspectionPDF(inspection: InspectionData): PassThrough {
         doc.fontSize(10).font('Helvetica').text(`   ${defect.note}`);
       }
       if (defect.photo) {
-        const photoFilename = defect.photo.split('/').pop() || 'photo';
-        doc.fontSize(9).fillColor('#2563eb').text(`   Photo evidence attached: ${photoFilename}`);
-        doc.fillColor('#000000');
+        const photoBuffer = photoBuffers.get(defect.photo);
+        if (photoBuffer) {
+          doc.moveDown(0.3);
+          try {
+            doc.image(photoBuffer, { fit: [200, 200], align: 'center' });
+          } catch (imgErr) {
+            const photoFilename = defect.photo.split('/').pop() || 'photo';
+            doc.fontSize(9).fillColor('#2563eb').text(`   Photo evidence: ${photoFilename} (could not embed)`);
+            doc.fillColor('#000000');
+          }
+        } else {
+          const photoFilename = defect.photo.split('/').pop() || 'photo';
+          doc.fontSize(9).fillColor('#2563eb').text(`   Photo evidence attached: ${photoFilename}`);
+          doc.fillColor('#000000');
+        }
       }
       doc.moveDown(0.3);
     });
@@ -130,13 +182,23 @@ export function generateInspectionPDF(inspection: InspectionData): PassThrough {
     doc.moveDown(0.5);
 
     doc.fontSize(10).font('Helvetica').text(`${inspection.cabPhotos.length} cab cleanliness photo(s) recorded:`);
+    doc.moveDown(0.3);
+
     inspection.cabPhotos.forEach((photo: string, idx: number) => {
-      const filename = photo.split('/').pop() || `photo-${idx + 1}`;
-      doc.fontSize(10).font('Helvetica').text(`  ${idx + 1}. ${filename}`);
+      const photoBuffer = photoBuffers.get(photo);
+      if (photoBuffer) {
+        try {
+          doc.image(photoBuffer, { fit: [200, 200], align: 'center' });
+          doc.moveDown(0.3);
+        } catch (imgErr) {
+          const filename = photo.split('/').pop() || `photo-${idx + 1}`;
+          doc.fontSize(10).font('Helvetica').text(`  ${idx + 1}. ${filename} (could not embed)`);
+        }
+      } else {
+        const filename = photo.split('/').pop() || `photo-${idx + 1}`;
+        doc.fontSize(10).font('Helvetica').text(`  ${idx + 1}. ${filename}`);
+      }
     });
-    doc.moveDown(0.5);
-    doc.fontSize(9).fillColor('#666666').text('Photos available in digital records', { oblique: true });
-    doc.fillColor('#000000');
   }
 
   doc.moveDown(2);

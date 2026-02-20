@@ -110,42 +110,92 @@ export default function LiveTracking() {
     };
   }, []);
 
-  // Update markers when locations change
+  // Update markers when locations or on-shift drivers change
   useEffect(() => {
-    if (!leafletMapRef.current || !locations || locations.length === 0) return;
+    if (!leafletMapRef.current) return;
 
     const map = leafletMapRef.current;
     const markers = markersRef.current;
 
-    // Remove old markers
     markers.forEach((marker) => {
       marker.remove();
     });
     markers.clear();
 
-    // Create new markers
-    locations.forEach((location) => {
-      try {
-        const lat = parseFloat(location.latitude);
-        const lng = parseFloat(location.longitude);
+    const allBounds: [number, number][] = [];
+    const driversWithGPS = new Set<number>();
 
-        if (isNaN(lat) || isNaN(lng)) {
-          console.warn('Invalid coordinates for driver', location.driverId);
-          return;
+    if (locations && locations.length > 0) {
+      locations.forEach((location) => {
+        try {
+          const lat = parseFloat(location.latitude);
+          const lng = parseFloat(location.longitude);
+
+          if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+            return;
+          }
+
+          driversWithGPS.add(location.driverId);
+          const isStagnant = location.isStagnant;
+          const markerColor = isStagnant ? '#ef4444' : '#00a3ff';
+
+          const customIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `
+              <div style="
+                width: 20px;
+                height: 20px;
+                background-color: ${markerColor};
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              "></div>
+            `,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          });
+
+          const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+
+          const popupContent = `
+            <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
+              <h3 style="font-weight: bold; margin: 0 0 8px 0; font-size: 14px; color: #0f172a;">
+                ${location.driver?.name || 'Unknown Driver'}
+              </h3>
+              <p style="margin: 4px 0; font-size: 13px; color: #475569;">
+                <strong>Speed:</strong> ${location.speed} km/h
+              </p>
+              <p style="margin: 4px 0; font-size: 13px; color: #475569;">
+                <strong>Last Update:</strong> ${new Date(location.timestamp).toLocaleTimeString()}
+              </p>
+              ${isStagnant ? '<p style="color: #ef4444; font-weight: bold; margin: 8px 0 0 0; font-size: 13px;">⚠️ STAGNANT</p>' : ''}
+            </div>
+          `;
+
+          marker.bindPopup(popupContent);
+          markers.set(location.driverId, marker);
+          allBounds.push([lat, lng]);
+        } catch (error) {
+          console.error('Error creating marker for driver', location.driverId, error);
         }
+      });
+    }
 
-        // Determine marker color based on status
-        const isStagnant = location.isStagnant;
-        const markerColor = isStagnant ? '#ef4444' : '#00a3ff';
+    if (onShiftDrivers && onShiftDrivers.length > 0) {
+      onShiftDrivers.forEach((driver) => {
+        if (driversWithGPS.has(driver.driverId)) return;
 
-        // Create custom icon
+        const lat = parseFloat(driver.latitude);
+        const lng = parseFloat(driver.longitude);
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+
         const customIcon = L.divIcon({
           className: 'custom-marker',
           html: `
             <div style="
               width: 20px;
               height: 20px;
-              background-color: ${markerColor};
+              background-color: #8b5cf6;
               border: 3px solid white;
               border-radius: 50%;
               box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -155,45 +205,40 @@ export default function LiveTracking() {
           iconAnchor: [10, 10],
         });
 
-        // Create marker
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
-        // Create popup content
         const popupContent = `
           <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
             <h3 style="font-weight: bold; margin: 0 0 8px 0; font-size: 14px; color: #0f172a;">
-              ${location.driver?.name || 'Unknown Driver'}
+              ${driver.driverName}
             </h3>
             <p style="margin: 4px 0; font-size: 13px; color: #475569;">
-              <strong>Speed:</strong> ${location.speed} km/h
+              <strong>Status:</strong> Clocked In
             </p>
             <p style="margin: 4px 0; font-size: 13px; color: #475569;">
-              <strong>Last Update:</strong> ${new Date(location.timestamp).toLocaleTimeString()}
+              <strong>Depot:</strong> ${driver.depotName || 'N/A'}
             </p>
-            ${isStagnant ? '<p style="color: #ef4444; font-weight: bold; margin: 8px 0 0 0; font-size: 13px;">⚠️ STAGNANT</p>' : ''}
+            <p style="margin: 4px 0; font-size: 11px; color: #8b5cf6;">
+              📍 Timesheet location (no GPS data)
+            </p>
           </div>
         `;
 
         marker.bindPopup(popupContent);
+        markers.set(driver.driverId, marker);
+        allBounds.push([lat, lng]);
+      });
+    }
 
-        markers.set(location.driverId, marker);
-      } catch (error) {
-        console.error('Error creating marker for driver', location.driverId, error);
-      }
-    });
-
-    // Auto-fit bounds to show all markers
-    if (locations.length > 0) {
+    if (allBounds.length > 0) {
       try {
-        const bounds = L.latLngBounds(
-          locations.map(loc => [parseFloat(loc.latitude), parseFloat(loc.longitude)])
-        );
+        const bounds = L.latLngBounds(allBounds);
         map.fitBounds(bounds, { padding: [50, 50] });
       } catch (error) {
         console.warn('Error fitting bounds:', error);
       }
     }
-  }, [locations]);
+  }, [locations, onShiftDrivers]);
 
   const onShiftCount = onShiftDrivers?.length || 0;
   const activeDrivers = Math.max(locations?.filter(l => !l.isStagnant).length || 0, onShiftCount);

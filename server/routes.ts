@@ -611,7 +611,7 @@ export async function registerRoutes(
                 type: inspection.type,
               });
               
-              const pdfStream = generateInspectionPDF(pdfData);
+              const pdfStream = await generateInspectionPDF(pdfData);
               
               // Decrypt all stored credentials
               const { decrypt } = await import("./encryption");
@@ -906,7 +906,7 @@ export async function registerRoutes(
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-      const pdfStream = generateInspectionPDF(pdfData);
+      const pdfStream = await generateInspectionPDF(pdfData);
       pdfStream.pipe(res);
     } catch (error) {
       console.error("PDF generation error:", error);

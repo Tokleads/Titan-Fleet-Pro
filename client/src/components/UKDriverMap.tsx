@@ -52,7 +52,7 @@ export default function UKDriverMap({ drivers }: UKDriverMapProps) {
     drivers.forEach((driver) => {
       const lat = parseFloat(driver.latitude);
       const lng = parseFloat(driver.longitude);
-      if (isNaN(lat) || isNaN(lng)) return;
+      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
 
       const customIcon = L.divIcon({
         className: 'custom-marker',
@@ -106,7 +106,7 @@ export default function UKDriverMap({ drivers }: UKDriverMapProps) {
       try {
         const validCoords = drivers
           .map((d) => [parseFloat(d.latitude), parseFloat(d.longitude)] as [number, number])
-          .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+          .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0));
 
         if (validCoords.length > 0) {
           const bounds = L.latLngBounds(validCoords);
