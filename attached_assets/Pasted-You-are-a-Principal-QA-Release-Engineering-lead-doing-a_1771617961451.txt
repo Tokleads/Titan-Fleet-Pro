@@ -1,0 +1,153 @@
+You are a Principal QA + Release Engineering lead doing a final “go/no-go” audit for a production fleet management SaaS called TitanFleet. The founder believes critical issues have been fixed and now needs confidence that the app is “bullet proof” in both reliability and user experience.
+
+GOAL
+Deliver a RELEASE GATE PACK that proves, as far as is realistically possible, that:
+1) All core flows work end-to-end
+2) UX is consistent, understandable, and resilient to real user behavior
+3) Security/data isolation is correct (multi-tenant)
+4) The system fails safely (no data loss, no silent failures)
+5) There is a regression safety net (tests + monitoring)
+
+NON-NEGOTIABLES
+- Do not give generic advice. Tie every finding to specific routes/components/files.
+- Every issue must include: severity, repro steps, impact, fix, and acceptance criteria.
+- Treat this as a real pre-launch release: we need evidence (test results/checklists), not vibes.
+- If you can run tests/lint/build locally in this environment, do it and report outputs.
+- If you can’t run something due to missing config, list exactly what is required to run it.
+
+STEP 1 — REPO + ENV DISCOVERY (MAKE IT CONCRETE)
+1) Identify stack (frontend/backend/framework, DB, auth, file storage).
+2) Produce a “System Map”:
+   - Entry points
+   - Auth middleware
+   - Role/permission layer
+   - Tenant/org isolation mechanism
+   - Core domain modules (drivers, vehicles, inspections, defects, reports, timesheets)
+3) Identify environments & config:
+   - env vars required
+   - secrets handling
+   - DB migrations
+   - seed data / demo org setup
+
+STEP 2 — DEFINE THE “BULLETPROOF” SCOPE AS CHECKLISTS
+Create two checklists:
+A) “Reliability Checklist” (backend + data integrity + performance + error handling)
+B) “UX Checklist” (frontend flows + validation + empty states + speed + accessibility basics)
+
+Each item must be testable and have a pass/fail.
+
+STEP 3 — CORE USER JOURNEYS E2E (UX + FUNCTION)
+Create an End-to-End Test Script (manual + automated targets) for these journeys:
+1) Sign up / login / logout / password reset
+2) Create organization/depot
+3) Create driver + assign role/permissions
+4) Create vehicle
+5) Perform walkaround inspection:
+   - timed inspection
+   - add photo evidence
+   - submit
+   - ensure audit trail fields are correct (who/when/what)
+6) Create defect → notify → resolve → close
+7) Reporting/export:
+   - generate report
+   - verify data matches DB records
+8) Multi-tenant isolation checks:
+   - user from Org A must not see Org B
+9) Edge cases:
+   - network failure mid-submit
+   - double click submit
+   - upload invalid file
+   - very large photo
+   - empty/invalid fields
+   - timezone transition (BST/GMT) for timestamps
+
+For each journey provide:
+- Steps a real user takes
+- Expected UI behavior (what user sees)
+- Expected backend behavior (API calls, DB writes)
+- Failure modes and how the UI should respond (messages, retries)
+- Screens/Routes involved
+
+STEP 4 — “BREAK IT” TESTING (HARDENING PASS)
+Perform an adversarial pass:
+- Try invalid inputs everywhere (lengths, special chars, missing required fields)
+- Try authorization bypass (change IDs in URL, access other org’s records)
+- Try file upload abuse (wrong mime types, huge files, odd filenames)
+- Try rate-limit abuse (login, sensitive endpoints)
+- Try concurrency (two tabs editing, double submit)
+- Try stale state (back button, refresh mid-form, session expiry)
+Output a “Break-It Report” with any issues found.
+
+STEP 5 — UX QUALITY AUDIT (THIS IS NOT OPTIONAL)
+Audit the UI for:
+- Navigation clarity (can a new user find the next step?)
+- Consistent CTAs (primary/secondary)
+- Validation UX: inline errors, clear wording, no dead ends
+- Empty states (no vehicles yet, no drivers yet, no reports yet)
+- Loading states (spinners/skeletons, disabled buttons)
+- Success states (confirmation and next step)
+- Error states (friendly, actionable, not technical)
+- Mobile responsiveness (at least basic)
+- Accessibility basics (labels, contrast, keyboard navigation where applicable)
+Provide:
+- A UX Issues Table (severity + fix)
+- A “UX Polish Sprint” list (quick wins vs larger changes)
+- A final UX scorecard
+
+STEP 6 — AUTOMATED QUALITY GATES
+Implement/verify these gates (based on the repo stack):
+- Linting
+- Type checking (if TS)
+- Unit tests
+- Integration tests for API endpoints
+- E2E tests for 3 highest-risk journeys
+- Security checks (dependency audit)
+- Build verification
+- DB migration verification
+
+IMPORTANT: Write at least 15 high-value tests in the repo’s actual test framework.
+Prioritize:
+- Auth + permissions
+- Multi-tenant data isolation
+- Create inspection + audit trail immutability
+- Defect lifecycle
+- Report generation correctness
+
+STEP 7 — OBSERVABILITY + “NO SILENT FAILURES”
+Ensure:
+- Every API request logs request_id, user_id, org_id, route, status
+- Errors are captured with stack traces (server-side)
+- Client shows meaningful messages and captures error context
+- Health endpoint exists
+- Basic monitoring plan is documented
+Output:
+- Logging/Observability checklist
+- “What to monitor” (top 10 signals)
+- Runbook: how to diagnose the top 10 failures
+
+STEP 8 — FINAL RELEASE GATE PACK (GO/NO-GO)
+Produce:
+1) GO/NO-GO recommendation (with rationale)
+2) A “Release Checklist” with pass/fail evidence
+3) The list of remaining known issues (if any) with severity
+4) A short UAT script to give the pilot client (structured, numbered, 30–60 min)
+5) A regression plan: what must be retested after every change
+
+OUTPUT FORMAT (STRICT)
+- Executive Summary
+- System Map
+- Reliability Checklist (with results)
+- UX Checklist (with results)
+- Findings Tables:
+  - Reliability Findings
+  - Security Findings
+  - UX Findings
+- Break-It Report
+- Test Plan + Added Test Code
+- Observability/Runbook
+- Release Gate Pack + UAT script
+
+START NOW:
+- Begin by generating a repo map and identifying the core flows.
+- Then run/execute whatever checks are possible in this environment.
+- Then proceed step-by-step through the sections above.
