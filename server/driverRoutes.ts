@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
     const latestLocations = await db.execute(sql`
       SELECT DISTINCT ON (driver_id) * 
       FROM driver_locations 
-      WHERE company_id = ${companyIdNum} AND driver_id = ANY(${driverIds})
+      WHERE company_id = ${companyIdNum} AND driver_id = ANY(ARRAY[${sql.join(driverIds.map(id => sql`${id}`), sql`, `)}]::int[])
       ORDER BY driver_id, timestamp DESC
     `);
     const locationMap = new Map();
@@ -53,7 +53,7 @@ router.get("/", async (req, res) => {
       SELECT DISTINCT ON (i.driver_id) i.driver_id, i.vehicle_id, v.vrm, v.make, v.model, v.fleet_number
       FROM inspections i
       LEFT JOIN vehicles v ON v.id = i.vehicle_id
-      WHERE i.company_id = ${companyIdNum} AND i.driver_id = ANY(${driverIds})
+      WHERE i.company_id = ${companyIdNum} AND i.driver_id = ANY(ARRAY[${sql.join(driverIds.map(id => sql`${id}`), sql`, `)}]::int[])
       ORDER BY i.driver_id, i.created_at DESC
     `);
     const vehicleMap = new Map();

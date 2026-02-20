@@ -79,6 +79,7 @@ export async function registerRoutes(
   const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'] as const;
 
   app.use('/api/manager', (req, res, next) => {
+    if (req.path === '/login' || req.path === '/login/') return next();
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
     if (!MANAGER_ROLES.includes(req.user.role as any)) {
       return res.status(403).json({ error: 'Forbidden', message: 'Manager access required' });
@@ -501,6 +502,9 @@ export async function registerRoutes(
       if (!vehicle) {
         return res.status(404).json({ error: "Vehicle not found" });
       }
+      if (req.user && vehicle.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       res.json(vehicle);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -512,6 +516,9 @@ export async function registerRoutes(
       const vehicleId = Number(req.params.id);
       const vehicle = await storage.getVehicleById(vehicleId);
       if (!vehicle) return res.status(404).json({ error: "Vehicle not found" });
+      if (req.user && vehicle.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
 
       const [vehicleInspections, vehicleDefects, vehicleFuelEntries, assignedDriver] = await Promise.all([
         db.select({
@@ -900,6 +907,9 @@ export async function registerRoutes(
       if (!inspection) {
         return res.status(404).json({ error: "Inspection not found" });
       }
+      if (req.user && inspection.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       const vehicle = await storage.getVehicleById(inspection.vehicleId);
       const driver = await storage.getUser(inspection.driverId);
       const company = await storage.getCompanyById(inspection.companyId);
@@ -1272,6 +1282,10 @@ export async function registerRoutes(
   // All inspections for manager with server-side filtering
   app.get("/api/manager/inspections/:companyId", async (req, res) => {
     try {
+      const requestedCompanyId = Number(req.params.companyId);
+      if (req.user && requestedCompanyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       const { 
         limit = '50', 
         offset = '0',
@@ -1283,7 +1297,7 @@ export async function registerRoutes(
       } = req.query;
       
       const result = await storage.getAllInspections(
-        Number(req.params.companyId),
+        requestedCompanyId,
         {
           limit: Number(limit),
           offset: Number(offset),
@@ -1307,6 +1321,9 @@ export async function registerRoutes(
       if (!inspection) {
         return res.status(404).json({ error: "Inspection not found" });
       }
+      if (req.user && inspection.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       res.json(inspection);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -1316,7 +1333,11 @@ export async function registerRoutes(
   // Defects
   app.get("/api/manager/defects/:companyId", async (req, res) => {
     try {
-      const defectList = await storage.getDefectsByCompany(Number(req.params.companyId));
+      const requestedCompanyId = Number(req.params.companyId);
+      if (req.user && requestedCompanyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
+      const defectList = await storage.getDefectsByCompany(requestedCompanyId);
       res.json(defectList);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -1356,6 +1377,9 @@ export async function registerRoutes(
       const defectId = Number(req.params.id);
       const [defect] = await db.select().from(defects).where(eq(defects.id, defectId));
       if (!defect) return res.status(404).json({ error: "Defect not found" });
+      if (req.user && defect.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
 
       const vehicle = defect.vehicleId ? await storage.getVehicleById(defect.vehicleId) : null;
       const reporter = await storage.getUser(defect.reportedBy);
@@ -1427,6 +1451,9 @@ export async function registerRoutes(
       const defectId = Number(req.params.id);
       const [defect] = await db.select().from(defects).where(eq(defects.id, defectId));
       if (!defect) return res.status(404).json({ error: "Defect not found" });
+      if (req.user && defect.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       await db.delete(defects).where(eq(defects.id, defectId));
       res.json({ success: true });
     } catch (error) {
@@ -1438,6 +1465,13 @@ export async function registerRoutes(
   app.patch("/api/manager/defects/:id", async (req, res) => {
     try {
       const defectId = Number(req.params.id);
+      const [existingDefect] = await db.select().from(defects).where(eq(defects.id, defectId));
+      if (!existingDefect) {
+        return res.status(404).json({ error: "Defect not found" });
+      }
+      if (req.user && existingDefect.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       const updated = await storage.updateDefect(defectId, req.body);
       if (!updated) {
         return res.status(404).json({ error: "Defect not found" });
@@ -1489,6 +1523,12 @@ export async function registerRoutes(
     try {
       const vehicleId = Number(req.params.id);
       const oldVehicle = await storage.getVehicleById(vehicleId);
+      if (!oldVehicle) {
+        return res.status(404).json({ error: "Vehicle not found" });
+      }
+      if (req.user && oldVehicle.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       const updated = await storage.updateVehicle(vehicleId, req.body);
       if (!updated) {
         return res.status(404).json({ error: "Vehicle not found" });
@@ -1769,6 +1809,9 @@ export async function registerRoutes(
     try {
       const vehicleId = Number(req.params.id);
       const vehicle = await storage.getVehicleById(vehicleId);
+      if (vehicle && req.user && vehicle.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
       
       await storage.deleteVehicle(vehicleId);
       
@@ -2965,57 +3008,7 @@ export async function registerRoutes(
     }
   });
 
-  // ===== GDPR COMPLIANCE ROUTES =====
-  
-  // Export user data (GDPR Right to Data Portability)
-  app.get("/api/gdpr/export/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      
-      const { exportUserData, generateGDPRDataExport } = await import('./gdprService');
-      const userData = await exportUserData(userId);
-      const jsonExport = generateGDPRDataExport(userData);
-      
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="user_data_export_${userId}_${new Date().toISOString().split('T')[0]}.json"`);
-      
-      res.send(jsonExport);
-    } catch (error) {
-      console.error("Error exporting user data:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  // Anonymize user (GDPR Right to be Forgotten)
-  app.post("/api/gdpr/anonymize/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      
-      const { anonymizeUser } = await import('./gdprService');
-      await anonymizeUser(userId);
-      
-      res.json({ success: true, message: 'User anonymized successfully' });
-    } catch (error) {
-      console.error("Error anonymizing user:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  // Record user consent
-  app.post("/api/gdpr/consent", async (req, res) => {
-    try {
-      const { userId, consentType, granted } = req.body;
-      const ipAddress = req.ip || 'unknown';
-      
-      const { recordUserConsent } = await import('./gdprService');
-      await recordUserConsent(userId, consentType, granted, ipAddress);
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error recording consent:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  // ===== GDPR COMPLIANCE ROUTES (protected versions are registered later in the file) =====
   
   // Check user consent
   app.get("/api/gdpr/consent/:userId/:consentType", async (req, res) => {
@@ -5023,6 +5016,9 @@ export async function registerRoutes(
       const delivery = await storage.getDeliveryById(Number(req.params.id));
       if (!delivery) {
         return res.status(404).json({ error: "Delivery not found" });
+      }
+      if (req.user && delivery.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
       res.json(delivery);
     } catch (error) {
