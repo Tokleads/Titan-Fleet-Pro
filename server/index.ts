@@ -7,6 +7,7 @@ import adminRoutes from "./adminRoutes";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient';
 import { WebhookHandlers } from './webhookHandlers';
+import { populateUser } from './jwtAuth';
 
 const app = express();
 const httpServer = createServer(app);
@@ -55,6 +56,7 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+app.use(populateUser);
 
 app.use('/sw.js', (_req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -90,14 +92,14 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      if (capturedJsonResponse && res.statusCode >= 400) {
         const redacted = JSON.parse(JSON.stringify(capturedJsonResponse, (key, value) => {
-          if (key === "pin" || key === "assignedPin") return "[REDACTED]";
+          if (key === "pin" || key === "assignedPin" || key === "password" || key === "token") return "[REDACTED]";
           return value;
         }));
-        logLine += ` :: ${JSON.stringify(redacted)}`;
+        const bodyStr = JSON.stringify(redacted);
+        logLine += ` :: ${bodyStr.length > 500 ? bodyStr.substring(0, 500) + '...' : bodyStr}`;
       }
-
       log(logLine);
     }
   });

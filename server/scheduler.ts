@@ -152,6 +152,24 @@ export async function runNotificationChecks(): Promise<{
   };
 }
 
+async function purgeExpiredGPSData() {
+  try {
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+    const retentionDays = 90;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const result = await db.execute(sql`
+      DELETE FROM driver_locations 
+      WHERE timestamp < ${cutoffDate}
+    `);
+    console.log(`[GPS Purge] Deleted expired GPS records older than ${retentionDays} days`);
+  } catch (error) {
+    console.error('[GPS Purge] Failed:', error);
+  }
+}
+
 /**
  * Start the notification scheduler
  * Runs daily at 8:00 AM
@@ -198,8 +216,18 @@ export function startScheduler(): void {
     }
   });
 
+  cron.schedule('0 3 * * *', async () => {
+    console.log('[Scheduler] Running GPS data retention purge...');
+    try {
+      await purgeExpiredGPSData();
+      console.log('[Scheduler] GPS data retention purge completed successfully');
+    } catch (error) {
+      console.error('[Scheduler] GPS data retention purge error:', error);
+    }
+  });
+
   isSchedulerRunning = true;
-  console.log('[Scheduler] ✓ Notification scheduler started (runs daily at 8:00 AM, defect/fuel checks every 4 hours)');
+  console.log('[Scheduler] ✓ Notification scheduler started (runs daily at 8:00 AM, defect/fuel checks every 4 hours, GPS purge at 3:00 AM)');
 
   // Run once on startup for immediate check (optional)
   // Comment out if you don't want immediate execution on server start

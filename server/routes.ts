@@ -3,7 +3,7 @@ import type { UploadedFile } from "express-fileupload";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and, gte, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, gte, desc, isNull, sql, or } from "drizzle-orm";
 import { insertVehicleSchema, insertInspectionSchema, insertFuelEntrySchema, insertDefectSchema, insertTrailerSchema, insertDocumentSchema, insertLicenseUpgradeRequestSchema, insertDeliverySchema, insertMessageSchema, vehicles, inspections, defects, notifications, messages, timesheets, users, fuelEntries, operatorLicences, operatorLicenceVehicles } from "@shared/schema";
 import { z } from "zod";
 import { dvsaService } from "./dvsa";
@@ -21,6 +21,8 @@ import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome
 import { triageDefect } from "./aiTriageService";
 import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
 import { maintenanceAlerts } from "@shared/schema";
+import { signToken, requireAuth, requireCompany, requireRole } from "./jwtAuth";
+import { authLimiter } from "./rateLimiter";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -28,6 +30,62 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  const PUBLIC_PATHS = [
+    '/api/driver/login',
+    '/api/manager/login',
+    '/api/company/',
+    '/api/stripe/publishable-key',
+    '/api/stripe/products',
+    '/api/stripe/webhook',
+    '/api/stripe/checkout',
+    '/api/stripe/portal',
+    '/api/feedback',
+    '/api/referral/validate/',
+    '/api/test-sentry',
+    '/api/admin/login',
+    '/api/auth/',
+    '/api/clear-cache',
+    '/health',
+  ];
+
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) return next();
+
+    const isPublic = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p));
+    if (isPublic) return next();
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    }
+    next();
+  });
+
+  app.use((req, res, next) => {
+    if (!req.user) return next();
+
+    const paramCompanyId = Number(req.params.companyId);
+    const queryCompanyId = Number(req.query.companyId);
+    const bodyCompanyId = req.body?.companyId ? Number(req.body.companyId) : null;
+
+    const suppliedCompanyId = paramCompanyId || queryCompanyId || bodyCompanyId;
+
+    if (suppliedCompanyId && suppliedCompanyId !== req.user.companyId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+    }
+
+    next();
+  });
+
+  const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'] as const;
+
+  app.use('/api/manager', (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!MANAGER_ROLES.includes(req.user.role as any)) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Manager access required' });
+    }
+    next();
+  });
+
   // Auth routes
   app.use('/api/auth', authRoutes);
 
@@ -183,12 +241,18 @@ export async function registerRoutes(
   app.get("/health/live", livenessProbe);
   app.get("/health/ready", readinessProbe);
   
-  // Performance monitoring endpoints
+  // Performance monitoring endpoints (admin-only)
   app.get("/api/performance/stats", (req, res) => {
+    if (!req.user || !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
     res.json(getPerformanceStats());
   });
   
   app.get("/api/performance/slow-queries", (req, res) => {
+    if (!req.user || !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
     res.json(getSlowQueries(limit));
   });
@@ -217,12 +281,18 @@ export async function registerRoutes(
     }
   });
   
-  // Notification scheduler endpoints
+  // Notification scheduler endpoints (admin-only)
   app.get("/api/scheduler/status", (req, res) => {
+    if (!req.user || !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
     res.json(getSchedulerStatus());
   });
   
   app.post("/api/scheduler/run", async (req, res) => {
+    if (!req.user || !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
     try {
       const result = await runNotificationChecks();
       res.json({
@@ -237,15 +307,12 @@ export async function registerRoutes(
     }
   });
   
-  // Cron endpoint (for external cron services like GitHub Actions)
+  // Cron endpoint (admin-only)
   app.get("/api/cron/run-notifications", async (req, res) => {
+    if (!req.user || !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
     try {
-      // Optional: Add authentication here for security
-      // const authHeader = req.headers.authorization;
-      // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      //   return res.status(401).json({ error: "Unauthorized" });
-      // }
-      
       const result = await runNotificationChecks();
       res.json({
         message: "Notification checks completed",
@@ -310,28 +377,35 @@ export async function registerRoutes(
         return res.json({ drivers: [], vehicles: [] });
       }
 
-      const [allUsers, vehiclesResult] = await Promise.all([
-        storage.getUsersByCompany(Number(companyId)),
-        storage.getVehiclesByCompany(Number(companyId), 1000, 0),
+      const [matchingUsers, matchingVehicles] = await Promise.all([
+        db.select().from(users)
+          .where(and(
+            eq(users.companyId, Number(companyId)),
+            or(
+              sql`LOWER(${users.name}) LIKE ${`%${query}%`}`,
+              sql`LOWER(${users.email}) LIKE ${`%${query}%`}`
+            )
+          ))
+          .limit(10),
+        db.select().from(vehicles)
+          .where(and(
+            eq(vehicles.companyId, Number(companyId)),
+            or(
+              sql`LOWER(${vehicles.vrm}) LIKE ${`%${query}%`}`,
+              sql`LOWER(${vehicles.make}) LIKE ${`%${query}%`}`,
+              sql`LOWER(${vehicles.model}) LIKE ${`%${query}%`}`
+            )
+          ))
+          .limit(10),
       ]);
-      const allVehicles = vehiclesResult.vehicles;
 
-      const drivers = allUsers
-        .filter((u: any) => u.role === "DRIVER" && u.name.toLowerCase().includes(query))
-        .slice(0, 8)
+      const drivers = matchingUsers
         .map((u: any) => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
 
-      const vehicles = allVehicles
-        .filter((v: any) => {
-          const vrm = (v.registrationNumber || v.vrm || "").toLowerCase();
-          const make = (v.make || "").toLowerCase();
-          const model = (v.model || "").toLowerCase();
-          return vrm.includes(query) || make.includes(query) || model.includes(query);
-        })
-        .slice(0, 8)
-        .map((v: any) => ({ id: v.id, vrm: v.registrationNumber || v.vrm, make: v.make, model: v.model }));
+      const matchedVehicles = matchingVehicles
+        .map((v: any) => ({ id: v.id, vrm: v.vrm, make: v.make, model: v.model }));
 
-      res.json({ drivers, vehicles });
+      res.json({ drivers, vehicles: matchedVehicles });
     } catch (error) {
       console.error("Global search error:", error);
       res.status(500).json({ error: "Search failed" });
@@ -854,8 +928,27 @@ export async function registerRoutes(
       if (!inspection) {
         return res.status(404).json({ error: "Inspection not found" });
       }
-      await db.delete(inspections).where(eq(inspections.id, Number(req.params.id)));
-      res.json({ success: true });
+
+      if (req.user && inspection.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      await db.update(inspections)
+        .set({ status: 'DELETED' })
+        .where(eq(inspections.id, Number(req.params.id)));
+
+      const { logAudit } = await import("./auditService");
+      await logAudit({
+        companyId: inspection.companyId,
+        userId: req.user?.userId || null,
+        action: 'DELETE',
+        entity: 'INSPECTION',
+        entityId: inspection.id,
+        details: { softDeleted: true, vehicleId: inspection.vehicleId, type: inspection.type },
+        req,
+      });
+
+      res.json({ success: true, message: "Inspection archived (soft-deleted)" });
     } catch (error) {
       console.error("Delete inspection error:", error);
       res.status(500).json({ error: "Failed to delete inspection" });
@@ -944,7 +1037,7 @@ export async function registerRoutes(
   });
 
   // Driver login
-  app.post("/api/driver/login", async (req, res) => {
+  app.post("/api/driver/login", authLimiter, async (req, res) => {
     try {
       const companyCode = (req.body.companyCode || "").trim();
       const pin = (req.body.pin || "").trim();
@@ -958,10 +1051,12 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid company code" });
       }
 
-      const user = await storage.getUserByCompanyAndPin(company.id, pin, "any");
+      const user = await storage.getUserByCompanyAndPin(company.id, pin, "driver");
       if (!user) {
         return res.status(401).json({ error: "Invalid PIN" });
       }
+
+      const token = signToken({ userId: user.id, companyId: user.companyId, role: user.role as any, email: user.email || '', name: user.name });
 
       res.json({
         user: {
@@ -972,7 +1067,15 @@ export async function registerRoutes(
           role: user.role,
           active: user.active,
         },
-        company,
+        company: {
+          id: company.id,
+          name: company.name,
+          companyCode: company.companyCode,
+          primaryColor: company.primaryColor,
+          settings: company.settings,
+          licenseTier: company.licenseTier,
+        },
+        token,
       });
     } catch (error) {
       console.error("Driver login error:", error);
@@ -983,7 +1086,7 @@ export async function registerRoutes(
   // ==================== MANAGER API ROUTES ====================
 
   // Manager login
-  app.post("/api/manager/login", async (req, res) => {
+  app.post("/api/manager/login", authLimiter, async (req, res) => {
     try {
       const companyCode = (req.body.companyCode || "").trim();
       const pin = (req.body.pin || "").trim();
@@ -1032,7 +1135,28 @@ export async function registerRoutes(
         req,
       });
 
-      res.json({ manager, company });
+      const token = signToken({ userId: manager.id, companyId: manager.companyId, role: manager.role as any, email: manager.email || '', name: manager.name });
+
+      res.json({
+        manager: {
+          id: manager.id,
+          companyId: manager.companyId,
+          name: manager.name,
+          email: manager.email,
+          role: manager.role,
+          active: manager.active,
+          totpEnabled: manager.totpEnabled,
+        },
+        company: {
+          id: company.id,
+          name: company.name,
+          companyCode: company.companyCode,
+          primaryColor: company.primaryColor,
+          settings: company.settings,
+          licenseTier: company.licenseTier,
+        },
+        token,
+      });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -3319,6 +3443,21 @@ export async function registerRoutes(
       if (!companyId || !driverId || !latitude || !longitude) {
         return res.status(400).json({ error: "Missing required fields" });
       }
+
+      const existingActive = await db.select().from(timesheets)
+        .where(and(
+          eq(timesheets.driverId, Number(driverId)),
+          eq(timesheets.companyId, Number(companyId)),
+          eq(timesheets.status, 'ACTIVE')
+        ))
+        .limit(1);
+
+      if (existingActive.length > 0) {
+        return res.status(409).json({ 
+          error: 'Already clocked in',
+          activeTimesheetId: existingActive[0].id 
+        });
+      }
       
       const timesheet = await storage.clockIn(
         Number(companyId),
@@ -5295,6 +5434,51 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get active car assignments:", error);
       res.status(500).json({ error: "Failed to get active car assignments" });
+    }
+  });
+
+  app.get("/api/gdpr/export/:userId", async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      if (!req.user || (req.user.userId !== userId && !['ADMIN', 'TRANSPORT_MANAGER'].includes(req.user.role))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { exportUserData, generateGDPRDataExport } = await import("./gdprService");
+      const userData = await exportUserData(userId);
+      const exportJson = generateGDPRDataExport(userData);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="gdpr-export-${userId}-${new Date().toISOString().split('T')[0]}.json"`);
+      res.send(exportJson);
+    } catch (error) {
+      console.error("GDPR export error:", error);
+      res.status(500).json({ error: "Failed to export user data" });
+    }
+  });
+
+  app.post("/api/gdpr/anonymize/:userId", async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      if (!req.user || !['ADMIN'].includes(req.user.role)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { anonymizeUser } = await import("./gdprService");
+      await anonymizeUser(userId);
+
+      const { logAudit } = await import("./auditService");
+      await logAudit({
+        companyId: req.user.companyId,
+        userId: req.user.userId,
+        action: 'DELETE',
+        entity: 'USER',
+        entityId: userId,
+        details: { type: 'GDPR_ANONYMIZATION' },
+        req,
+      });
+
+      res.json({ success: true, message: "User data anonymized" });
+    } catch (error) {
+      console.error("GDPR anonymize error:", error);
+      res.status(500).json({ error: "Failed to anonymize user data" });
     }
   });
 

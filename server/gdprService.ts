@@ -13,8 +13,10 @@ export async function exportUserData(userId: number): Promise<any> {
 
   // Gather all user-related data
   const inspections = await storage.getInspectionsByDriver(user.companyId, userId, 365);
-  const defects = await storage.getDefectsByCompany(user.companyId);
-  const timesheets = await storage.getTimesheets(user.companyId);
+  const allDefects = await storage.getDefectsByCompany(user.companyId);
+  const defects = allDefects.filter((d: any) => d.reportedBy === userId);
+  const allTimesheets = await storage.getTimesheets(user.companyId);
+  const timesheets = allTimesheets.filter((t: any) => t.driverId === userId);
   const notifications = await storage.getDriverNotifications(userId);
   const shiftChecks = await storage.getShiftChecksByDriver(userId);
   

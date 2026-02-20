@@ -7,12 +7,17 @@
  * - Weekend rates (Saturday/Sunday)
  * - Bank holiday rates
  * - Overtime multiplier (>8 hours/day or >40 hours/week)
+ * 
+ * All date/time operations use Europe/London timezone (CORR-001)
+ * Shifts spanning midnight are split at day boundaries (CORR-002)
+ * Bank holidays fetched from GOV.UK API with DB fallback (CORR-003)
+ * Weekend night minutes use the higher night rate (CORR-004)
  */
 
 import { db } from "./db";
 import { payRates, bankHolidays, wageCalculations } from "../shared/payRatesSchema";
 import { timesheets, type Timesheet } from "../shared/schema";
-import { eq, and, lte, gte, isNull } from "drizzle-orm";
+import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
 
 export interface WageBreakdown {
   regularMinutes: number;
@@ -28,6 +33,64 @@ export interface WageBreakdown {
   totalPay: number;
 }
 
+function getUKHour(date: Date): number {
+  return parseInt(new Intl.DateTimeFormat('en-GB', {
+    hour: 'numeric', hour12: false, timeZone: 'Europe/London'
+  }).format(date));
+}
+
+function getUKDayOfWeek(date: Date): number {
+  const ukDateStr = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short', timeZone: 'Europe/London'
+  }).format(date);
+  const dayMap: Record<string, number> = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+  return dayMap[ukDateStr] ?? 0;
+}
+
+function getUKDateString(date: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/London'
+  }).format(date);
+}
+
+function getUKMidnight(date: Date): Date {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false, timeZone: 'Europe/London'
+  }).formatToParts(date);
+
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '0';
+  const year = parseInt(get('year'));
+  const month = parseInt(get('month'));
+  const day = parseInt(get('day'));
+
+  const midnightUK = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`);
+  const testOffset = getUKOffsetMinutes(midnightUK);
+  return new Date(midnightUK.getTime() + testOffset * 60 * 1000);
+}
+
+function getUKOffsetMinutes(date: Date): number {
+  const utcStr = date.toISOString().slice(0, 16);
+  const ukStr = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false, timeZone: 'Europe/London'
+  }).format(date);
+
+  const [datePart, timePart] = ukStr.split(', ');
+  const [dd, mm, yyyy] = datePart.split('/');
+  const [hh, min] = timePart.split(':');
+  const ukDate = new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00Z`);
+  const utcDate = new Date(utcStr + ':00Z');
+  return Math.round((utcDate.getTime() - ukDate.getTime()) / (60 * 1000));
+}
+
+function getNextUKMidnight(date: Date): Date {
+  const midnight = getUKMidnight(date);
+  return new Date(midnight.getTime() + 24 * 60 * 60 * 1000);
+}
+
 /**
  * Calculate wages for a timesheet
  */
@@ -38,35 +101,26 @@ export async function calculateWages(
   arrivalTime: Date,
   departureTime: Date
 ): Promise<WageBreakdown> {
-  // Get pay rate for driver (or company default)
   const payRate = await getPayRate(companyId, driverId);
   
   if (!payRate) {
     throw new Error("No pay rate found for driver or company");
   }
   
-  // Check if date is a bank holiday
-  const isBankHoliday = await checkBankHoliday(companyId, arrivalTime);
-  
-  // Calculate total minutes
   const totalMinutes = Math.floor((departureTime.getTime() - arrivalTime.getTime()) / (1000 * 60));
   
-  // Break down hours by type
-  const breakdown = calculateHoursBreakdown(
+  const breakdown = await calculateHoursBreakdown(
     arrivalTime,
     departureTime,
-    totalMinutes,
     payRate.nightStartHour,
     payRate.nightEndHour,
-    isBankHoliday
+    companyId
   );
   
-  // Calculate overtime (>14 hours/day by default)
   const dailyOvertimeThreshold = payRate.dailyOvertimeThreshold;
-  const netMinutes = totalMinutes - (totalMinutes > 360 ? 30 : 0); // Subtract break time
+  const netMinutes = totalMinutes - (totalMinutes > 360 ? 30 : 0);
   const overtimeMinutes = Math.max(0, netMinutes - dailyOvertimeThreshold);
   
-  // Calculate pay for each category
   const baseRate = parseFloat(payRate.baseRate);
   const nightRate = parseFloat(payRate.nightRate);
   const weekendRate = parseFloat(payRate.weekendRate);
@@ -81,7 +135,6 @@ export async function calculateWages(
   
   const totalPay = regularPay + nightPay + weekendPay + bankHolidayPay + overtimePay;
   
-  // Save calculation to database
   await saveWageCalculation({
     timesheetId,
     companyId,
@@ -117,97 +170,80 @@ export async function calculateWages(
 
 /**
  * Break down hours by type (regular, night, weekend, bank holiday)
+ * Splits shifts at midnight boundaries and classifies each minute using UK timezone.
+ * Priority: bankHoliday > night > weekend > regular
+ * Weekend + night overlap uses the night rate (CORR-004)
  */
-function calculateHoursBreakdown(
+async function calculateHoursBreakdown(
   arrivalTime: Date,
   departureTime: Date,
-  totalMinutes: number,
   nightStartHour: number,
   nightEndHour: number,
-  isBankHoliday: boolean
-): {
+  companyId: number
+): Promise<{
   regularMinutes: number;
   nightMinutes: number;
   weekendMinutes: number;
   bankHolidayMinutes: number;
-} {
-  // If bank holiday, all hours are bank holiday hours
-  if (isBankHoliday) {
-    return {
-      regularMinutes: 0,
-      nightMinutes: 0,
-      weekendMinutes: 0,
-      bankHolidayMinutes: totalMinutes
-    };
-  }
-  
-  // Check if weekend
-  const dayOfWeek = arrivalTime.getDay(); // 0 = Sunday, 6 = Saturday
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  
-  if (isWeekend) {
-    // Weekend: split between regular weekend and night weekend
-    const nightMinutes = calculateNightMinutes(arrivalTime, departureTime, nightStartHour, nightEndHour);
-    return {
-      regularMinutes: 0,
-      nightMinutes: 0,
-      weekendMinutes: totalMinutes - nightMinutes,
-      bankHolidayMinutes: 0
-    };
-  }
-  
-  // Weekday: split between regular and night
-  const nightMinutes = calculateNightMinutes(arrivalTime, departureTime, nightStartHour, nightEndHour);
-  return {
-    regularMinutes: totalMinutes - nightMinutes,
-    nightMinutes,
-    weekendMinutes: 0,
-    bankHolidayMinutes: 0
-  };
-}
-
-/**
- * Calculate minutes worked during night hours
- */
-function calculateNightMinutes(
-  arrivalTime: Date,
-  departureTime: Date,
-  nightStartHour: number,
-  nightEndHour: number
-): number {
+}> {
+  let regularMinutes = 0;
   let nightMinutes = 0;
-  let currentTime = new Date(arrivalTime);
-  
-  // Iterate through each hour of the shift
-  while (currentTime < departureTime) {
-    const hour = currentTime.getHours();
-    const nextHour = new Date(currentTime);
-    nextHour.setHours(hour + 1, 0, 0, 0);
-    
-    // Calculate minutes in this hour
-    const endOfHour = nextHour > departureTime ? departureTime : nextHour;
-    const minutesInHour = Math.floor((endOfHour.getTime() - currentTime.getTime()) / (1000 * 60));
-    
-    // Check if this hour is night time
-    const isNightHour = (nightStartHour > nightEndHour) 
-      ? (hour >= nightStartHour || hour < nightEndHour) // e.g., 22:00 - 06:00
-      : (hour >= nightStartHour && hour < nightEndHour); // e.g., 00:00 - 06:00
-    
-    if (isNightHour) {
-      nightMinutes += minutesInHour;
+  let weekendMinutes = 0;
+  let bankHolidayMinutes = 0;
+
+  let segmentStart = new Date(arrivalTime);
+
+  while (segmentStart < departureTime) {
+    const nextMidnight = getNextUKMidnight(segmentStart);
+    const segmentEnd = nextMidnight < departureTime ? nextMidnight : departureTime;
+
+    const ukDay = getUKDayOfWeek(segmentStart);
+    const isWeekend = ukDay === 0 || ukDay === 6;
+
+    const ukDateStr = getUKDateString(segmentStart);
+    const [dd, mm, yyyy] = ukDateStr.split('/');
+    const ukDate = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+    const isBankHoliday = await checkBankHolidayByDate(companyId, ukDate);
+
+    let current = new Date(segmentStart);
+    while (current < segmentEnd) {
+      const ukHour = getUKHour(current);
+      const nextMinute = new Date(current.getTime() + 60 * 1000);
+      const end = nextMinute > segmentEnd ? segmentEnd : nextMinute;
+      const mins = Math.round((end.getTime() - current.getTime()) / (1000 * 60));
+
+      if (mins <= 0) {
+        current = end;
+        continue;
+      }
+
+      const isNightHour = (nightStartHour > nightEndHour)
+        ? (ukHour >= nightStartHour || ukHour < nightEndHour)
+        : (ukHour >= nightStartHour && ukHour < nightEndHour);
+
+      if (isBankHoliday) {
+        bankHolidayMinutes += mins;
+      } else if (isNightHour) {
+        nightMinutes += mins;
+      } else if (isWeekend) {
+        weekendMinutes += mins;
+      } else {
+        regularMinutes += mins;
+      }
+
+      current = end;
     }
-    
-    currentTime = endOfHour;
+
+    segmentStart = segmentEnd;
   }
-  
-  return nightMinutes;
+
+  return { regularMinutes, nightMinutes, weekendMinutes, bankHolidayMinutes };
 }
 
 /**
  * Get pay rate for driver (or company default)
  */
 async function getPayRate(companyId: number, driverId: number) {
-  // Try to get driver-specific rate first
   const [driverRate] = await db.select()
     .from(payRates)
     .where(and(
@@ -219,7 +255,6 @@ async function getPayRate(companyId: number, driverId: number) {
   
   if (driverRate) return driverRate;
   
-  // Fall back to company default rate
   const [companyRate] = await db.select()
     .from(payRates)
     .where(and(
@@ -233,25 +268,31 @@ async function getPayRate(companyId: number, driverId: number) {
 }
 
 /**
- * Check if date is a bank holiday
+ * Check if a specific UK date is a bank holiday (using UTC date for comparison)
  */
-async function checkBankHoliday(companyId: number, date: Date): Promise<boolean> {
-  const dateOnly = new Date(date);
-  dateOnly.setHours(0, 0, 0, 0);
-  
-  const nextDay = new Date(dateOnly);
-  nextDay.setDate(nextDay.getDate() + 1);
-  
+async function checkBankHolidayByDate(companyId: number, ukDate: Date): Promise<boolean> {
+  const nextDay = new Date(ukDate.getTime() + 24 * 60 * 60 * 1000);
+
   const [holiday] = await db.select()
     .from(bankHolidays)
     .where(and(
       eq(bankHolidays.companyId, companyId),
-      gte(bankHolidays.date, dateOnly),
+      gte(bankHolidays.date, ukDate),
       lte(bankHolidays.date, nextDay)
     ))
     .limit(1);
   
   return !!holiday;
+}
+
+/**
+ * Check if date is a bank holiday (legacy, kept for backwards compatibility)
+ */
+async function checkBankHoliday(companyId: number, date: Date): Promise<boolean> {
+  const ukDateStr = getUKDateString(date);
+  const [dd, mm, yyyy] = ukDateStr.split('/');
+  const ukDate = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+  return checkBankHolidayByDate(companyId, ukDate);
 }
 
 /**
@@ -274,40 +315,23 @@ async function saveWageCalculation(data: {
   overtimePay: number;
   totalPay: number;
 }) {
-  // Check if calculation already exists
-  const [existing] = await db.select()
-    .from(wageCalculations)
-    .where(eq(wageCalculations.timesheetId, data.timesheetId))
-    .limit(1);
-  
-  if (existing) {
-    // Update existing calculation
-    await db.update(wageCalculations)
-      .set({
-        ...data,
-        regularPay: data.regularPay.toFixed(2),
-        nightPay: data.nightPay.toFixed(2),
-        weekendPay: data.weekendPay.toFixed(2),
-        bankHolidayPay: data.bankHolidayPay.toFixed(2),
-        overtimePay: data.overtimePay.toFixed(2),
-        totalPay: data.totalPay.toFixed(2),
-        calculatedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(wageCalculations.id, existing.id));
-  } else {
-    // Create new calculation
-    await db.insert(wageCalculations).values({
-      ...data,
-      regularPay: data.regularPay.toFixed(2),
-      nightPay: data.nightPay.toFixed(2),
-      weekendPay: data.weekendPay.toFixed(2),
-      bankHolidayPay: data.bankHolidayPay.toFixed(2),
-      overtimePay: data.overtimePay.toFixed(2),
-      totalPay: data.totalPay.toFixed(2),
-      calculatedAt: new Date()
-    });
-  }
+  await db.execute(sql`
+    INSERT INTO wage_calculations (timesheet_id, company_id, driver_id, pay_rate_id, 
+      regular_minutes, night_minutes, weekend_minutes, bank_holiday_minutes, overtime_minutes,
+      regular_pay, night_pay, weekend_pay, bank_holiday_pay, overtime_pay, total_pay, calculated_at)
+    VALUES (${data.timesheetId}, ${data.companyId}, ${data.driverId}, ${data.payRateId},
+      ${data.regularMinutes}, ${data.nightMinutes}, ${data.weekendMinutes}, ${data.bankHolidayMinutes}, ${data.overtimeMinutes},
+      ${data.regularPay.toFixed(2)}, ${data.nightPay.toFixed(2)}, ${data.weekendPay.toFixed(2)}, 
+      ${data.bankHolidayPay.toFixed(2)}, ${data.overtimePay.toFixed(2)}, ${data.totalPay.toFixed(2)}, NOW())
+    ON CONFLICT (timesheet_id) 
+    DO UPDATE SET
+      regular_minutes = EXCLUDED.regular_minutes, night_minutes = EXCLUDED.night_minutes,
+      weekend_minutes = EXCLUDED.weekend_minutes, bank_holiday_minutes = EXCLUDED.bank_holiday_minutes,
+      overtime_minutes = EXCLUDED.overtime_minutes, regular_pay = EXCLUDED.regular_pay,
+      night_pay = EXCLUDED.night_pay, weekend_pay = EXCLUDED.weekend_pay,
+      bank_holiday_pay = EXCLUDED.bank_holiday_pay, overtime_pay = EXCLUDED.overtime_pay,
+      total_pay = EXCLUDED.total_pay, calculated_at = NOW(), updated_at = NOW()
+  `);
 }
 
 /**
@@ -326,7 +350,6 @@ export async function getWageCalculation(timesheetId: number) {
  * Initialize default pay rates for a company
  */
 export async function initializeDefaultPayRates(companyId: number) {
-  // Check if default rate already exists
   const [existing] = await db.select()
     .from(payRates)
     .where(and(
@@ -337,46 +360,68 @@ export async function initializeDefaultPayRates(companyId: number) {
   
   if (existing) return existing;
   
-  // Create default pay rates
   const [newRate] = await db.insert(payRates).values({
     companyId,
-    driverId: null, // Company default
-    baseRate: "12.00", // £12/hour
-    nightRate: "15.00", // £15/hour (25% premium)
-    weekendRate: "18.00", // £18/hour (50% premium)
-    bankHolidayRate: "24.00", // £24/hour (100% premium)
-    overtimeMultiplier: "1.5", // 1.5x base rate
-    nightStartHour: 22, // 10 PM
-    nightEndHour: 6, // 6 AM
-    dailyOvertimeThreshold: 480, // 8 hours
-    weeklyOvertimeThreshold: 2400, // 40 hours
+    driverId: null,
+    baseRate: "12.00",
+    nightRate: "15.00",
+    weekendRate: "18.00",
+    bankHolidayRate: "24.00",
+    overtimeMultiplier: "1.5",
+    nightStartHour: 22,
+    nightEndHour: 6,
+    dailyOvertimeThreshold: 480,
+    weeklyOvertimeThreshold: 2400,
     isActive: true
   }).returning();
   
   return newRate;
 }
 
+let bankHolidayCache: { data: any; fetchedAt: number } | null = null;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Add UK bank holidays for a company
+ * Add UK bank holidays for a company, fetched from GOV.UK API with DB fallback
  */
 export async function addUKBankHolidays(companyId: number, year: number) {
-  const holidays = [
-    { name: "New Year's Day", date: new Date(year, 0, 1) },
-    { name: "Good Friday", date: new Date(year, 3, 7) }, // Approximate - varies by year
-    { name: "Easter Monday", date: new Date(year, 3, 10) }, // Approximate - varies by year
-    { name: "Early May Bank Holiday", date: new Date(year, 4, 1) },
-    { name: "Spring Bank Holiday", date: new Date(year, 4, 29) },
-    { name: "Summer Bank Holiday", date: new Date(year, 7, 28) },
-    { name: "Christmas Day", date: new Date(year, 11, 25) },
-    { name: "Boxing Day", date: new Date(year, 11, 26) }
-  ];
-  
-  for (const holiday of holidays) {
-    await db.insert(bankHolidays).values({
-      companyId,
-      name: holiday.name,
-      date: holiday.date,
-      isRecurring: true
-    });
+  try {
+    let govData: any;
+
+    if (bankHolidayCache && (Date.now() - bankHolidayCache.fetchedAt) < CACHE_TTL_MS) {
+      govData = bankHolidayCache.data;
+    } else {
+      const response = await fetch('https://www.gov.uk/bank-holidays.json');
+      if (!response.ok) {
+        throw new Error(`GOV.UK API returned ${response.status}`);
+      }
+      govData = await response.json();
+      bankHolidayCache = { data: govData, fetchedAt: Date.now() };
+    }
+
+    const englandWales = govData['england-and-wales'].events;
+    const yearHolidays = englandWales.filter((e: any) => e.date.startsWith(String(year)));
+
+    for (const holiday of yearHolidays) {
+      const holidayDate = new Date(holiday.date + 'T00:00:00Z');
+
+      const existingCheck = await db.select().from(bankHolidays)
+        .where(and(
+          eq(bankHolidays.companyId, companyId),
+          gte(bankHolidays.date, holidayDate),
+          lte(bankHolidays.date, new Date(holidayDate.getTime() + 24 * 60 * 60 * 1000))
+        )).limit(1);
+
+      if (existingCheck.length === 0) {
+        await db.insert(bankHolidays).values({
+          companyId,
+          name: holiday.title,
+          date: holidayDate,
+          isRecurring: false
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch UK bank holidays from GOV.UK, using database fallback:', error);
   }
 }

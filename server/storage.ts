@@ -221,9 +221,14 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Company
   async getCompanyByCode(code: string): Promise<Company | undefined> {
-    const normalizedCode = code.trim().toUpperCase();
-    const allCompanies = await db.select().from(companies);
-    return allCompanies.find(c => c.companyCode?.trim().toUpperCase() === normalizedCode) || undefined;
+    const [company] = await db.select().from(companies)
+      .where(eq(companies.companyCode, code))
+      .limit(1);
+    if (company) return company;
+    const [companyLower] = await db.select().from(companies)
+      .where(sql`LOWER(${companies.companyCode}) = LOWER(${code})`)
+      .limit(1);
+    return companyLower;
   }
 
   async createCompany(company: InsertCompany): Promise<Company> {
@@ -309,27 +314,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async trackVehicleUsage(companyId: number, driverId: number, vehicleId: number): Promise<void> {
-    // For simplicity, just insert/update - Drizzle handles duplicates
-    try {
-      await db.insert(vehicleUsage).values({ 
-        companyId, 
-        driverId, 
-        vehicleId, 
-        lastUsedAt: new Date() 
-      });
-    } catch (error) {
-      // If already exists, update the timestamp
-      await db
-        .update(vehicleUsage)
-        .set({ lastUsedAt: new Date() })
-        .where(
-          and(
-            eq(vehicleUsage.companyId, companyId),
-            eq(vehicleUsage.driverId, driverId),
-            eq(vehicleUsage.vehicleId, vehicleId)
-          )
-        );
-    }
+    await db.execute(sql`
+      INSERT INTO vehicle_usage (company_id, driver_id, vehicle_id, last_used_at)
+      VALUES (${companyId}, ${driverId}, ${vehicleId}, NOW())
+      ON CONFLICT (company_id, driver_id, vehicle_id) 
+      DO UPDATE SET 
+        last_used_at = NOW()
+    `);
   }
 
   // Inspection

@@ -77,7 +77,10 @@ export default function Landing() {
           throw new Error(data.error || "Login failed");
         }
         
-        const { user, company } = await response.json();
+        const { user, company, token } = await response.json();
+        if (token) {
+          session.setToken(token);
+        }
         session.setCompany(company);
         session.setUser({
           ...user,

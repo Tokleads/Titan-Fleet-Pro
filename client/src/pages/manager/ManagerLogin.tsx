@@ -68,6 +68,9 @@ export default function ManagerLogin() {
         return;
       }
       
+      if (data.token) {
+        session.setToken(data.token);
+      }
       session.setUser(data.manager);
       session.setCompany(data.company);
       localStorage.setItem("titanfleet_last_role", "manager");

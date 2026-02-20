@@ -1,4 +1,5 @@
 import type { Company, Vehicle, Inspection, FuelEntry } from "@shared/schema";
+import { session } from "./session";
 
 const BASE_URL = "";
 
@@ -7,10 +8,17 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const authHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const token = session.getToken();
+    if (token) {
+      authHeaders["Authorization"] = `Bearer ${token}`;
+    }
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...authHeaders,
         ...options.headers,
       },
     });

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
 import { users, driverLocations, timesheets, inspections, vehicles, companies } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "./emailService";
 import { generateUniquePin, validatePinAvailable } from "./pinUtils";
 
@@ -23,97 +23,83 @@ router.get("/", async (req, res) => {
       .from(users)
       .where(eq(users.companyId, companyIdNum));
 
-    // Fetch additional data for each driver
-    const driversWithDetails = await Promise.all(
-      drivers.map(async (driver) => {
-        // Fetch latest location from driver_locations
-        const [latestLocation] = await db
-          .select()
-          .from(driverLocations)
-          .where(
-            and(
-              eq(driverLocations.driverId, driver.id),
-              eq(driverLocations.companyId, companyIdNum)
-            )
-          )
-          .orderBy(desc(driverLocations.timestamp))
-          .limit(1);
+    if (drivers.length === 0) return res.json([]);
 
-        // Fetch active timesheet (current shift)
-        const [activeTimesheet] = await db
-          .select()
-          .from(timesheets)
-          .where(
-            and(
-              eq(timesheets.driverId, driver.id),
-              eq(timesheets.companyId, companyIdNum),
-              eq(timesheets.status, "ACTIVE")
-            )
-          )
-          .limit(1);
+    const driverIds = drivers.map(d => d.id);
 
-        // Fetch assigned vehicle from most recent inspection
-        const [recentInspection] = await db
-          .select({
-            vehicleId: inspections.vehicleId,
-          })
-          .from(inspections)
-          .where(
-            and(
-              eq(inspections.driverId, driver.id),
-              eq(inspections.companyId, companyIdNum)
-            )
-          )
-          .orderBy(desc(inspections.createdAt))
-          .limit(1);
+    const latestLocations = await db.execute(sql`
+      SELECT DISTINCT ON (driver_id) * 
+      FROM driver_locations 
+      WHERE company_id = ${companyIdNum} AND driver_id = ANY(${driverIds})
+      ORDER BY driver_id, timestamp DESC
+    `);
+    const locationMap = new Map();
+    for (const loc of latestLocations.rows) {
+      locationMap.set(loc.driver_id, loc);
+    }
 
-        let assignedVehicle = null;
-        if (recentInspection?.vehicleId) {
-          const [vehicle] = await db
-            .select()
-            .from(vehicles)
-            .where(eq(vehicles.id, recentInspection.vehicleId))
-            .limit(1);
-          if (vehicle) {
-            assignedVehicle = {
-              id: vehicle.id,
-              vrm: vehicle.vrm,
-              make: vehicle.make,
-              model: vehicle.model,
-              fleetNumber: vehicle.fleetNumber,
-            };
-          }
-        }
+    const activeTimesheets = await db.select().from(timesheets)
+      .where(and(
+        eq(timesheets.companyId, companyIdNum),
+        eq(timesheets.status, 'ACTIVE'),
+        inArray(timesheets.driverId, driverIds)
+      ));
+    const timesheetMap = new Map();
+    for (const ts of activeTimesheets) {
+      timesheetMap.set(ts.driverId, ts);
+    }
 
-        return {
-          id: driver.id,
-          name: driver.name,
-          email: driver.email,
-          role: driver.role,
-          active: driver.active,
-          currentLocation: latestLocation
-            ? {
-                latitude: latestLocation.latitude,
-                longitude: latestLocation.longitude,
-                speed: latestLocation.speed,
-                heading: latestLocation.heading,
-                accuracy: latestLocation.accuracy,
-                isStagnant: latestLocation.isStagnant,
-                timestamp: latestLocation.timestamp,
-              }
-            : null,
-          assignedVehicle,
-          currentShift: activeTimesheet
-            ? {
-                id: activeTimesheet.id,
-                depotName: activeTimesheet.depotName,
-                arrivalTime: activeTimesheet.arrivalTime,
-                status: activeTimesheet.status,
-              }
-            : null,
-        };
-      })
-    );
+    const recentInspections = await db.execute(sql`
+      SELECT DISTINCT ON (i.driver_id) i.driver_id, i.vehicle_id, v.vrm, v.make, v.model, v.fleet_number
+      FROM inspections i
+      LEFT JOIN vehicles v ON v.id = i.vehicle_id
+      WHERE i.company_id = ${companyIdNum} AND i.driver_id = ANY(${driverIds})
+      ORDER BY i.driver_id, i.created_at DESC
+    `);
+    const vehicleMap = new Map();
+    for (const row of recentInspections.rows) {
+      vehicleMap.set(row.driver_id, {
+        id: row.vehicle_id,
+        vrm: row.vrm,
+        make: row.make,
+        model: row.model,
+        fleetNumber: row.fleet_number,
+      });
+    }
+
+    const driversWithDetails = drivers.map((driver) => {
+      const latestLocation = locationMap.get(driver.id);
+      const activeTimesheet = timesheetMap.get(driver.id);
+      const assignedVehicle = vehicleMap.get(driver.id) || null;
+
+      return {
+        id: driver.id,
+        name: driver.name,
+        email: driver.email,
+        role: driver.role,
+        active: driver.active,
+        currentLocation: latestLocation
+          ? {
+              latitude: latestLocation.latitude,
+              longitude: latestLocation.longitude,
+              speed: latestLocation.speed,
+              heading: latestLocation.heading,
+              accuracy: latestLocation.accuracy,
+              isStagnant: latestLocation.is_stagnant,
+              timestamp: latestLocation.timestamp,
+            }
+          : null,
+        assignedVehicle,
+        currentShift: activeTimesheet
+          ? {
+              id: activeTimesheet.id,
+              depotName: activeTimesheet.depotName,
+              arrivalTime: activeTimesheet.arrivalTime,
+              status: activeTimesheet.status,
+            }
+          : null,
+      };
+    });
 
     res.json(driversWithDetails);
   } catch (error) {
