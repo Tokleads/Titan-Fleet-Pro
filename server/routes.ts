@@ -310,10 +310,11 @@ export async function registerRoutes(
         return res.json({ drivers: [], vehicles: [] });
       }
 
-      const [allUsers, allVehicles] = await Promise.all([
+      const [allUsers, vehiclesResult] = await Promise.all([
         storage.getUsersByCompany(Number(companyId)),
-        storage.getVehicles(Number(companyId)),
+        storage.getVehiclesByCompany(Number(companyId), 1000, 0),
       ]);
+      const allVehicles = vehiclesResult.vehicles;
 
       const drivers = allUsers
         .filter((u: any) => u.role === "DRIVER" && u.name.toLowerCase().includes(query))
