@@ -1051,10 +1051,7 @@ export class DatabaseStorage implements IStorage {
   
   async getGeofencesByCompany(companyId: number): Promise<Geofence[]> {
     return await db.select().from(geofences)
-      .where(and(
-        eq(geofences.companyId, companyId),
-        eq(geofences.isActive, true)
-      ));
+      .where(eq(geofences.companyId, companyId));
   }
   
   async updateGeofence(id: number, updates: Partial<Geofence>): Promise<Geofence | undefined> {
