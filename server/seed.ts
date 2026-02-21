@@ -87,11 +87,7 @@ async function seed() {
 
   console.log(`✅ Created ${vehicleData.length} vehicles (1 in grace - over 15 allowance)`);
   console.log("\n🎉 Seed completed!");
-  console.log(`\n📋 Login credentials:`);
-  console.log(`   Company Code: APEX`);
-  console.log(`   Driver 1: ${driver1.email} (PIN: 1234)`);
-  console.log(`   Driver 2: ${driver2.email} (PIN: 5678)`);
-  console.log(`   Manager: ${manager.email} (PIN: 0000)`);
+  console.log(`\n📋 Seed accounts created for company APEX`);
   console.log(`\n📊 License info:`);
   console.log(`   Tier: Core (15 vehicles + 3 grace)`);
   console.log(`   Active vehicles: 16 (in grace mode)`);

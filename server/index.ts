@@ -170,10 +170,12 @@ app.use((req, res, next) => {
           settings: { fuelEnabled: true, podEnabled: true, primaryColor: '#2563eb', brandName: 'Demo Fleet' }
         }).returning();
         const bcrypt = await import('bcrypt');
-        const hashedPw = await bcrypt.default.hash('1234TF', 10);
-        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: '1234', password: hashedPw });
-        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: '1234', password: hashedPw });
-        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: '1234', password: hashedPw });
+        const demoPw = process.env.DEMO_SEED_PASSWORD || 'ChangeMeOnSetup1!';
+        const hashedPw = await bcrypt.default.hash(demoPw, 10);
+        const demoPin = process.env.DEMO_SEED_PIN || '1234';
+        await db.insert(users).values({ companyId: company.id, email: 'demo@titanfleet.co.uk', name: 'Demo Manager', role: 'manager', pin: demoPin, password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver1@apex.com', name: 'John Driver', role: 'driver', pin: demoPin, password: hashedPw });
+        await db.insert(users).values({ companyId: company.id, email: 'driver2@apex.com', name: 'Jane Driver', role: 'driver', pin: demoPin, password: hashedPw });
         console.log('Created APEX demo company with users');
       }
     } else {
@@ -181,7 +183,7 @@ app.use((req, res, next) => {
       for (const u of mgr) {
         if (u.role === 'manager' && !u.pin) {
           await db.update(users).set({ pin: '1234' }).where(eq(users.id, u.id));
-          console.log('Fixed manager PIN for APEX company');
+          console.log('Fixed manager PIN for APEX company (updated)');
         }
       }
     }
@@ -226,7 +228,7 @@ app.use((req, res, next) => {
         }
         if (robert && !robert.pin) {
           await db.update(users).set({ pin: '1000' }).where(eq(users.id, robert.id));
-          console.log('[Migration] Set Robert PIN to 1000');
+          console.log('[Migration] Set Robert PIN');
         }
 
         const driversWithoutPin = await db.select({ id: users.id, name: users.name }).from(users)
@@ -313,7 +315,7 @@ app.use((req, res, next) => {
             INSERT INTO users (company_id, email, name, role, pin, active)
             VALUES (${abtsoCompany3.id}, 'jonbyrne.driver@abtso.co.uk', 'Jon Byrne', 'DRIVER', '1184', true)
           `);
-          console.log('[Migration v3] Created Jon Byrne driver account with PIN 1184');
+          console.log('[Migration v3] Created Jon Byrne driver account');
         } else {
           console.log('[Migration v3] Jon Byrne driver account already exists');
         }
