@@ -587,15 +587,45 @@ export default function ManagerInspections() {
                           data-testid={`defect-item-${index}`}
                         >
                           <p className="text-sm font-medium text-amber-900">
-                            {defect.category || defect.name || `Defect ${index + 1}`}
+                            {defect.item || defect.category || defect.name || `Defect ${index + 1}`}
                           </p>
-                          {(defect.notes || defect.description) && (
+                          {(defect.note || defect.notes || defect.description) && (
                             <p className="text-sm text-amber-700 mt-1">
-                              {defect.notes || defect.description}
+                              {defect.note || defect.notes || defect.description}
                             </p>
+                          )}
+                          {defect.photo && (
+                            <div className="mt-2">
+                              <img 
+                                src={defect.photo.startsWith("/objects/") ? defect.photo : `/objects/${defect.photo}`}
+                                alt={`Defect photo ${index + 1}`}
+                                className="rounded-lg border border-amber-200 object-cover h-40 max-w-full"
+                                data-testid={`img-defect-photo-${index}`}
+                              />
+                            </div>
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInspection.cabPhotos && Array.isArray(selectedInspection.cabPhotos) && selectedInspection.cabPhotos.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900 mb-3">Cab Photos</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedInspection.cabPhotos.map((photo: string, idx: number) => {
+                        const imgSrc = photo.startsWith("/objects/") ? photo : `/objects/${photo}`;
+                        return (
+                          <img 
+                            key={idx} 
+                            src={imgSrc} 
+                            alt={`Cab photo ${idx + 1}`} 
+                            className="rounded-lg border border-slate-200 object-cover h-32 w-full"
+                            data-testid={`img-cab-photo-${idx}`}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}

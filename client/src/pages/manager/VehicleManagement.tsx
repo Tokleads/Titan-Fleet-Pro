@@ -809,9 +809,20 @@ function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: num
                     <div className="space-y-2">
                       {selectedInspection.defects.map((d: any, idx: number) => (
                         <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                          <p className="text-sm text-red-800 font-medium">{d.description || d.note || d}</p>
+                          <p className="text-sm text-red-800 font-medium">{d.item || d.description || d.note || d}</p>
+                          {(d.note || d.description) && d.item && <p className="text-xs text-red-700 mt-1">{d.note || d.description}</p>}
                           {d.category && <p className="text-xs text-red-600 mt-1">Category: {d.category}</p>}
                           {d.severity && <p className="text-xs text-red-600">Severity: {d.severity}</p>}
+                          {d.photo && (
+                            <div className="mt-2">
+                              <img 
+                                src={d.photo.startsWith("/objects/") ? d.photo : `/objects/${d.photo}`}
+                                alt={`Defect photo ${idx + 1}`}
+                                className="rounded-lg border border-red-200 object-cover h-40 max-w-full"
+                                data-testid={`img-defect-photo-${idx}`}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -822,9 +833,12 @@ function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: num
                   <div className="mt-5">
                     <h5 className="text-sm font-semibold text-slate-900 mb-2">Photos</h5>
                     <div className="grid grid-cols-3 gap-2">
-                      {selectedInspection.cabPhotos.map((url: string, idx: number) => (
-                        <img key={idx} src={url} alt={`Photo ${idx + 1}`} className="rounded-lg border border-slate-200 object-cover h-32 w-full" />
-                      ))}
+                      {selectedInspection.cabPhotos.map((url: string, idx: number) => {
+                        const imgSrc = url.startsWith("/objects/") ? url : `/objects/${url}`;
+                        return (
+                          <img key={idx} src={imgSrc} alt={`Photo ${idx + 1}`} className="rounded-lg border border-slate-200 object-cover h-32 w-full" data-testid={`img-cab-photo-${idx}`} />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
