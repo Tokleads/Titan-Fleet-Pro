@@ -50,3 +50,6 @@ DVSA_TOKEN_URL = "https://login.microsoftonline.com/a455b827-244f-4c97-b5b4-ce5d
 DVSA_SCOPE_URL = "https://tapi.dvsa.gov.uk/.default"
 SENTRY_DSN = "https://578ece1d50d0a9ac8ea62f5140300b0b@o4510817437614080.ingest.de.sentry.io/4510817445412944"
 APP_DOMAIN = "www.titanfleet.co.uk"
+
+[userenv.development]
+ARTILLERY_TEST_PASSWORD = "password123"

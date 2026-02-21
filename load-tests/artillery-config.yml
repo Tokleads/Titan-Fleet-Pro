@@ -97,7 +97,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "driver@example.com"
-            password: "password123"
+            password: "{{ $processEnvironment.ARTILLERY_TEST_PASSWORD }}"
           capture:
             - json: "$.token"
               as: "authToken"
@@ -144,7 +144,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "mechanic@example.com"
-            password: "password123"
+            password: "{{ $processEnvironment.ARTILLERY_TEST_PASSWORD }}"
           capture:
             - json: "$.token"
               as: "authToken"
@@ -179,7 +179,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "driver@example.com"
-            password: "password123"
+            password: "{{ $processEnvironment.ARTILLERY_TEST_PASSWORD }}"
           capture:
             - json: "$.token"
               as: "authToken"
@@ -208,7 +208,7 @@ scenarios:
           url: "/api/auth/login"
           json:
             email: "manager@example.com"
-            password: "password123"
+            password: "{{ $processEnvironment.ARTILLERY_TEST_PASSWORD }}"
           capture:
             - json: "$.token"
               as: "authToken"
