@@ -281,7 +281,6 @@ app.use((req, res, next) => {
           for (const u of usersWithoutPin) {
             while (usedPins.has(String(nextPin))) nextPin++;
             await db2.update(users2).set({ pin: String(nextPin) }).where(eq2(users2.id, u.id));
-            console.log(`[Migration v2] Assigned PIN ${nextPin} to ${u.name} (${u.role})`);
             usedPins.add(String(nextPin));
             nextPin++;
           }
