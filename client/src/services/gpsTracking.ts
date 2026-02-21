@@ -40,6 +40,7 @@ class GPSTrackingService {
   private offlineQueue: LocationData[] = [];
   private isOnline: boolean = navigator.onLine;
   private isSending: boolean = false;
+  private getAuthToken: (() => string | null) | null = null;
   private config: TrackingConfig = {
     updateInterval: 5 * 60 * 1000, // 5 minutes default
     highAccuracy: true,
@@ -276,9 +277,7 @@ class GPSTrackingService {
     try {
       const response = await fetch('/api/driver/location', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           latitude: this.lastLocation.latitude,
           longitude: this.lastLocation.longitude,
@@ -341,9 +340,7 @@ class GPSTrackingService {
       // Send queued locations in batch
       const response = await fetch('/api/driver/location/batch', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           locations: this.offlineQueue,
         }),
@@ -461,6 +458,29 @@ class GPSTrackingService {
       this.stopTracking();
       this.startTracking(driverId, vehicleId, companyId);
     }
+  }
+
+  /**
+   * Set auth token provider for authenticated requests
+   */
+  public setAuthTokenProvider(provider: () => string | null): void {
+    this.getAuthToken = provider;
+  }
+
+  /**
+   * Get request headers including auth token
+   */
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.getAuthToken) {
+      const token = this.getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    return headers;
   }
 
   /**

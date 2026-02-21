@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown, ChevronRight, Signal, Shield, FileText } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { gpsTrackingService } from '@/services/gpsTracking';
+import { session } from '@/lib/session';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,11 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     return false;
   });
   const queryClient = useQueryClient();
+  const trackingInitialized = useRef(false);
+
+  useEffect(() => {
+    gpsTrackingService.setAuthTokenProvider(() => session.getToken());
+  }, []);
 
   // Fetch geofences (depots)
   const { data: geofences = [] } = useQuery<Geofence[]>({
@@ -75,6 +82,25 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     },
     refetchInterval: 30000
   });
+
+  useEffect(() => {
+    if (activeTimesheet && !trackingInitialized.current) {
+      trackingInitialized.current = true;
+      gpsTrackingService.startTracking(driverId, null, companyId);
+    } else if (!activeTimesheet && trackingInitialized.current) {
+      trackingInitialized.current = false;
+      gpsTrackingService.stopTracking();
+    }
+  }, [activeTimesheet, driverId, companyId]);
+
+  useEffect(() => {
+    return () => {
+      if (trackingInitialized.current) {
+        gpsTrackingService.stopTracking();
+        trackingInitialized.current = false;
+      }
+    };
+  }, []);
 
   // Get current location with high accuracy
   useEffect(() => {
@@ -187,6 +213,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
       return response.json();
     },
     onSuccess: () => {
+      trackingInitialized.current = true;
+      gpsTrackingService.startTracking(driverId, null, companyId);
       queryClient.invalidateQueries({ queryKey: ['active-timesheet', driverId] });
       setSelectedDepotId(null);
       setShowManualSelection(false);
@@ -217,6 +245,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
       return response.json();
     },
     onSuccess: () => {
+      gpsTrackingService.stopTracking();
+      trackingInitialized.current = false;
       queryClient.invalidateQueries({ queryKey: ['active-timesheet', driverId] });
     }
   });
