@@ -108,13 +108,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize Stripe
-  try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (databaseUrl) {
-      console.log('Initializing Stripe schema...');
-      await runMigrations({ databaseUrl, schema: 'stripe' });
-      console.log('Stripe schema ready');
+  // Run database-dependent initialization in background to avoid blocking server start
+  const runStartupMigrations = async () => {
+    // Initialize Stripe
+    try {
+      const databaseUrl = process.env.DATABASE_URL;
+      if (databaseUrl) {
+        console.log('Initializing Stripe schema...');
+        await runMigrations({ databaseUrl, schema: 'stripe' });
+        console.log('Stripe schema ready');
 
       const stripeSync = await getStripeSync();
 
@@ -347,6 +349,8 @@ app.use((req, res, next) => {
     console.error('Migration v3 (non-fatal):', migErr3);
   }
 
+  };
+
   // Register admin routes
   app.use("/api/admin", adminRoutes);
 
@@ -473,6 +477,13 @@ h2{margin:0 0 0.5rem}p{color:#64748b;margin:0.5rem 0}
       // Start the notification scheduler
       startScheduler();
       log('Notification scheduler started', 'scheduler');
+
+      // Run database migrations in background (don't block server start)
+      runStartupMigrations().then(() => {
+        console.log('Startup migrations completed');
+      }).catch((err) => {
+        console.error('Startup migrations failed (non-fatal):', err);
+      });
     },
   );
 })();
