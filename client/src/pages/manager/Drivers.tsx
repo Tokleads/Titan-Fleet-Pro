@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { 
@@ -21,7 +22,8 @@ import {
   LogOut,
   Activity,
   User,
-  Download
+  Download,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -498,6 +500,7 @@ export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [profileDriver, setProfileDriver] = useState<Driver | null>(null);
   
@@ -729,6 +732,10 @@ export default function Drivers() {
             <Button variant="outline" onClick={downloadPinsCsv} disabled={isExporting} data-testid="button-download-pins">
               <Download className="h-4 w-4 mr-2" />
               {isExporting ? "Exporting..." : "Download PINs"}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/manager/bulk-upload')} data-testid="button-bulk-upload-drivers">
+              <Upload className="h-4 w-4 mr-2" />
+              Bulk Upload
             </Button>
           {/* Add Driver Dialog */}
           <Dialog open={isAddDialogOpen} onOpenChange={(open) => {

@@ -2078,6 +2078,213 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk upload drivers from CSV
+  app.post("/api/manager/bulk-upload/drivers", async (req, res) => {
+    try {
+      const bulkDriverSchema = z.object({
+        companyId: z.number(),
+        managerId: z.number(),
+        drivers: z.array(z.object({
+          name: z.string().min(1),
+          email: z.string().email(),
+          role: z.string().default('DRIVER'),
+          pin: z.string().length(4).optional().nullable(),
+          phone: z.string().optional().nullable(),
+        })),
+      });
+
+      const validated = bulkDriverSchema.parse(req.body);
+      const { companyId, managerId, drivers: driverRows } = validated;
+
+      const existingUsers = await db.select({ email: users.email })
+        .from(users)
+        .where(eq(users.companyId, companyId));
+      const existingEmails = new Set(existingUsers.map(u => u.email.toLowerCase()));
+
+      const { generateUniquePin, validatePinAvailable } = await import('./pinUtils');
+      const { logAudit } = await import('./auditService');
+
+      const createdDrivers: any[] = [];
+      const errors: Array<{ row: number; name: string; reason: string }> = [];
+      let skipped = 0;
+
+      for (let i = 0; i < driverRows.length; i++) {
+        const row = driverRows[i];
+        const rowNum = i + 1;
+        try {
+          const email = sanitizeInput(row.email.trim().toLowerCase());
+          const name = sanitizeInput(row.name.trim());
+
+          if (existingEmails.has(email)) {
+            errors.push({ row: rowNum, name, reason: 'Duplicate email — already exists in company' });
+            skipped++;
+            continue;
+          }
+
+          let assignedPin = row.pin || null;
+          if (assignedPin) {
+            const pinFree = await validatePinAvailable(companyId, assignedPin);
+            if (!pinFree) {
+              errors.push({ row: rowNum, name, reason: `PIN ${assignedPin} already in use` });
+              skipped++;
+              continue;
+            }
+          } else {
+            assignedPin = await generateUniquePin(companyId);
+          }
+
+          const user = await storage.createUser({
+            companyId,
+            name,
+            email,
+            role: row.role || 'DRIVER',
+            pin: assignedPin,
+            phone: row.phone ? sanitizeInput(row.phone.trim()) : null,
+            active: true,
+          });
+
+          existingEmails.add(email);
+          createdDrivers.push(user);
+
+          await logAudit({
+            companyId,
+            userId: managerId,
+            action: 'CREATE',
+            entity: 'USER',
+            entityId: user.id,
+            details: { name: user.name, email: user.email, role: user.role, source: 'bulk_upload' },
+            req,
+          });
+        } catch (rowError) {
+          errors.push({ row: rowNum, name: row.name || 'Unknown', reason: rowError instanceof Error ? rowError.message : 'Unknown error' });
+        }
+      }
+
+      res.json({
+        created: createdDrivers.length,
+        skipped,
+        errors,
+        createdDrivers,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Bulk driver upload error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Bulk upload vehicles from CSV
+  app.post("/api/manager/bulk-upload/vehicles", async (req, res) => {
+    try {
+      const bulkVehicleSchema = z.object({
+        companyId: z.number(),
+        managerId: z.number(),
+        vehicles: z.array(z.object({
+          vrm: z.string().min(1),
+          make: z.string().min(1),
+          model: z.string().min(1),
+          fleetNumber: z.string().optional().nullable(),
+          vehicleCategory: z.string().optional().nullable(),
+        })),
+      });
+
+      const validated = bulkVehicleSchema.parse(req.body);
+      const { companyId, managerId, vehicles: vehicleRows } = validated;
+
+      const usage = await storage.getVehicleUsage(companyId);
+      if (usage.state === 'over_hard_limit') {
+        return res.status(403).json({
+          error: "Vehicle capacity exceeded — request upgrade to add more vehicles.",
+          usage,
+        });
+      }
+
+      const existingVehicles = await storage.getVehiclesByCompany(companyId, 10000, 0);
+      const existingVrms = new Set(
+        existingVehicles.vehicles.map(v => v.vrm.toUpperCase().replace(/\s/g, ''))
+      );
+
+      const { logAudit } = await import('./auditService');
+
+      const createdVehicles: any[] = [];
+      const errors: Array<{ row: number; vrm: string; reason: string }> = [];
+      let skipped = 0;
+
+      for (let i = 0; i < vehicleRows.length; i++) {
+        const row = vehicleRows[i];
+        const rowNum = i + 1;
+        try {
+          const vrm = sanitizeInput(row.vrm.trim().toUpperCase());
+          const normalizedVrm = vrm.replace(/\s/g, '');
+
+          if (existingVrms.has(normalizedVrm)) {
+            errors.push({ row: rowNum, vrm, reason: 'Duplicate VRM — already exists in company' });
+            skipped++;
+            continue;
+          }
+
+          const vehicle = await storage.createVehicle({
+            companyId,
+            vrm,
+            make: sanitizeInput(row.make.trim()),
+            model: sanitizeInput(row.model.trim()),
+            fleetNumber: row.fleetNumber ? sanitizeInput(row.fleetNumber.trim()) : null,
+            vehicleCategory: row.vehicleCategory || 'HGV',
+          });
+
+          existingVrms.add(normalizedVrm);
+          createdVehicles.push(vehicle);
+
+          await logAudit({
+            companyId,
+            userId: managerId,
+            action: 'CREATE',
+            entity: 'VEHICLE',
+            entityId: vehicle.id,
+            details: { vrm: vehicle.vrm, make: vehicle.make, model: vehicle.model, source: 'bulk_upload' },
+            req,
+          });
+        } catch (rowError) {
+          errors.push({ row: rowNum, vrm: row.vrm || 'Unknown', reason: rowError instanceof Error ? rowError.message : 'Unknown error' });
+        }
+      }
+
+      res.json({
+        created: createdVehicles.length,
+        skipped,
+        errors,
+        createdVehicles,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Bulk vehicle upload error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // CSV template downloads
+  app.get("/api/manager/bulk-upload/templates/:type", (req, res) => {
+    const { type } = req.params;
+
+    if (type === 'drivers') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="drivers-template.csv"');
+      return res.send('name,email,phone,pin\n"John Smith","john@example.com","07700900000","1234"');
+    }
+
+    if (type === 'vehicles') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="vehicles-template.csv"');
+      return res.send('vrm,make,model,fleet_number,vehicle_category\n"AB12 CDE","Mercedes","Actros","FL001","HGV"');
+    }
+
+    res.status(400).json({ error: 'Invalid template type. Use "drivers" or "vehicles".' });
+  });
+
   // Update user
   app.patch("/api/manager/users/:id", async (req, res) => {
     try {

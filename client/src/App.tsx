@@ -53,6 +53,7 @@ const VehicleManagement = lazy(() => import("@/pages/manager/VehicleManagement")
 const OperatorLicence = lazy(() => import("@/pages/manager/OperatorLicence"));
 const AIInsights = lazy(() => import("@/pages/manager/AIInsights"));
 const ApiHealth = lazy(() => import("@/pages/manager/ApiHealth"));
+const BulkUpload = lazy(() => import("@/pages/manager/BulkUpload"));
 const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminCompanies = lazy(() => import("@/pages/admin/Companies"));
@@ -132,6 +133,7 @@ function Router() {
         <Route path="/manager/vehicle-management" component={VehicleManagement} />
         <Route path="/manager/ai-insights" component={AIInsights} />
         <Route path="/manager/api-health" component={ApiHealth} />
+        <Route path="/manager/bulk-upload" component={BulkUpload} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin/companies" component={AdminCompanies} />

@@ -25,7 +25,8 @@ import {
   Trash2,
   Wrench,
   FileText,
-  Filter
+  Filter,
+  Upload
 } from "lucide-react";
 
 interface LicenseInfo {
@@ -269,19 +270,29 @@ export default function ManagerFleet() {
             <h1 className="text-2xl font-bold text-slate-900">Fleet</h1>
             <p className="text-slate-500 mt-0.5">Manage vehicles and trailers</p>
           </div>
-          <button 
-            onClick={() => { setShowAddForm(true); setAddError(null); }}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm ${
-              license?.state === 'over_hard_limit' 
-                ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            disabled={license?.state === 'over_hard_limit'}
-            data-testid="button-add-vehicle"
-          >
-            <Plus className="h-4 w-4" />
-            Add Vehicle
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/manager/bulk-upload')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              data-testid="button-bulk-upload-vehicles"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload
+            </button>
+            <button 
+              onClick={() => { setShowAddForm(true); setAddError(null); }}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm ${
+                license?.state === 'over_hard_limit' 
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              disabled={license?.state === 'over_hard_limit'}
+              data-testid="button-add-vehicle"
+            >
+              <Plus className="h-4 w-4" />
+              Add Vehicle
+            </button>
+          </div>
         </div>
 
         {/* License Warning Banners */}
