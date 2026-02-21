@@ -262,6 +262,27 @@ app.use((req, res, next) => {
     console.error('ABTSO migration (non-fatal):', abtsoErr);
   }
 
+  // One-time password reset for Jon Byrne (Transport Manager)
+  try {
+    const { db: dbPwReset } = await import('./db');
+    const { users: usersPwReset } = await import('@shared/schema');
+    const { eq: eqPwReset, sql: sqlPwReset } = await import('drizzle-orm');
+
+    const pwMigrationName = 'jon_byrne_password_reset_v1';
+    const pwExisting = await dbPwReset.execute(sqlPwReset`SELECT name FROM _migrations WHERE name = ${pwMigrationName}`);
+    if (!pwExisting.rows || pwExisting.rows.length === 0) {
+      const bcryptPw = await import('bcrypt');
+      const newHash = await bcryptPw.default.hash('TokLeads2026!', 12);
+      const result = await dbPwReset.update(usersPwReset)
+        .set({ password: newHash })
+        .where(eqPwReset(usersPwReset.email, 'jonbyrne10@googlemail.com'));
+      console.log('[Migration] Reset password for Jon Byrne (jonbyrne10@googlemail.com)');
+      await dbPwReset.execute(sqlPwReset`INSERT INTO _migrations (name) VALUES (${pwMigrationName})`);
+    }
+  } catch (pwErr) {
+    console.error('Password reset migration (non-fatal):', pwErr);
+  }
+
   try {
     const { db: db2 } = await import('./db');
     const { companies: companies2, users: users2 } = await import('@shared/schema');
