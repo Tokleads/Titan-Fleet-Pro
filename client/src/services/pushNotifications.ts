@@ -148,7 +148,6 @@ class PushNotificationService {
       });
 
       if (token) {
-        console.log('FCM token obtained:', token);
         this.currentToken = token;
 
         // Save token to backend
