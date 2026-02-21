@@ -52,4 +52,3 @@ SENTRY_DSN = "https://578ece1d50d0a9ac8ea62f5140300b0b@o4510817437614080.ingest.
 APP_DOMAIN = "www.titanfleet.co.uk"
 
 [userenv.development]
-ARTILLERY_TEST_PASSWORD = "password123"
