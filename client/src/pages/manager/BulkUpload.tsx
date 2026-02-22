@@ -88,17 +88,12 @@ const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber"];
 function fixPhoneNumber(value: string): string {
   if (!value) return "";
   const trimmed = value.trim();
-  if (/[\d.]+[eE]\+?\d+/.test(trimmed)) {
-    const num = parseFloat(trimmed);
-    if (!isNaN(num)) {
-      const str = num.toFixed(0);
-      return str.startsWith("44") ? "+" + str : str;
-    }
-  }
-  if (/^\d{10,}$/.test(trimmed) && trimmed.startsWith("44")) {
-    return "+" + trimmed;
-  }
-  return trimmed;
+  const digitsOnly = trimmed.replace(/[^0-9+]/g, "");
+  if (!digitsOnly) return trimmed;
+  if (digitsOnly.startsWith("+")) return digitsOnly;
+  if (digitsOnly.startsWith("44") && digitsOnly.length >= 12) return "+" + digitsOnly;
+  if (digitsOnly.startsWith("0") && digitsOnly.length === 11) return "+44" + digitsOnly.slice(1);
+  return digitsOnly;
 }
 
 function normalizeRows(rows: Record<string, string>[]): Record<string, string>[] {
@@ -146,6 +141,7 @@ function UploadSection({
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        dynamicTyping: false,
         complete: (results) => {
           const normalized = normalizeRows(results.data as Record<string, string>[]);
           if (normalized.length > 0) {
