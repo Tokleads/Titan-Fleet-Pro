@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { sendPasswordResetEmail } from './emailService';
 import { storage } from './storage';
 import { generateUniquePin, generateUniqueCompanyCode } from './pinUtils';
+import { signToken } from './jwtAuth';
 
 const router = Router();
 
@@ -292,8 +293,13 @@ router.post('/login', async (req, res) => {
       return res.status(429).json({ error: 'Too many login attempts. Please try again in 15 minutes.' });
     }
     
-    const [user] = await db.select().from(users)
+    const matchingUsers = await db.select().from(users)
       .where(eq(users.email, emailKey));
+    
+    const MANAGER_ROLE_PRIORITY = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'];
+    const user = matchingUsers.length > 1
+      ? matchingUsers.find(u => MANAGER_ROLE_PRIORITY.includes(u.role)) || matchingUsers[0]
+      : matchingUsers[0];
     
     if (!user || !user.active || !user.password) {
       recordFailedAttempt(loginAttempts, emailKey);
@@ -331,6 +337,14 @@ router.post('/login', async (req, res) => {
     
     loginAttempts.delete(emailKey);
     
+    const token = signToken({
+      userId: user.id,
+      companyId: user.companyId,
+      role: user.role as any,
+      email: user.email || '',
+      name: user.name,
+    });
+    
     res.json({
       manager: {
         id: user.id,
@@ -346,7 +360,8 @@ router.post('/login', async (req, res) => {
         companyCode: company.companyCode,
         logoUrl: company.logoUrl,
         primaryColor: company.primaryColor,
-      }
+      },
+      token,
     });
   } catch (error) {
     console.error('Login error:', error);

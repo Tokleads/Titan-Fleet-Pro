@@ -1,8 +1,19 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { session } from "./session";
 
+function handleUnauthorized() {
+  session.clear();
+  const currentPath = window.location.pathname;
+  if (!currentPath.includes('/login') && !currentPath.includes('/setup') && !currentPath.includes('/reset-password')) {
+    window.location.href = '/manager/login';
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    if (res.status === 401) {
+      handleUnauthorized();
+    }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -48,8 +59,12 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      if (unauthorizedBehavior === "returnNull") {
+        return null;
+      }
+      handleUnauthorized();
+      throw new Error("401: Session expired. Please log in again.");
     }
 
     await throwIfResNotOk(res);
