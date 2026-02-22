@@ -34,9 +34,23 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use("/assets", express.static(path.join(distPath, "assets"), {
+    maxAge: "1y",
+    immutable: true,
+  }));
+
+  app.use(express.static(distPath, {
+    maxAge: 0,
+    etag: true,
+    lastModified: true,
+  }));
 
   app.use("*", (_req, res) => {
+    res.set({
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    });
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
