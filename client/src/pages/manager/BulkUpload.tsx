@@ -228,6 +228,7 @@ function UploadSection({
       const response = await fetch(`/api/manager/bulk-upload/${type}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       });
 
