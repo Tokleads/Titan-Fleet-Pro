@@ -186,18 +186,18 @@ export default function ManagerLogin() {
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
                         <div className="relative">
-                          <TitanInput
+                          <input
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter password"
                             data-testid="input-login-password"
-                            className="pr-12"
+                            className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 pr-12 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
                             data-testid="button-toggle-password"
                             tabIndex={-1}
                           >
