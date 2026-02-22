@@ -56,6 +56,8 @@ const HEADER_MAP: Record<string, string> = {
   licencenumber: "licenseNumber",
   phone_number: "phone",
   phonenumber: "phone",
+  telephone: "phone",
+  mobile: "phone",
   mot_due: "motDue",
   motdue: "motDue",
   full_name: "name",
@@ -69,6 +71,7 @@ const HEADER_MAP: Record<string, string> = {
   surname: "lastName",
   category: "driverCategory",
   driver_category: "driverCategory",
+  drivercategory: "driverCategory",
   email_address: "email",
   emailaddress: "email",
   registration: "vrm",
@@ -76,6 +79,15 @@ const HEADER_MAP: Record<string, string> = {
   number_plate: "vrm",
   numberplate: "vrm",
   plate: "vrm",
+  vehicle_type: "vehicleType",
+  vehicletype: "vehicleType",
+  assigned_driver: "assignedDriver",
+  assigned_driver_s_: "assignedDriver",
+  "assigned_driver(s)": "assignedDriver",
+  is_discarded: "isDiscarded",
+  isdiscarded: "isDiscarded",
+  last_activity: "lastActivity",
+  lastactivity: "lastActivity",
 };
 
 function normalizeHeader(raw: string): string {
@@ -83,7 +95,7 @@ function normalizeHeader(raw: string): string {
   return HEADER_MAP[cleaned] || cleaned;
 }
 
-const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber"];
+const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber", "live", "lastActivity", "last_activity", "isDiscarded", "is_discarded", "assignedDriver", "assigned_driver(s)"];
 
 function fixPhoneNumber(value: string): string {
   if (!value) return "";
@@ -142,17 +154,27 @@ function UploadSection({
   const [fileName, setFileName] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [phoneWarning, setPhoneWarning] = useState(false);
 
   const parseFile = useCallback(
     (file: File) => {
       setResult(null);
+      setPhoneWarning(false);
       setFileName(file.name);
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         dynamicTyping: false,
         complete: (results) => {
-          const normalized = normalizeRows(results.data as Record<string, string>[]);
+          const raw = results.data as Record<string, string>[];
+          const hasScientific = raw.some((r) =>
+            Object.entries(r).some(([k, v]) => {
+              const key = k.trim().toLowerCase().replace(/[\s-]+/g, "_");
+              return (key === "phone_number" || key === "phone" || key === "mobile" || key === "telephone") && v && /[eE]\+/.test(v.trim());
+            })
+          );
+          if (hasScientific) setPhoneWarning(true);
+          const normalized = normalizeRows(raw);
           if (normalized.length > 0) {
             setHeaders(Object.keys(normalized[0]));
           }
@@ -348,6 +370,14 @@ function UploadSection({
               </div>
             </CardHeader>
             <CardContent>
+              {phoneWarning && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-800">
+                    Some phone numbers were in scientific notation (e.g. 4.47755E+11) due to Excel formatting. The last few digits may be rounded. For accurate numbers, re-export your CSV with the phone column formatted as Text in Excel.
+                  </p>
+                </div>
+              )}
               <div className="rounded-lg border overflow-auto max-h-[400px]">
                 <Table data-testid={`table-preview-${type}`}>
                   <TableHeader>
