@@ -67,8 +67,6 @@ const HEADER_MAP: Record<string, string> = {
   first_name: "name",
   last_name: "lastName",
   surname: "lastName",
-  hr_number: "hrNumber",
-  hrnumber: "hrNumber",
   category: "driverCategory",
   driver_category: "driverCategory",
   email_address: "email",
@@ -85,11 +83,15 @@ function normalizeHeader(raw: string): string {
   return HEADER_MAP[cleaned] || cleaned;
 }
 
+const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber"];
+
 function normalizeRows(rows: Record<string, string>[]): Record<string, string>[] {
   return rows.map((row) => {
     const normalized: Record<string, string> = {};
     for (const [key, value] of Object.entries(row)) {
-      normalized[normalizeHeader(key)] = value?.trim() || "";
+      const mapped = normalizeHeader(key);
+      if (HIDDEN_COLUMNS.includes(mapped) || HIDDEN_COLUMNS.includes(key.trim().toLowerCase().replace(/[\s-]+/g, "_"))) continue;
+      normalized[mapped] = value?.trim() || "";
     }
     return normalized;
   });
