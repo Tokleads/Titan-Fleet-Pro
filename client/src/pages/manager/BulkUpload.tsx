@@ -225,9 +225,12 @@ function UploadSection({
       };
       body[type] = validRows;
 
+      const token = session.getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const response = await fetch(`/api/manager/bulk-upload/${type}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify(body),
       });
