@@ -87,7 +87,16 @@ const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber"];
 
 function fixPhoneNumber(value: string): string {
   if (!value) return "";
-  const trimmed = value.trim();
+  let trimmed = value.trim();
+  if (/[eE]\+/.test(trimmed) || /\.\d*$/.test(trimmed)) {
+    try {
+      const num = Number(trimmed);
+      if (!isNaN(num) && isFinite(num)) {
+        trimmed = BigInt(Math.round(num)).toString();
+      }
+    } catch {}
+  }
+  trimmed = trimmed.replace(/\.0+$/, "");
   const digitsOnly = trimmed.replace(/[^0-9+]/g, "");
   if (!digitsOnly) return trimmed;
   if (digitsOnly.startsWith("+")) return digitsOnly;
