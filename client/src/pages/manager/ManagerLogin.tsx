@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowRight, Smartphone, ArrowLeft, Mail, Lock } from "lucide-react";
+import { Shield, ArrowRight, Smartphone, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function ManagerLogin() {
   const [, setLocation] = useLocation();
@@ -18,6 +18,7 @@ export default function ManagerLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [totpToken, setTotpToken] = useState("");
@@ -184,13 +185,25 @@ export default function ManagerLogin() {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-                        <TitanInput
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter password"
-                          data-testid="input-login-password"
-                        />
+                        <div className="relative">
+                          <TitanInput
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter password"
+                            data-testid="input-login-password"
+                            className="pr-12"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            data-testid="button-toggle-password"
+                            tabIndex={-1}
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
