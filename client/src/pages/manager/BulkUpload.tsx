@@ -85,13 +85,33 @@ function normalizeHeader(raw: string): string {
 
 const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber"];
 
+function fixPhoneNumber(value: string): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (/[\d.]+[eE]\+?\d+/.test(trimmed)) {
+    const num = parseFloat(trimmed);
+    if (!isNaN(num)) {
+      const str = num.toFixed(0);
+      return str.startsWith("44") ? "+" + str : str;
+    }
+  }
+  if (/^\d{10,}$/.test(trimmed) && trimmed.startsWith("44")) {
+    return "+" + trimmed;
+  }
+  return trimmed;
+}
+
 function normalizeRows(rows: Record<string, string>[]): Record<string, string>[] {
   return rows.map((row) => {
     const normalized: Record<string, string> = {};
     for (const [key, value] of Object.entries(row)) {
       const mapped = normalizeHeader(key);
       if (HIDDEN_COLUMNS.includes(mapped) || HIDDEN_COLUMNS.includes(key.trim().toLowerCase().replace(/[\s-]+/g, "_"))) continue;
-      normalized[mapped] = value?.trim() || "";
+      if (mapped === "phone" || mapped === "telephone" || mapped === "mobile") {
+        normalized[mapped] = fixPhoneNumber(value);
+      } else {
+        normalized[mapped] = value?.trim() || "";
+      }
     }
     return normalized;
   });
