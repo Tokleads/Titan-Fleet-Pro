@@ -2090,7 +2090,8 @@ export async function registerRoutes(
           role: z.string().default('DRIVER'),
           pin: z.string().length(4).optional().nullable(),
           phone: z.string().optional().nullable(),
-        })),
+          driverCategory: z.string().optional().nullable(),
+        }).passthrough()),
       });
 
       const validated = bulkDriverSchema.parse(req.body);

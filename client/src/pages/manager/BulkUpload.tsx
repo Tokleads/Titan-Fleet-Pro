@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+import { apiRequest } from "@/lib/queryClient";
 import Papa from "papaparse";
 import {
   Upload,
@@ -58,6 +59,12 @@ const HEADER_MAP: Record<string, string> = {
   phonenumber: "phone",
   telephone: "phone",
   mobile: "phone",
+  mobile_phone_number: "phone",
+  mobilephonenumber: "phone",
+  mobile_number: "phone",
+  mobilenumber: "phone",
+  contact_number: "phone",
+  contactnumber: "phone",
   mot_due: "motDue",
   motdue: "motDue",
   full_name: "name",
@@ -225,20 +232,7 @@ function UploadSection({
       };
       body[type] = validRows;
 
-      const token = session.getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const response = await fetch(`/api/manager/bulk-upload/${type}`, {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to import ${type}`);
-      }
+      const response = await apiRequest("POST", `/api/manager/bulk-upload/${type}`, body);
       return response.json() as Promise<ImportResult>;
     },
     onSuccess: (data) => {
