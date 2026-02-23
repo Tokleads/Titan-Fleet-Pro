@@ -39,6 +39,15 @@ export function serveStatic(app: Express) {
     immutable: true,
   }));
 
+  app.use("/videos", express.static(path.join(distPath, "videos"), {
+    maxAge: "1d",
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      }
+    },
+  }));
+
   app.use(express.static(distPath, {
     maxAge: 0,
     etag: true,
