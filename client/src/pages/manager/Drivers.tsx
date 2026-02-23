@@ -54,6 +54,13 @@ import {
 import { toast } from "sonner";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 interface Driver {
   id: number;
   name: string;
@@ -245,7 +252,7 @@ function DriverProfileModal({
   const { data: timesheetData } = useQuery<{ timesheet: ActiveTimesheet | null }>({
     queryKey: ["active-timesheet", driver.id],
     queryFn: async () => {
-      const res = await fetch(`/api/timesheets/active/${driver.id}`);
+      const res = await fetch(`/api/timesheets/active/${driver.id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch timesheet");
       return res.json();
     },
@@ -258,7 +265,7 @@ function DriverProfileModal({
   const { data: depots } = useQuery<any[]>({
     queryKey: ["geofences", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/geofences/${companyId}`);
+      const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -268,7 +275,7 @@ function DriverProfileModal({
     mutationFn: async () => {
       const res = await fetch("/api/manager/clock-out-driver", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ driverId: driver.id, companyId, managerId: session.getUser()?.id }),
       });
       if (!res.ok) {
@@ -291,7 +298,7 @@ function DriverProfileModal({
     mutationFn: async (data: { depotId?: number; depotName?: string }) => {
       const res = await fetch("/api/manager/clock-in-driver", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ 
           driverId: driver.id, 
           companyId,
@@ -535,7 +542,7 @@ export default function Drivers() {
   const { data: drivers, isLoading } = useQuery<Driver[]>({
     queryKey: ["drivers", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/drivers?companyId=${companyId}`);
+      const res = await fetch(`/api/drivers?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch drivers");
       return res.json();
     },
@@ -552,7 +559,7 @@ export default function Drivers() {
       console.log("Adding driver with payload:", payload);
       const res = await fetch("/api/drivers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -578,7 +585,7 @@ export default function Drivers() {
     mutationFn: async ({ id, driver }: { id: number; driver: Partial<DriverFormData> }) => {
       const res = await fetch(`/api/drivers/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           ...driver,
           companyId,
@@ -604,6 +611,7 @@ export default function Drivers() {
     mutationFn: async (driverId: number) => {
       const res = await fetch(`/api/drivers/${driverId}?companyId=${companyId}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to delete driver");
       return res.json();
@@ -681,7 +689,7 @@ export default function Drivers() {
     try {
       const res = await fetch("/api/drivers/export-pins", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ companyId, managerId: user.id, pin: user.pin }),
       });
       if (!res.ok) {
