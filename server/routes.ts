@@ -2188,6 +2188,9 @@ export async function registerRoutes(
           model: z.string().min(1),
           fleetNumber: z.string().optional().nullable(),
           vehicleCategory: z.string().optional().nullable(),
+          vehicleType: z.string().optional().nullable(),
+          odometer: z.string().optional().nullable(),
+          driverCategory: z.string().optional().nullable(),
         })),
       });
 
@@ -2232,7 +2235,7 @@ export async function registerRoutes(
             make: sanitizeInput(row.make.trim()),
             model: sanitizeInput(row.model.trim()),
             fleetNumber: row.fleetNumber ? sanitizeInput(row.fleetNumber.trim()) : null,
-            vehicleCategory: row.vehicleCategory || 'HGV',
+            vehicleCategory: row.vehicleCategory || row.vehicleType || 'HGV',
           });
 
           existingVrms.add(normalizedVrm);

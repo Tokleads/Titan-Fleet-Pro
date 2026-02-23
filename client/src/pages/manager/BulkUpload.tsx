@@ -88,6 +88,9 @@ const HEADER_MAP: Record<string, string> = {
   plate: "vrm",
   vehicle_type: "vehicleType",
   vehicletype: "vehicleType",
+  vehicle_category: "vehicleCategory",
+  vehiclecategory: "vehicleCategory",
+  type: "vehicleType",
   assigned_driver: "assignedDriver",
   assigned_driver_s_: "assignedDriver",
   "assigned_driver(s)": "assignedDriver",
@@ -102,7 +105,7 @@ function normalizeHeader(raw: string): string {
   return HEADER_MAP[cleaned] || cleaned;
 }
 
-const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber", "live", "lastActivity", "last_activity", "isDiscarded", "is_discarded", "assignedDriver", "assigned_driver(s)"];
+const HIDDEN_COLUMNS = ["hrNumber", "hr_number", "hrnumber", "live", "lastActivity", "last_activity", "isDiscarded", "is_discarded", "assignedDriver", "assigned_driver(s)", "status"];
 
 function fixPhoneNumber(value: string): string {
   if (!value) return "";
@@ -144,12 +147,26 @@ function isRowInvalid(row: Record<string, string>, requiredFields: string[]): bo
   return requiredFields.some((field) => !row[field]?.trim());
 }
 
+const VEHICLE_HEADERS = ["vrm", "registration", "reg", "number_plate", "numberplate", "plate", "make", "model", "vehicle_type", "vehicletype", "fleet_number", "fleetnumber", "mot_due", "motdue", "odometer"];
+const DRIVER_HEADERS = ["email", "email_address", "emailaddress", "driver_name", "drivername", "driver_category", "drivercategory"];
+
+function detectCsvType(headers: string[]): "drivers" | "vehicles" | null {
+  const normalized = headers.map(h => h.trim().toLowerCase().replace(/[\s-]+/g, "_"));
+  const vehicleScore = normalized.filter(h => VEHICLE_HEADERS.includes(h)).length;
+  const driverScore = normalized.filter(h => DRIVER_HEADERS.includes(h)).length;
+  if (vehicleScore > driverScore && vehicleScore >= 2) return "vehicles";
+  if (driverScore > vehicleScore && driverScore >= 1) return "drivers";
+  return null;
+}
+
 function UploadSection({
   type,
   requiredFields,
+  onAutoDetect,
 }: {
   type: "drivers" | "vehicles";
   requiredFields: string[];
+  onAutoDetect?: (detectedType: "drivers" | "vehicles") => void;
 }) {
   const company = session.getCompany();
   const user = session.getUser();
@@ -181,6 +198,14 @@ function UploadSection({
             })
           );
           if (hasScientific) setPhoneWarning(true);
+
+          const rawHeaders = Object.keys(raw[0] || {});
+          const detected = detectCsvType(rawHeaders);
+          if (detected && detected !== type && onAutoDetect) {
+            onAutoDetect(detected);
+            toast.info(`This looks like a ${detected} CSV — switched to the ${detected === "vehicles" ? "Vehicles" : "Drivers"} tab for you.`);
+          }
+
           const normalized = normalizeRows(raw);
           if (normalized.length > 0) {
             setHeaders(Object.keys(normalized[0]));
@@ -497,6 +522,9 @@ function UploadSection({
 export default function BulkUpload() {
   const company = session.getCompany();
   const user = session.getUser();
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialTab = searchParams.get("tab") === "vehicles" ? "vehicles" : "drivers";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   if (!company || !user) {
     return (
@@ -518,7 +546,7 @@ export default function BulkUpload() {
           </p>
         </div>
 
-        <Tabs defaultValue="drivers">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="drivers" data-testid="tab-drivers">
               <Users className="h-4 w-4 mr-2" />
@@ -531,11 +559,11 @@ export default function BulkUpload() {
           </TabsList>
 
           <TabsContent value="drivers" className="mt-6">
-            <UploadSection type="drivers" requiredFields={DRIVER_REQUIRED} />
+            <UploadSection type="drivers" requiredFields={DRIVER_REQUIRED} onAutoDetect={(t) => setActiveTab(t)} />
           </TabsContent>
 
           <TabsContent value="vehicles" className="mt-6">
-            <UploadSection type="vehicles" requiredFields={VEHICLE_REQUIRED} />
+            <UploadSection type="vehicles" requiredFields={VEHICLE_REQUIRED} onAutoDetect={(t) => setActiveTab(t)} />
           </TabsContent>
         </Tabs>
       </div>

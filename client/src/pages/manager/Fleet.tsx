@@ -272,7 +272,7 @@ export default function ManagerFleet() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/manager/bulk-upload')}
+              onClick={() => navigate('/manager/bulk-upload?tab=vehicles')}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors shadow-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               data-testid="button-bulk-upload-vehicles"
             >
