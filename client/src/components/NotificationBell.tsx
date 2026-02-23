@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, Check, CheckCheck, AlertCircle, AlertTriangle, Info, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "wouter";
 import { session } from "@/lib/session";
 import type { Notification } from "@shared/schema";
 
@@ -35,8 +36,11 @@ export function NotificationBell() {
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  const [, navigate] = useLocation();
   const user = session.getUser();
   const company = session.getCompany();
+  
+  const notificationsPath = user?.role === "driver" ? "/driver/notifications" : "/manager/notification-history";
   
   const fetchUnreadCount = async () => {
     if (!company?.id || !user?.id) return;
@@ -193,7 +197,11 @@ export function NotificationBell() {
                         className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors ${
                           !notification.isRead ? "bg-blue-50/50" : ""
                         }`}
-                        onClick={() => !notification.isRead && markAsRead(notification.id)}
+                        onClick={() => {
+                          if (!notification.isRead) markAsRead(notification.id);
+                          setIsOpen(false);
+                          navigate(notificationsPath);
+                        }}
                         data-testid={`notification-item-${notification.id}`}
                       >
                         <div className="flex gap-3">
@@ -222,6 +230,19 @@ export function NotificationBell() {
                   })}
                 </div>
               )}
+            </div>
+            
+            <div className="border-t border-slate-100 p-3">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate(notificationsPath);
+                }}
+                className="w-full text-center text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                data-testid="button-view-all-notifications"
+              >
+                View all notifications
+              </button>
             </div>
           </motion.div>
         )}
