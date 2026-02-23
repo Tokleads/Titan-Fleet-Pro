@@ -478,7 +478,7 @@ export default function ManagerDashboard() {
 
               {unreadCount > 0 && (
                 <button
-                  onClick={() => setLocation("/manager/messages")}
+                  onClick={() => setLocation("/manager/titan-command")}
                   className="bg-blue-50 border border-blue-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
                   data-testid="attention-unread-messages"
                 >
