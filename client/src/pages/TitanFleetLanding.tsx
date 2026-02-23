@@ -263,12 +263,14 @@ export default function TitanFleetLandingPage() {
                 >
                   View Pricing Plans
                 </button>
-                <a
-                  href="#features"
-                  className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
-                >
-                  See how it works
-                </a>
+                <Link href="/tour">
+                  <span
+                    className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg cursor-pointer"
+                    data-testid="link-see-how-it-works"
+                  >
+                    See how it works
+                  </span>
+                </Link>
               </motion.div>
             </motion.div>
 
