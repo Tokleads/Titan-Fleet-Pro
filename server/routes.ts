@@ -666,9 +666,33 @@ export async function registerRoutes(
         inspection.vehicleId
       );
       
+      // Create defect records in the defects table from inspection defects
+      const defectsArray = inspection.defects as any[] | null;
+      if (defectsArray && defectsArray.length > 0) {
+        setImmediate(async () => {
+          try {
+            for (const defect of defectsArray) {
+              await storage.createDefect({
+                companyId: inspection.companyId,
+                vehicleId: inspection.vehicleId,
+                inspectionId: inspection.id,
+                reportedBy: inspection.driverId,
+                category: defect.category || defect.item || 'General',
+                description: defect.notes || defect.description || defect.item || 'Defect reported during inspection',
+                severity: defect.severity || (inspection.status === 'FAIL' ? 'HIGH' : 'MEDIUM'),
+                status: 'OPEN',
+                photo: defect.photo || defect.photoUrl || null,
+              });
+            }
+            console.log(`[DEFECT-SYNC] Created ${defectsArray.length} defect record(s) from inspection ${inspection.id}`);
+          } catch (err) {
+            console.error('[DEFECT-SYNC] Failed to create defect records:', err);
+          }
+        });
+      }
+
       // If inspection failed (has defects), notify managers
       if (inspection.status === 'FAIL') {
-        const defectsArray = inspection.defects as any[] | null;
         const defectCount = defectsArray?.length || 1;
         setImmediate(() => {
           triggerInspectionFailed({

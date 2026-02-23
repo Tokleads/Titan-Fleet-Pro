@@ -399,6 +399,46 @@ app.use((req, res, next) => {
     console.error('Migration v6 (non-fatal):', migErr6);
   }
 
+  // Migration v7: Backfill defects table from inspection defects JSON
+  try {
+    const { db: db7 } = await import('./db');
+    const { sql: sql7 } = await import('drizzle-orm');
+    const migrationName7 = 'backfill_defects_from_inspections_v7';
+    const existing7 = await db7.execute(sql7`SELECT name FROM _migrations WHERE name = ${migrationName7}`);
+    if (!existing7.rows || existing7.rows.length === 0) {
+      const inspectionsWithDefects = await db7.execute(sql7`
+        SELECT id, company_id, vehicle_id, driver_id, status, defects, created_at
+        FROM inspections 
+        WHERE defects IS NOT NULL AND defects != '[]'::jsonb AND defects != 'null'::jsonb
+      `);
+      let created = 0;
+      for (const insp of inspectionsWithDefects.rows) {
+        const defectsJson = typeof insp.defects === 'string' ? JSON.parse(insp.defects) : insp.defects;
+        if (!Array.isArray(defectsJson)) continue;
+        for (const defect of defectsJson) {
+          const existingDef = await db7.execute(sql7`SELECT id FROM defects WHERE inspection_id = ${insp.id} AND category = ${defect.item || defect.category || 'General'} LIMIT 1`);
+          if (!existingDef.rows || existingDef.rows.length === 0) {
+            await db7.execute(sql7`
+              INSERT INTO defects (company_id, vehicle_id, inspection_id, reported_by, category, description, severity, status, photo, created_at, updated_at)
+              VALUES (${insp.company_id}, ${insp.vehicle_id}, ${insp.id}, ${insp.driver_id}, 
+                ${defect.item || defect.category || 'General'}, 
+                ${defect.note || defect.notes || defect.description || 'Defect reported during inspection'},
+                ${defect.severity || (insp.status === 'FAIL' ? 'HIGH' : 'MEDIUM')},
+                'OPEN',
+                ${defect.photo || defect.photoUrl || null},
+                ${insp.created_at}, NOW())
+            `);
+            created++;
+          }
+        }
+      }
+      await db7.execute(sql7`INSERT INTO _migrations (name) VALUES (${migrationName7})`);
+      console.log(`[Migration v7] Backfilled ${created} defect records from inspections`);
+    }
+  } catch (migErr7) {
+    console.error('Migration v7 (non-fatal):', migErr7);
+  }
+
   };
 
   // Register admin routes
