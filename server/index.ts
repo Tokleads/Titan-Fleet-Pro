@@ -350,46 +350,53 @@ app.use((req, res, next) => {
     console.error('Migration v3 (non-fatal):', migErr3);
   }
 
-  // Migration v4: Set up J Byrne (info@tokleads.co) as TRANSPORT_MANAGER with password
+  // Migration v6: Properly create/fix J Byrne accounts for ABTSO (handles both dev and prod databases)
   try {
-    const { db: db4 } = await import('./db');
-    const { users: users4 } = await import('@shared/schema');
-    const { eq: eq4, sql: sql4 } = await import('drizzle-orm');
+    const { db: db6 } = await import('./db');
+    const { companies: companies6, users: users6 } = await import('@shared/schema');
+    const { eq: eq6, and: and6, sql: sql6 } = await import('drizzle-orm');
 
-    const migrationName4 = 'jbyrne_tokleads_setup_v4';
-    const existing4 = await db4.execute(sql4`SELECT name FROM _migrations WHERE name = ${migrationName4}`);
-    if (!existing4.rows || existing4.rows.length === 0) {
-      const bcrypt4 = await import('bcrypt');
-      const hash4 = await bcrypt4.default.hash('Tokleads2026!', 12);
-      await db4.update(users4)
-        .set({ password: hash4, role: 'TRANSPORT_MANAGER' })
-        .where(eq4(users4.email, 'info@tokleads.co'));
-      console.log('[Migration v4] Set password and role for J Byrne (info@tokleads.co)');
-      await db4.execute(sql4`INSERT INTO _migrations (name) VALUES (${migrationName4})`);
+    const migrationName6 = 'jbyrne_full_setup_v6';
+    const existing6 = await db6.execute(sql6`SELECT name FROM _migrations WHERE name = ${migrationName6}`);
+    if (!existing6.rows || existing6.rows.length === 0) {
+      const bcrypt6 = await import('bcrypt');
+      const hash6 = await bcrypt6.default.hash('Tokleads2026!', 12);
+
+      const [abtso] = await db6.select().from(companies6)
+        .where(sql6`${companies6.companyCode} = 'ABTSO'`).limit(1);
+
+      if (abtso) {
+        await db6.update(users6)
+          .set({ password: hash6, role: 'ADMIN' })
+          .where(and6(eq6(users6.email, 'jonbyrne10@googlemail.com'), eq6(users6.companyId, abtso.id)));
+        console.log('[Migration v6] Updated jonbyrne10@googlemail.com to ADMIN with password');
+
+        const existingTokleads = await db6.select().from(users6)
+          .where(eq6(users6.email, 'info@tokleads.co')).limit(1);
+        if (existingTokleads.length === 0) {
+          const { generateUniquePin } = await import('./pinUtils');
+          const pin6 = await generateUniquePin(abtso.id);
+          await db6.insert(users6).values({
+            companyId: abtso.id,
+            email: 'info@tokleads.co',
+            name: 'J Byrne',
+            role: 'TRANSPORT_MANAGER',
+            password: hash6,
+            pin: pin6,
+            active: true,
+          });
+          console.log('[Migration v6] Created info@tokleads.co as TRANSPORT_MANAGER');
+        } else {
+          await db6.update(users6)
+            .set({ password: hash6, role: 'TRANSPORT_MANAGER' })
+            .where(eq6(users6.email, 'info@tokleads.co'));
+          console.log('[Migration v6] Updated info@tokleads.co password and role');
+        }
+      }
+      await db6.execute(sql6`INSERT INTO _migrations (name) VALUES (${migrationName6})`);
     }
-  } catch (migErr4) {
-    console.error('Migration v4 (non-fatal):', migErr4);
-  }
-
-  // Migration v5: Promote jonbyrne10@googlemail.com in ABTSO to ADMIN
-  try {
-    const { db: db5 } = await import('./db');
-    const { users: users5 } = await import('@shared/schema');
-    const { eq: eq5, and: and5, sql: sql5 } = await import('drizzle-orm');
-
-    const migrationName5 = 'jbyrne_abtso_admin_v5';
-    const existing5 = await db5.execute(sql5`SELECT name FROM _migrations WHERE name = ${migrationName5}`);
-    if (!existing5.rows || existing5.rows.length === 0) {
-      const bcrypt5 = await import('bcrypt');
-      const hash5 = await bcrypt5.default.hash('Tokleads2026!', 12);
-      await db5.update(users5)
-        .set({ password: hash5, role: 'ADMIN' })
-        .where(and5(eq5(users5.email, 'jonbyrne10@googlemail.com'), eq5(users5.companyId, 2)));
-      console.log('[Migration v5] Set ADMIN role + password for jonbyrne10@googlemail.com in ABTSO');
-      await db5.execute(sql5`INSERT INTO _migrations (name) VALUES (${migrationName5})`);
-    }
-  } catch (migErr5) {
-    console.error('Migration v5 (non-fatal):', migErr5);
+  } catch (migErr6) {
+    console.error('Migration v6 (non-fatal):', migErr6);
   }
 
   };
