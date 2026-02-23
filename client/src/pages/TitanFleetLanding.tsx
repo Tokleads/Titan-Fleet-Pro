@@ -278,13 +278,18 @@ export default function TitanFleetLandingPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="relative flex justify-center lg:justify-end"
             >
-              <div className="relative w-full max-w-lg">
-                <img
-                  src="/images/phone-mockup.png"
-                  alt="Titan Fleet app on mobile devices"
-                  className="w-full h-auto drop-shadow-2xl"
-                  data-testid="hero-phone-mockup"
-                />
+              <div className="relative w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200/60">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-auto"
+                  data-testid="hero-promo-video"
+                  poster="/images/phone-mockup.png"
+                >
+                  <source src="/videos/titan-fleet-promo.mp4" type="video/mp4" />
+                </video>
               </div>
             </motion.div>
           </div>
