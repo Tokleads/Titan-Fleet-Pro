@@ -72,7 +72,6 @@ const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const HelpCenter = lazy(() => import("@/pages/HelpCenter"));
 const Blog = lazy(() => import("@/pages/Blog"));
-const ProductTour = lazy(() => import("@/pages/ProductTour"));
 
 function LoadingFallback() {
   return (
@@ -144,7 +143,6 @@ function Router() {
         <Route path="/demo/dc-european" component={DCEuropeanDemo} />
         <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
         <Route path="/demo" component={TitanFleetDemo} />
-        <Route path="/tour" component={ProductTour} />
         <Route path="/procurement-faq" component={ProcurementFAQ} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms" component={TermsAndConditions} />
