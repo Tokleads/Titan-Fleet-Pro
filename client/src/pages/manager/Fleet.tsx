@@ -29,6 +29,13 @@ import {
   Upload
 } from "lucide-react";
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
+
 interface LicenseInfo {
   tier: string;
   tierDisplay: string;
@@ -106,7 +113,7 @@ export default function ManagerFleet() {
     setIsLookingUpMot(true);
     setMotLookupResult(null);
     try {
-      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`);
+      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`, { headers: authHeaders() });
       const data = await res.json();
       if (res.ok && data.motDue) {
         setMotLookupResult({ motDue: data.motDue, status: data.status });
@@ -169,7 +176,7 @@ export default function ManagerFleet() {
   const { data: license } = useQuery<LicenseInfo>({
     queryKey: ["license", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/company/license/${companyId}`);
+      const res = await fetch(`/api/company/license/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch license info");
       return res.json();
     },
@@ -187,7 +194,7 @@ export default function ManagerFleet() {
   const { data: oLicences } = useQuery<OLicenceWithVehicles[]>({
     queryKey: ["operator-licences-with-vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/operator-licences/${companyId}/with-vehicles`);
+      const res = await fetch(`/api/operator-licences/${companyId}/with-vehicles`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch operator licences");
       return res.json();
     },
@@ -197,7 +204,7 @@ export default function ManagerFleet() {
   const { data: trailers } = useQuery({
     queryKey: ["trailers", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/trailers/${companyId}`);
+      const res = await fetch(`/api/manager/trailers/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch trailers");
       return res.json();
     },
@@ -250,7 +257,7 @@ export default function ManagerFleet() {
     try {
       const response = await fetch(`/api/manager/vehicles/${vehicleId}/approve`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...authHeaders() }
       });
       
       if (response.ok) {

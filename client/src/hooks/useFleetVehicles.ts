@@ -1,4 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
 
 export interface Vehicle {
   id: number;
@@ -39,7 +47,7 @@ export function useFleetVehicles({ companyId, limit = 20, offset = 0, enabled = 
     queryKey: ["fleet-vehicles", companyId, limit, offset],
     queryFn: async () => {
       if (!companyId) throw new Error("Company ID is required");
-      const res = await fetch(`/api/vehicles?companyId=${companyId}&limit=${limit}&offset=${offset}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}&limit=${limit}&offset=${offset}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -66,7 +74,7 @@ export function useCreateVehicle() {
     mutationFn: async (data: CreateVehicleData) => {
       const res = await fetch('/api/manager/vehicles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(data),
       });
       const result = await res.json();
@@ -95,7 +103,7 @@ export function useToggleVehicleActive() {
     mutationFn: async ({ id, active }: ToggleVehicleActiveData) => {
       const res = await fetch(`/api/manager/vehicles/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ active }),
       });
       if (!res.ok) throw new Error('Failed to update vehicle');
