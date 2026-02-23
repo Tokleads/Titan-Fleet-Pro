@@ -296,17 +296,21 @@ router.post('/login', async (req, res) => {
     const matchingUsers = await db.select().from(users)
       .where(eq(users.email, emailKey));
     
+    console.log(`[LOGIN DEBUG] Email: ${emailKey}, Found ${matchingUsers.length} users, IDs: ${matchingUsers.map(u => u.id + ':' + u.role).join(', ')}`);
+    
     const MANAGER_ROLE_PRIORITY = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'];
     const user = matchingUsers.length > 1
       ? matchingUsers.find(u => MANAGER_ROLE_PRIORITY.includes(u.role)) || matchingUsers[0]
       : matchingUsers[0];
     
     if (!user || !user.active || !user.password) {
+      console.log(`[LOGIN DEBUG] Rejected: user=${!!user}, active=${user?.active}, hasPassword=${!!user?.password}`);
       recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const validPassword = await bcrypt.compare(password, user.password);
+    console.log(`[LOGIN DEBUG] Password check for user ${user.id}: valid=${validPassword}`);
     if (!validPassword) {
       recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });
