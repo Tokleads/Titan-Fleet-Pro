@@ -361,7 +361,7 @@ export default function ManagerDashboard() {
                     )}
                     {todayFailed > 0 && (
                       <span className="text-xs font-medium text-red-600 flex items-center gap-0.5">
-                        <XCircle className="h-3 w-3" /> {todayFailed} fail
+                        <XCircle className="h-3 w-3" /> {todayFailed} defect{todayFailed !== 1 ? 's' : ''}
                       </span>
                     )}
                     {todayInspections.length === 0 && (
