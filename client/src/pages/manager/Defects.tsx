@@ -57,6 +57,7 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
   onUpdate: (id: number, data: any) => void;
   onViewVehicle: (id: number) => void;
 }) {
+  const modalQueryClient = useQueryClient();
   const [status, setStatus] = useState(defect.status);
   const [actionedNotes, setActionedNotes] = useState(defect.actionedNotes || "");
   const [resolutionNotes, setResolutionNotes] = useState(defect.resolutionNotes || "");
@@ -366,11 +367,21 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
             Cancel
           </button>
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              const btn = e.currentTarget;
+              btn.disabled = true;
+              btn.textContent = 'Analyzing...';
               try {
-                await fetch(`/api/defects/${defect.id}/triage`, { method: 'POST' });
-                window.location.reload();
-              } catch {}
+                const res = await fetch(`/api/defects/${defect.id}/triage`, { method: 'POST' });
+                if (!res.ok) throw new Error('Triage failed');
+                modalQueryClient.invalidateQueries({ queryKey: ["manager-defects"] });
+                onClose();
+              } catch (err) {
+                console.error('AI triage error:', err);
+                alert('AI analysis failed. Please try again.');
+              } finally {
+                btn.disabled = false;
+              }
             }}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 transition-colors"
             data-testid="button-retriage-defect"

@@ -148,7 +148,23 @@ export async function triageDefectTextOnly(description: string): Promise<AITriag
   }
 }
 
-export async function triageDefect(defectId: number): Promise<void> {
+function getPublicPhotoUrl(photoPath: string, baseUrl?: string): string | null {
+  if (!photoPath) return null;
+  if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) return photoPath;
+  if (photoPath.startsWith('data:')) return photoPath;
+
+  if (baseUrl) {
+    return `${baseUrl}${photoPath.startsWith('/') ? '' : '/'}${photoPath}`;
+  }
+
+  const domain = process.env.REPLIT_DEV_DOMAIN;
+  if (domain) {
+    return `https://${domain}${photoPath.startsWith('/') ? '' : '/'}${photoPath}`;
+  }
+  return null;
+}
+
+export async function triageDefect(defectId: number, baseUrl?: string): Promise<void> {
   try {
     const [defect] = await db.select().from(defects).where(eq(defects.id, defectId)).limit(1);
 
@@ -159,9 +175,12 @@ export async function triageDefect(defectId: number): Promise<void> {
 
     let result: AITriageResult;
 
-    if (defect.photo) {
-      result = await analyzeDefectPhoto(defect.photo, defect.description);
+    const fullPhotoUrl = defect.photo ? getPublicPhotoUrl(defect.photo, baseUrl) : null;
+    if (fullPhotoUrl) {
+      console.log(`[AI Triage] Analyzing defect ${defectId} with photo: ${fullPhotoUrl}`);
+      result = await analyzeDefectPhoto(fullPhotoUrl, defect.description);
     } else {
+      console.log(`[AI Triage] Analyzing defect ${defectId} text-only: "${defect.description}"`);
       result = await triageDefectTextOnly(defect.description);
     }
 

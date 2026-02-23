@@ -968,7 +968,10 @@ export async function registerRoutes(
       if (req.user && existingDefect.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      await triageDefect(defectId);
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['host'] || req.headers['x-forwarded-host'];
+      const baseUrl = host ? `${protocol}://${host}` : undefined;
+      await triageDefect(defectId, baseUrl as string | undefined);
       const defect = await db.select().from(defects).where(eq(defects.id, defectId));
       res.json(defect[0] || { error: "Defect not found" });
     } catch (error) {
