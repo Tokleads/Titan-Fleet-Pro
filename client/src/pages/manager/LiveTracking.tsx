@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 
@@ -14,9 +14,10 @@ import {
   Navigation,
   Activity,
   TrendingUp,
-  Zap
+  Zap,
+  X
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -53,9 +54,12 @@ interface StagnationAlert {
 export default function LiveTracking() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const queryClient = useQueryClient();
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<number, L.Marker>>(new Map());
+  const [dismissingIds, setDismissingIds] = useState<Set<number>>(new Set());
+  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<number>>(new Set());
 
   // Fetch driver locations every 30 seconds
   const { data: locations, isLoading } = useQuery<DriverLocation[]>({
@@ -356,12 +360,37 @@ export default function LiveTracking() {
             </div>
             <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
               {alerts && alerts.length > 0 ? (
-                alerts.map((alert) => (
+                alerts
+                  .filter((a) => !dismissingIds.has(a.id))
+                  .map((alert) => (
                   <div 
                     key={alert.id}
-                    className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                    className="p-3 bg-red-50 border border-red-200 rounded-lg relative group"
                   >
-                    <div className="flex items-start justify-between">
+                    <button
+                      onClick={async () => {
+                        setDismissingIds(prev => new Set([...prev, alert.id]));
+                        try {
+                          await fetch(`/api/stagnation-alerts/${alert.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                            body: JSON.stringify({ status: 'DISMISSED' })
+                          });
+                          queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
+                        } catch {
+                          setDismissingIds(prev => {
+                            const next = new Set(prev);
+                            next.delete(alert.id);
+                            return next;
+                          });
+                        }
+                      }}
+                      className="absolute top-2 right-2 h-7 w-7 flex items-center justify-center rounded-full bg-slate-200/80 hover:bg-red-200 text-slate-500 hover:text-red-700 transition-colors"
+                      data-testid={`button-dismiss-alert-${alert.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="flex items-start justify-between pr-8">
                       <div className="flex-1">
                         <p className="font-medium text-slate-900">
                           {alert.driver?.name || `Driver ${alert.driverId}`}
@@ -375,17 +404,23 @@ export default function LiveTracking() {
                         </p>
                       </div>
                       <button 
-                        className="text-xs px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className={`text-xs px-3 py-1 rounded-lg transition-colors ${
+                          acknowledgingIds.has(alert.id) 
+                            ? 'bg-green-100 text-green-700 border border-green-300' 
+                            : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                        disabled={acknowledgingIds.has(alert.id)}
                         onClick={async () => {
+                          setAcknowledgingIds(prev => new Set([...prev, alert.id]));
                           await fetch(`/api/stagnation-alerts/${alert.id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json', ...authHeaders() },
                             body: JSON.stringify({ status: 'ACKNOWLEDGED' })
                           });
-                          window.location.reload();
+                          queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
                         }}
                       >
-                        Acknowledge
+                        {acknowledgingIds.has(alert.id) ? 'Done' : 'Acknowledge'}
                       </button>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { session } from "@/lib/session";
 
 function authHeaders(): Record<string, string> {
@@ -47,8 +47,10 @@ interface Alert {
 export function TitanIntelligenceSidebar() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const queryClient = useQueryClient();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Set<string>>(new Set());
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   // Fetch stagnation alerts
   const { data: stagnationAlerts } = useQuery<StagnationAlert[]>({
@@ -115,8 +117,36 @@ export function TitanIntelligenceSidebar() {
     }
   };
 
-  const handleAcknowledge = (alertId: string) => {
+  const handleAcknowledge = async (alertId: string) => {
     setAcknowledgedAlerts(prev => new Set([...prev, alertId]));
+    const numericId = alertId.replace('stagnation-', '');
+    try {
+      await fetch(`/api/stagnation-alerts/${numericId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ status: 'ACKNOWLEDGED' })
+      });
+      queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
+    } catch {}
+  };
+
+  const handleDismiss = async (alertId: string) => {
+    setDismissedAlerts(prev => new Set([...prev, alertId]));
+    const numericId = alertId.replace('stagnation-', '');
+    try {
+      await fetch(`/api/stagnation-alerts/${numericId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ status: 'DISMISSED' })
+      });
+      queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
+    } catch {
+      setDismissedAlerts(prev => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+    }
   };
 
   const getTimeAgo = (timestamp: string) => {
@@ -193,7 +223,9 @@ export function TitanIntelligenceSidebar() {
               <p className="text-xs text-slate-500 mt-1">No active alerts</p>
             </div>
           ) : (
-            alerts.map((alert) => {
+            alerts
+              .filter((a) => !dismissedAlerts.has(a.id))
+              .map((alert) => {
               const Icon = getAlertIcon(alert.type);
               return (
                 <motion.div
@@ -205,13 +237,20 @@ export function TitanIntelligenceSidebar() {
                     alert.acknowledged ? 'opacity-50' : ''
                   }`}
                 >
-                  <div className={`p-4 ${getPriorityBg(alert.priority)} border-l-4 ${
+                  <div className={`p-4 ${getPriorityBg(alert.priority)} border-l-4 relative ${
                     alert.priority === 'critical' ? 'border-red-500' :
                     alert.priority === 'high' ? 'border-orange-500' :
                     alert.priority === 'medium' ? 'border-yellow-500' :
                     'border-blue-500'
                   }`}>
-                    <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => handleDismiss(alert.id)}
+                      className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded-full bg-slate-300/60 hover:bg-red-200 text-slate-500 hover:text-red-700 transition-colors"
+                      data-testid={`button-dismiss-sidebar-alert-${alert.id}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex items-start gap-3 pr-6">
                       <div className={`h-8 w-8 rounded-lg ${getPriorityColor(alert.priority)} flex items-center justify-center flex-shrink-0`}>
                         <Icon className="h-4 w-4 text-white" />
                       </div>
