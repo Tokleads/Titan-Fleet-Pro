@@ -2,10 +2,12 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { session } from "./session";
 
 function handleUnauthorized() {
-  session.clear();
   const currentPath = window.location.pathname;
-  if (!currentPath.includes('/login') && !currentPath.includes('/setup') && !currentPath.includes('/reset-password')) {
-    window.location.href = '/manager/login';
+  const lastRole = localStorage.getItem("titanfleet_last_role");
+  session.clear();
+  if (!currentPath.includes('/login') && !currentPath.includes('/setup') && !currentPath.includes('/reset-password') && currentPath !== '/') {
+    const loginPath = lastRole === 'driver' || currentPath.startsWith('/driver') ? '/driver/login' : '/manager/login';
+    window.location.href = loginPath;
   }
 }
 
@@ -60,10 +62,13 @@ export const getQueryFn: <T>(options: {
     });
 
     if (res.status === 401) {
+      const hasExistingSession = localStorage.getItem("fleetcheck_user") || localStorage.getItem("fleetcheck_token");
+      if (hasExistingSession) {
+        handleUnauthorized();
+      }
       if (unauthorizedBehavior === "returnNull") {
         return null;
       }
-      handleUnauthorized();
       throw new Error("401: Session expired. Please log in again.");
     }
 
