@@ -211,6 +211,28 @@ export function TitanIntelligenceSidebar() {
             {unacknowledgedCount}
           </span>
         </div>
+        {alerts.length > 1 && (
+          <button
+            onClick={async () => {
+              if (!confirm(`Dismiss all ${alerts.filter(a => !dismissedAlerts.has(a.id)).length} alerts?`)) return;
+              setDismissedAlerts(new Set(alerts.map(a => a.id)));
+              try {
+                await fetch(`/api/stagnation-alerts/${companyId}/dismiss-all`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                });
+                queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
+              } catch {
+                setDismissedAlerts(new Set());
+              }
+            }}
+            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 hover:text-red-300 text-xs font-medium transition-colors border border-red-600/30"
+            data-testid="button-dismiss-all-alerts"
+          >
+            <X className="h-3.5 w-3.5" />
+            Dismiss All Alerts
+          </button>
+        )}
       </div>
 
       {/* Alerts List */}

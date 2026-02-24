@@ -353,10 +353,35 @@ export default function LiveTracking() {
           {/* Stagnation Alerts */}
           <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-100">
-              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                Stagnation Alerts
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  Stagnation Alerts
+                </h2>
+                {alerts && alerts.filter(a => !dismissingIds.has(a.id)).length > 1 && (
+                  <button
+                    onClick={async () => {
+                      const visibleCount = alerts.filter(a => !dismissingIds.has(a.id)).length;
+                      if (!confirm(`Dismiss all ${visibleCount} alerts?`)) return;
+                      setDismissingIds(new Set(alerts.map(a => a.id)));
+                      try {
+                        await fetch(`/api/stagnation-alerts/${companyId}/dismiss-all`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["stagnation-alerts", companyId] });
+                      } catch {
+                        setDismissingIds(new Set());
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs font-medium transition-colors border border-red-200"
+                    data-testid="button-dismiss-all-stagnation"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Dismiss All
+                  </button>
+                )}
+              </div>
             </div>
             <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
               {alerts && alerts.length > 0 ? (

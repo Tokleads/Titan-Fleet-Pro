@@ -20,7 +20,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome, checkMOTExpiryWarnings } from "./notificationTriggers";
 import { triageDefect } from "./aiTriageService";
 import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
-import { maintenanceAlerts } from "@shared/schema";
+import { maintenanceAlerts, stagnationAlerts } from "@shared/schema";
 import { signToken, requireAuth, requireCompany, requireRole } from "./jwtAuth";
 import { requirePermission } from './permissionGuard';
 import { authLimiter } from "./rateLimiter";
@@ -4571,6 +4571,24 @@ export async function registerRoutes(
     }
   });
   
+  app.post("/api/stagnation-alerts/:companyId/dismiss-all", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      const result = await db.update(stagnationAlerts)
+        .set({ status: 'DISMISSED', updatedAt: new Date() })
+        .where(
+          and(
+            eq(stagnationAlerts.companyId, companyId),
+            eq(stagnationAlerts.status, 'ACTIVE')
+          )
+        );
+      res.json({ success: true, message: "All active alerts dismissed" });
+    } catch (error) {
+      console.error("Failed to bulk dismiss alerts:", error);
+      res.status(500).json({ error: "Failed to dismiss alerts" });
+    }
+  });
+
   // ==================== TITAN COMMAND (NOTIFICATIONS) ====================
   
   // Send broadcast notification to all drivers
