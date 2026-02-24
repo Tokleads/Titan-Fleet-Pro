@@ -45,6 +45,10 @@ export const session = {
   },
 
   getToken(): string | null {
+    if (this.isExpired()) {
+      this.clear();
+      return null;
+    }
     return localStorage.getItem("fleetcheck_token");
   },
 

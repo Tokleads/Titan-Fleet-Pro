@@ -75,6 +75,12 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
   const company = session.getCompany();
   const companySettings = (company?.settings || {}) as Record<string, any>;
 
+  useEffect(() => {
+    if (!user || !company) {
+      setLocation('/manager/login');
+    }
+  }, [user, company, setLocation]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -149,6 +155,10 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (!user || !company) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100/50 flex relative">
