@@ -4,6 +4,12 @@ import { ManagerLayout } from "./ManagerLayout";
 import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   FileText,
   Plus,
@@ -68,7 +74,7 @@ export default function ManagerDocuments() {
       setIsUploading(true);
       const res = await fetch("/api/manager/documents/upload-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ companyId, filename: selectedFile.name }),
       });
       
@@ -94,7 +100,7 @@ export default function ManagerDocuments() {
   const { data: documents, isLoading } = useQuery({
     queryKey: ["manager-documents", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/documents/${companyId}`);
+      const res = await fetch(`/api/manager/documents/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch documents");
       return res.json();
     },
@@ -104,7 +110,7 @@ export default function ManagerDocuments() {
   const { data: users } = useQuery({
     queryKey: ["users", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
@@ -123,7 +129,7 @@ export default function ManagerDocuments() {
       
       const res = await fetch("/api/manager/documents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           ...doc,
           fileUrl,
@@ -145,7 +151,7 @@ export default function ManagerDocuments() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/manager/documents/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/manager/documents/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to delete document");
     },
     onSuccess: () => {

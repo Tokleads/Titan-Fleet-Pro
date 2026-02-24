@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   FileText, 
   Download, 
@@ -148,7 +154,7 @@ export default function Reports() {
     mutationFn: async (reportType: string) => {
       const res = await fetch('/api/manager/reports/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           reportType,
           filters: {
@@ -174,7 +180,7 @@ export default function Reports() {
     mutationFn: async (reportType: string) => {
       const res = await fetch('/api/manager/reports/export/csv', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           reportType,
           filters: {
@@ -207,7 +213,7 @@ export default function Reports() {
     mutationFn: async (reportType: string) => {
       const res = await fetch('/api/manager/reports/export/pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           reportType,
           filters: {

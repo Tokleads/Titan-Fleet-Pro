@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   MapPin, 
   AlertTriangle, 
@@ -55,7 +61,7 @@ export default function LiveTracking() {
   const { data: locations, isLoading } = useQuery<DriverLocation[]>({
     queryKey: ["driver-locations", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/driver-locations/${companyId}`);
+      const res = await fetch(`/api/manager/driver-locations/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch locations");
       return res.json();
     },
@@ -66,7 +72,7 @@ export default function LiveTracking() {
   const { data: onShiftDrivers } = useQuery<Array<{ driverId: number; driverName: string; depotName: string; latitude: string; longitude: string; arrivalTime: string }>>({
     queryKey: ["on-shift-drivers", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/on-shift/${companyId}`);
+      const res = await fetch(`/api/manager/on-shift/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
       return res.json();
     },
@@ -78,7 +84,7 @@ export default function LiveTracking() {
   const { data: alerts } = useQuery<StagnationAlert[]>({
     queryKey: ["stagnation-alerts", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/stagnation-alerts/${companyId}?status=ACTIVE`);
+      const res = await fetch(`/api/stagnation-alerts/${companyId}?status=ACTIVE`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch alerts");
       return res.json();
     },
@@ -373,7 +379,7 @@ export default function LiveTracking() {
                         onClick={async () => {
                           await fetch(`/api/stagnation-alerts/${alert.id}`, {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...authHeaders() },
                             body: JSON.stringify({ status: 'ACKNOWLEDGED' })
                           });
                           window.location.reload();

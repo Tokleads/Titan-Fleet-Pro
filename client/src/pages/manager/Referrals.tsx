@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   Gift, 
   Copy, 
@@ -102,7 +108,7 @@ export default function Referrals() {
   const { data: codeData, isLoading: codeLoading } = useQuery<{ referralCode: string }>({
     queryKey: ["/api/referral/code", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/referral/code?companyId=${companyId}`);
+      const res = await fetch(`/api/referral/code?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch referral code");
       return res.json();
     },
@@ -112,7 +118,7 @@ export default function Referrals() {
   const { data: stats, isLoading: statsLoading } = useQuery<ReferralStats>({
     queryKey: ["/api/referral/stats", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/referral/stats?companyId=${companyId}`);
+      const res = await fetch(`/api/referral/stats?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch referral stats");
       return res.json();
     },
@@ -122,7 +128,7 @@ export default function Referrals() {
   const { data: referrals, isLoading: referralsLoading } = useQuery<Referral[]>({
     queryKey: ["/api/referral/list", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/referral/list?companyId=${companyId}`);
+      const res = await fetch(`/api/referral/list?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch referrals");
       return res.json();
     },

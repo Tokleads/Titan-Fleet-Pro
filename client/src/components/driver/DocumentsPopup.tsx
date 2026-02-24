@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { session } from "@/lib/session";
 import { FileText, CheckCircle2, X, ChevronRight } from "lucide-react";
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const categoryLabels: Record<string, string> = {
   TOOLBOX_TALK: "Toolbox Talk",
   HANDBOOK: "Handbook",
@@ -26,7 +31,7 @@ export function DocumentsPopup({ onClose }: DocumentsPopupProps) {
   const { data: unreadDocs, isLoading } = useQuery({
     queryKey: ["unread-documents", companyId, userId],
     queryFn: async () => {
-      const res = await fetch(`/api/documents/unread?companyId=${companyId}&userId=${userId}`);
+      const res = await fetch(`/api/documents/unread?companyId=${companyId}&userId=${userId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch documents");
       return res.json();
     },
@@ -37,7 +42,7 @@ export function DocumentsPopup({ onClose }: DocumentsPopupProps) {
     mutationFn: async (documentId: number) => {
       const res = await fetch(`/api/documents/${documentId}/acknowledge`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ userId }),
       });
       if (!res.ok) throw new Error("Failed to acknowledge document");

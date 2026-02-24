@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   AlertTriangle, 
   Clock,
@@ -48,7 +54,7 @@ export function TitanIntelligenceSidebar() {
   const { data: stagnationAlerts } = useQuery<StagnationAlert[]>({
     queryKey: ["stagnation-alerts", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/stagnation-alerts/${companyId}?status=ACTIVE`);
+      const res = await fetch(`/api/stagnation-alerts/${companyId}?status=ACTIVE`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },

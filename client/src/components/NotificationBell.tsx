@@ -50,7 +50,7 @@ export function NotificationBell() {
   const fetchUnreadCount = async () => {
     if (!company?.id || !user?.id) return;
     try {
-      const res = await fetch(`/api/notifications/unread-count?companyId=${company.id}&userId=${user.id}`);
+      const res = await fetch(`/api/notifications/unread-count?companyId=${company.id}&userId=${user.id}`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.count);
@@ -64,7 +64,7 @@ export function NotificationBell() {
     if (!company?.id || !user?.id) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/notifications?companyId=${company.id}&userId=${user.id}&limit=20`);
+      const res = await fetch(`/api/notifications?companyId=${company.id}&userId=${user.id}&limit=20`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -79,7 +79,7 @@ export function NotificationBell() {
   
   const markAsRead = async (id: number) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+      const res = await fetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
       if (res.ok) {
         setNotifications(prev => 
           prev.map(n => n.id === id ? { ...n, isRead: true, readAt: new Date() } : n)
@@ -96,7 +96,7 @@ export function NotificationBell() {
     try {
       const res = await fetch("/api/notifications/mark-all-read", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ companyId: company.id, userId: user.id })
       });
       if (res.ok) {

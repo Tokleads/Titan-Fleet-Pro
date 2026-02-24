@@ -3,6 +3,11 @@ import { DriverLayout } from "@/components/layout/AppShell";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Inspection, FuelEntry } from "@shared/schema";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
@@ -44,7 +49,7 @@ export default function DriverHistory() {
     };
     loadHistory();
 
-    fetch(`/api/driver/timesheets/${company.id}/${user.id}`)
+    fetch(`/api/driver/timesheets/${company.id}/${user.id}`, { headers: authHeaders() })
       .then(res => res.json())
       .then(data => { if (mounted) setTimesheetEntries(data); })
       .catch(err => console.error("Failed to load timesheets:", err));

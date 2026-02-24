@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Clock, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface VORWidgetProps {
   companyId: number;
@@ -10,7 +16,7 @@ export function VORWidget({ companyId }: VORWidgetProps) {
   const { data: vorVehicles, isLoading } = useQuery({
     queryKey: ['vor-vehicles', companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/vor?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/vor?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error('Failed to fetch VOR vehicles');
       return res.json();
     },

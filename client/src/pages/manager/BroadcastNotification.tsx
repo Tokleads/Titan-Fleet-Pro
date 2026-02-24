@@ -12,6 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { session } from '@/lib/session';
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 interface BroadcastFormData {
   title: string;
   body: string;
@@ -111,7 +116,8 @@ export default function BroadcastNotification() {
       const response = await fetch('/api/notifications/broadcast', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...authHeaders()
         },
         body: JSON.stringify({
           companyId,

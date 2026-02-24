@@ -6,6 +6,12 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLocation } from 'wouter';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface NotificationBadgeProps {
   userId: number;
@@ -27,7 +33,7 @@ export function NotificationBadge({ userId, className }: NotificationBadgeProps)
 
   const loadUnreadCount = async () => {
     try {
-      const response = await fetch(`/api/notifications/unread-count/${userId}`);
+      const response = await fetch(`/api/notifications/unread-count/${userId}`, { headers: authHeaders() });
       const data = await response.json();
       setUnreadCount(data.count);
     } catch (error) {

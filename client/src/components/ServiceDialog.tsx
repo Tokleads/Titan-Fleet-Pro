@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { X, Wrench, Calendar, Gauge, DollarSign } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface ServiceDialogProps {
   vehicle: any;
@@ -39,7 +45,7 @@ export function ServiceDialog({ vehicle, onClose }: ServiceDialogProps) {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/vehicles/${vehicle.id}/service`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           serviceDate,
           serviceMileage: Number(serviceMileage),

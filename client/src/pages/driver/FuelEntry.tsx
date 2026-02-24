@@ -7,6 +7,11 @@ import { ChevronLeft, Fuel, Droplets, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { session } from "@/lib/session";
 import { TitanButton } from "@/components/titan-ui/Button";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import type { Vehicle } from "@shared/schema";
 
 export default function FuelEntry() {
@@ -33,7 +38,7 @@ export default function FuelEntry() {
         return;
       }
       try {
-        const res = await fetch(`/api/vehicles?companyId=${company.id}`);
+        const res = await fetch(`/api/vehicles?companyId=${company.id}`, { headers: authHeaders() });
         if (res.ok) {
           const data = await res.json();
           const vehicles: Vehicle[] = Array.isArray(data) ? data : (data.vehicles || []);
@@ -57,7 +62,7 @@ export default function FuelEntry() {
     try {
       const res = await fetch("/api/fuel", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           vehicleId: vehicle.id,

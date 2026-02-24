@@ -3,6 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { DriverLayout } from "@/components/layout/AppShell";
 import { session } from "@/lib/session";
 import { useLocation } from "wouter";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { Package, ChevronRight, ChevronDown, MapPin, Camera, PenTool, Clock, FileText, Loader2, CheckCircle } from "lucide-react";
 
 interface Delivery {
@@ -43,7 +48,7 @@ export default function DriverDeliveries() {
   const { data: deliveriesData, isLoading } = useQuery<{ deliveries: Delivery[]; total: number }>({
     queryKey: ["driver-deliveries", company?.id, user?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/deliveries/driver?companyId=${company?.id}&driverId=${user?.id}&limit=30&offset=0`);
+      const res = await fetch(`/api/deliveries/driver?companyId=${company?.id}&driverId=${user?.id}&limit=30&offset=0`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch deliveries");
       return res.json();
     },

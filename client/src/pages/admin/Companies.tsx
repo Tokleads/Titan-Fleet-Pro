@@ -5,6 +5,12 @@ import { TitanButton } from "@/components/titan-ui/Button";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import {
   Dialog,
   DialogContent,
@@ -125,7 +131,7 @@ export default function Companies() {
       }
       
       const response = await fetch(`/api/admin/companies?${params}`, {
-        headers: { "x-admin-token": token },
+        headers: { "x-admin-token": token, ...authHeaders() },
       });
 
       if (!response.ok) {
@@ -197,6 +203,7 @@ export default function Companies() {
         headers: {
           "Content-Type": "application/json",
           "x-admin-token": token,
+          ...authHeaders(),
         },
         body: JSON.stringify(formData),
       });
@@ -234,6 +241,7 @@ export default function Companies() {
         headers: {
           "Content-Type": "application/json",
           "x-admin-token": token,
+          ...authHeaders(),
         },
         body: JSON.stringify(formData),
       });
@@ -271,6 +279,7 @@ export default function Companies() {
         headers: {
           "Content-Type": "application/json",
           "x-admin-token": token,
+          ...authHeaders(),
         },
         body: JSON.stringify({ isActive: !company.isActive }),
       });

@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   Clock, 
   CheckCircle2, 
@@ -57,7 +63,7 @@ export default function ManagerInspections() {
         ...(filterVehicle !== 'all' && { vehicleId: filterVehicle }),
         ...(filterDriver !== 'all' && { driverId: filterDriver })
       });
-      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`);
+      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch inspections");
       return res.json();
     },
@@ -70,7 +76,7 @@ export default function ManagerInspections() {
   const { data: vehiclesData } = useQuery<{ vehicles: any[] }>({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -82,7 +88,7 @@ export default function ManagerInspections() {
   const { data: users } = useQuery({
     queryKey: ["users", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
@@ -120,7 +126,7 @@ export default function ManagerInspections() {
         ...(filterVehicle !== 'all' && { vehicleId: filterVehicle }),
         ...(filterDriver !== 'all' && { driverId: filterDriver })
       });
-      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`);
+      const res = await fetch(`/api/manager/inspections/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch inspections");
       const data = await res.json();
       const allInspections = data.inspections || [];

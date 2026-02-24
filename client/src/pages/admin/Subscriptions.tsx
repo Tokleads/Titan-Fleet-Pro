@@ -5,6 +5,12 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CreditCard, Users, AlertTriangle, XCircle, TrendingUp, Loader2, ExternalLink } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Subscription {
   companyId: number;
@@ -64,7 +70,7 @@ export default function AdminSubscriptions() {
 
       try {
         const response = await fetch("/api/admin/subscriptions", {
-          headers: { "x-admin-token": token },
+          headers: { "x-admin-token": token, ...authHeaders() },
         });
 
         if (!response.ok) {

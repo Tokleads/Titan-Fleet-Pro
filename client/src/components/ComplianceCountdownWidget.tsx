@@ -2,6 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Shield, Calendar, Wrench, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { useLocation } from "wouter";
 import { getMOTCountdown, getTaxCountdown, getServiceCountdown } from "@/lib/countdown";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface ComplianceCountdownWidgetProps {
   companyId: number;
@@ -13,7 +19,7 @@ export function ComplianceCountdownWidget({ companyId }: ComplianceCountdownWidg
   const { data: vehiclesData, isLoading } = useQuery({
     queryKey: ['vehicles', companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },

@@ -5,6 +5,11 @@ import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { session } from "@/lib/session";
 import { api } from "@/lib/api";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Check, ChevronLeft, Loader2, CheckCircle2, AlertCircle, ClipboardCheck, X, Filter } from "lucide-react";
 import { motion } from "framer-motion";
@@ -100,7 +105,7 @@ export default function EndOfShiftCheck() {
     try {
       const shiftCheckRes = await fetch("/api/shift-checks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           driverId: user.id,
@@ -137,6 +142,7 @@ export default function EndOfShiftCheck() {
 
         const itemRes = await fetch(`/api/shift-checks/${shiftCheck.id}/item`, {
           method: "POST",
+          headers: authHeaders(),
           body: formData,
         });
         if (!itemRes.ok) {
@@ -157,7 +163,7 @@ export default function EndOfShiftCheck() {
 
         await fetch(`/api/shift-checks/${shiftCheck.id}/complete`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ latitude, longitude }),
         });
       }

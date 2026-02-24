@@ -16,6 +16,11 @@ import { Bell, Mail, MessageSquare, Smartphone, Save, CheckCircle2, Loader2 } fr
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export default function NotificationPreferences() {
   return (
     <ManagerLayout>
@@ -57,7 +62,7 @@ function NotificationPreferencesContent() {
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
-        const response = await fetch(`/api/notification-preferences?companyId=${companyId}`);
+        const response = await fetch(`/api/notification-preferences?companyId=${companyId}`, { headers: authHeaders() });
         if (!response.ok) throw new Error('Failed to fetch preferences');
         
         const data = await response.json();
@@ -100,7 +105,7 @@ function NotificationPreferencesContent() {
     try {
       const response = await fetch(`/api/notification-preferences?companyId=${companyId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           emailEnabled,
           smsEnabled,

@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { useLocation } from "wouter";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { 
   Send, 
   Radio,
@@ -39,7 +44,7 @@ export default function TitanCommand() {
   const { data: drivers } = useQuery<User[]>({
     queryKey: ["users", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       const users = await res.json();
       return users.filter((u: User) => u.role === "DRIVER" && u.active);
@@ -52,7 +57,7 @@ export default function TitanCommand() {
     mutationFn: async (data: { title: string; message: string; priority: string }) => {
       const res = await fetch('/api/notifications/broadcast', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           senderId: manager?.id,
@@ -75,7 +80,7 @@ export default function TitanCommand() {
     mutationFn: async (data: { recipientId: number; title: string; message: string; priority: string }) => {
       const res = await fetch('/api/notifications/individual', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           senderId: manager?.id,

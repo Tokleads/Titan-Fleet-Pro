@@ -34,6 +34,11 @@ import { useToast } from '@/hooks/use-toast';
 import { session } from '@/lib/session';
 import { DASHBOARD_PERMISSION_KEYS } from '@shared/schema';
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Role definitions
 const ROLES = [
   {
@@ -191,7 +196,7 @@ function UserRolesContent() {
         ...(debouncedSearchQuery && { search: debouncedSearchQuery })
       });
       
-      const response = await fetch(`/api/user-roles?${params}`);
+      const response = await fetch(`/api/user-roles?${params}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch users');
       
       const data = await response.json();
@@ -279,7 +284,7 @@ function UserRolesContent() {
         promises.push(
           fetch(`/api/user-roles/${selectedUser.id}/role?companyId=${companyId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({ role: selectedUser.role })
           })
         );
@@ -288,7 +293,7 @@ function UserRolesContent() {
       promises.push(
         fetch(`/api/user-roles/${selectedUser.id}/permissions?companyId=${companyId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ permissions: permissionsToSave, requestingUserId: session.getUser()?.id })
         })
       );
@@ -322,7 +327,7 @@ function UserRolesContent() {
     try {
       const response = await fetch(`/api/user-roles/${userId}/status?companyId=${companyId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ active })
       });
       

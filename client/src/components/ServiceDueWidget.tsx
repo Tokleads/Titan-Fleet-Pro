@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Wrench, Calendar, Gauge, AlertTriangle } from "lucide-react";
 import { useLocation } from "wouter";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface ServiceDueWidgetProps {
   companyId: number;
@@ -12,7 +18,7 @@ export function ServiceDueWidget({ companyId }: ServiceDueWidgetProps) {
   const { data: serviceDueVehicles, isLoading } = useQuery({
     queryKey: ['service-due', companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/service-due?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/service-due?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch service due vehicles");
       return res.json();
     },

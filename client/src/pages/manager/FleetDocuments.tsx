@@ -9,6 +9,12 @@ import { useState, useEffect } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Pagination } from '@/components/Pagination';
 import { ManagerLayout } from './ManagerLayout';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,7 +117,7 @@ export default function FleetDocuments() {
         ...(searchQuery && { search: searchQuery })
       });
       
-      const response = await fetch(`/api/fleet-documents?${params}`);
+      const response = await fetch(`/api/fleet-documents?${params}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch documents');
       
       const data = await response.json();
@@ -130,7 +136,7 @@ export default function FleetDocuments() {
   // Fetch stats
   const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/fleet-documents/stats?companyId=${companyId}`);
+      const response = await fetch(`/api/fleet-documents/stats?companyId=${companyId}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch stats');
       
       const data = await response.json();
@@ -158,8 +164,8 @@ export default function FleetDocuments() {
         });
         
         const [docsResponse, statsResponse] = await Promise.all([
-          fetch(`/api/fleet-documents?${params}`, { signal: controller.signal }),
-          fetch(`/api/fleet-documents/stats?companyId=${companyId}`, { signal: controller.signal })
+          fetch(`/api/fleet-documents?${params}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/fleet-documents/stats?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() })
         ]);
         
         if (!docsResponse.ok || !statsResponse.ok) {
@@ -217,6 +223,7 @@ export default function FleetDocuments() {
       
       const response = await fetch('/api/fleet-documents/upload', {
         method: 'POST',
+        headers: authHeaders(),
         body: formData
       });
       
@@ -258,7 +265,8 @@ export default function FleetDocuments() {
     
     try {
       const response = await fetch(`/api/fleet-documents/${id}?companyId=${companyId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
       
       if (!response.ok) throw new Error('Delete failed');
@@ -282,7 +290,7 @@ export default function FleetDocuments() {
   // Handle download
   const handleDownload = async (id: number, fileName: string) => {
     try {
-      const response = await fetch(`/api/fleet-documents/${id}/download?companyId=${companyId}`);
+      const response = await fetch(`/api/fleet-documents/${id}/download?companyId=${companyId}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Download failed');
       
       const data = await response.json();

@@ -5,6 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Activity, TrendingUp, TrendingDown, Clock, AlertTriangle, RefreshCw, Download } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface PerformanceStats {
   totalRequests: number;
@@ -43,8 +49,8 @@ export default function Performance() {
   const fetchData = async () => {
     try {
       const [statsRes, slowQueriesRes] = await Promise.all([
-        fetch("/api/performance/stats"),
-        fetch("/api/performance/slow-queries?limit=20"),
+        fetch("/api/performance/stats", { headers: authHeaders() }),
+        fetch("/api/performance/slow-queries?limit=20", { headers: authHeaders() }),
       ]);
 
       const statsData = await statsRes.json();

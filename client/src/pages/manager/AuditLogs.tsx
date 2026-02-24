@@ -20,6 +20,12 @@ import {
 } from '@/components/ui/table';
 import { Shield, Download, CheckCircle2, AlertTriangle, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 type AuditLog = {
   id: number;
@@ -61,7 +67,7 @@ export default function AuditLogs() {
     try {
       setLoading(true);
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/audit-logs?companyId=${companyId}`);
+      const response = await fetch(`/api/audit-logs?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setLogs(data);
@@ -76,7 +82,7 @@ export default function AuditLogs() {
   const verifyIntegrity = async () => {
     try {
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/audit-logs/verify?companyId=${companyId}`);
+      const response = await fetch(`/api/audit-logs/verify?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setIntegrityStatus(data);
@@ -120,7 +126,7 @@ export default function AuditLogs() {
   const handleExport = async () => {
     try {
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/audit-logs/export?companyId=${companyId}`);
+      const response = await fetch(`/api/audit-logs/export?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);

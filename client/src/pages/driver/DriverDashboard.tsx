@@ -11,6 +11,11 @@ import { Search, Clock, ChevronRight, AlertTriangle, Truck, Plus, History, WifiO
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle, Inspection, FuelEntry } from "@shared/schema";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useBrand } from "@/hooks/use-brand";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,7 +71,7 @@ export default function DriverDashboard() {
   const { data: activeTimesheetData } = useQuery({
     queryKey: ["active-timesheet", user?.id],
     queryFn: async () => {
-      const response = await fetch(`/api/timesheets/active/${user?.id}`);
+      const response = await fetch(`/api/timesheets/active/${user?.id}`, { headers: authHeaders() });
       if (!response.ok) throw new Error("Failed to fetch active timesheet");
       const data = await response.json();
       return data.timesheet || null;
@@ -91,7 +96,7 @@ export default function DriverDashboard() {
   const { data: unreadDocs } = useQuery({
     queryKey: ["unread-documents", company?.id, user?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/documents/unread?companyId=${company?.id}&userId=${user?.id}`);
+      const res = await fetch(`/api/documents/unread?companyId=${company?.id}&userId=${user?.id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch documents");
       return res.json();
     },
@@ -206,7 +211,7 @@ export default function DriverDashboard() {
     try {
       const response = await fetch('/api/drivers/manual-vehicle', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           driverId: user.id,
@@ -261,7 +266,7 @@ export default function DriverDashboard() {
     try {
       const response = await fetch('/api/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           senderId: user.id,

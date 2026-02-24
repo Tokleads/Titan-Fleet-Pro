@@ -7,6 +7,11 @@ import { useLocation, useRoute, useSearch } from "wouter";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle } from "@shared/schema";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { Check, ChevronLeft, ChevronDown, ChevronUp, Camera, AlertTriangle, Loader2, X, Play, Clock, Timer, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -274,7 +279,7 @@ export default function VehicleInspection() {
       const vehicleData = await api.getVehicle(id);
       setVehicle(vehicleData);
       try {
-        const mileageRes = await fetch(`/api/vehicles/${id}/last-mileage`);
+        const mileageRes = await fetch(`/api/vehicles/${id}/last-mileage`, { headers: authHeaders() });
         const mileageData = await mileageRes.json();
         if (mileageData.lastMileage) {
           setOdometer(String(mileageData.lastMileage));
@@ -384,7 +389,7 @@ export default function VehicleInspection() {
     try {
       const response = await fetch("/api/defect-photos/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           filename: file.name,
@@ -445,7 +450,7 @@ export default function VehicleInspection() {
     try {
       const response = await fetch("/api/defect-photos/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           filename: `cab-${file.name}`,

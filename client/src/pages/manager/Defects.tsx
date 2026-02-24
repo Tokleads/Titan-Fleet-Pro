@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { 
   AlertTriangle, 
   Clock, 
@@ -372,7 +377,7 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
               btn.disabled = true;
               btn.textContent = 'Analyzing...';
               try {
-                const res = await fetch(`/api/defects/${defect.id}/triage`, { method: 'POST' });
+                const res = await fetch(`/api/defects/${defect.id}/triage`, { method: 'POST', headers: authHeaders() });
                 if (!res.ok) throw new Error('Triage failed');
                 modalQueryClient.invalidateQueries({ queryKey: ["manager-defects"] });
                 onClose();
@@ -437,7 +442,7 @@ export default function ManagerDefects() {
   const { data: defects, isLoading } = useQuery({
     queryKey: ["manager-defects", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/defects/${companyId}`);
+      const res = await fetch(`/api/manager/defects/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch defects");
       return res.json();
     },
@@ -447,7 +452,7 @@ export default function ManagerDefects() {
   const { data: vehiclesData } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -460,7 +465,7 @@ export default function ManagerDefects() {
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const res = await fetch(`/api/manager/defects/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update defect");

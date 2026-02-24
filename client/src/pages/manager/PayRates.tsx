@@ -4,6 +4,11 @@ import { ManagerLayout } from './ManagerLayout';
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 interface PayRate {
   id: number;
   companyId: number;
@@ -77,7 +82,7 @@ export default function PayRates() {
 
   const fetchPayRates = async () => {
     try {
-      const response = await fetch(`/api/pay-rates/${companyId}/drivers`);
+      const response = await fetch(`/api/pay-rates/${companyId}/drivers`, { headers: authHeaders() });
       const data = await response.json();
       setPayRates(data);
       const def = data.find((r: PayRate) => r.driverId === null);
@@ -89,7 +94,7 @@ export default function PayRates() {
 
   const fetchDrivers = async () => {
     try {
-      const response = await fetch(`/api/manager/users/${companyId}`);
+      const response = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       const data = await response.json();
       setDrivers(data.filter((u: Driver) => u.role === 'DRIVER'));
     } catch (error) {
@@ -99,7 +104,7 @@ export default function PayRates() {
 
   const fetchBankHolidays = async () => {
     try {
-      const response = await fetch(`/api/bank-holidays/${companyId}`);
+      const response = await fetch(`/api/bank-holidays/${companyId}`, { headers: authHeaders() });
       const data = await response.json();
       setBankHolidays(data);
     } catch (error) {
@@ -143,7 +148,7 @@ export default function PayRates() {
     try {
       const response = await fetch('/api/pay-rates/driver', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           driverId,
@@ -169,6 +174,7 @@ export default function PayRates() {
     try {
       const response = await fetch(`/api/pay-rates/driver/${driverId}/${companyId}`, {
         method: 'DELETE',
+        headers: authHeaders(),
       });
 
       if (response.ok) {
@@ -186,7 +192,7 @@ export default function PayRates() {
     try {
       const response = await fetch(`/api/pay-rates/${defaultRate.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(defaultRate),
       });
       if (response.ok) {
@@ -207,6 +213,7 @@ export default function PayRates() {
     try {
       const response = await fetch(`/api/bank-holidays/init-uk/${companyId}/${currentYear}`, {
         method: 'POST',
+        headers: authHeaders(),
       });
       if (response.ok) {
         toast({ title: 'Added', description: `UK bank holidays for ${currentYear} added` });
@@ -222,7 +229,7 @@ export default function PayRates() {
     try {
       const res = await fetch('/api/wages/export-csv', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           startDate: exportDateRange.start,

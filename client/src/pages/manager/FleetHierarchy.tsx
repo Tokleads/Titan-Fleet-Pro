@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 type Category = {
   id: number;
@@ -53,7 +59,7 @@ export default function FleetHierarchy() {
   // Load data
   const loadCategories = async () => {
     try {
-      const res = await fetch(`/api/manager/hierarchy/categories?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/categories?companyId=${companyId}`, { headers: authHeaders() });
       const data = await res.json();
       setCategories(data);
     } catch (error) {
@@ -63,7 +69,7 @@ export default function FleetHierarchy() {
   
   const loadCostCentres = async () => {
     try {
-      const res = await fetch(`/api/manager/hierarchy/cost-centres?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/cost-centres?companyId=${companyId}`, { headers: authHeaders() });
       const data = await res.json();
       setCostCentres(data);
     } catch (error) {
@@ -73,7 +79,7 @@ export default function FleetHierarchy() {
   
   const loadDepartments = async () => {
     try {
-      const res = await fetch(`/api/manager/hierarchy/departments?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/departments?companyId=${companyId}`, { headers: authHeaders() });
       const data = await res.json();
       setDepartments(data);
     } catch (error) {
@@ -91,7 +97,7 @@ export default function FleetHierarchy() {
       
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ...data, companyId })
       });
       
@@ -109,7 +115,7 @@ export default function FleetHierarchy() {
   const handleDeleteCategory = async (id: number) => {
     if (!confirm("Delete this category?")) return;
     try {
-      const res = await fetch(`/api/manager/hierarchy/categories/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/manager/hierarchy/categories/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) {
         toast({ title: "Category deleted" });
         loadCategories();
@@ -129,7 +135,7 @@ export default function FleetHierarchy() {
       
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ...data, companyId })
       });
       
@@ -147,7 +153,7 @@ export default function FleetHierarchy() {
   const handleDeleteCostCentre = async (id: number) => {
     if (!confirm("Delete this cost centre?")) return;
     try {
-      const res = await fetch(`/api/manager/hierarchy/cost-centres/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/manager/hierarchy/cost-centres/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) {
         toast({ title: "Cost centre deleted" });
         loadCostCentres();
@@ -167,7 +173,7 @@ export default function FleetHierarchy() {
       
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ...data, companyId })
       });
       
@@ -185,7 +191,7 @@ export default function FleetHierarchy() {
   const handleDeleteDepartment = async (id: number) => {
     if (!confirm("Delete this department?")) return;
     try {
-      const res = await fetch(`/api/manager/hierarchy/departments/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/manager/hierarchy/departments/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) {
         toast({ title: "Department deleted" });
         loadDepartments();

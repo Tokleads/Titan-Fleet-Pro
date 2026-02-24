@@ -115,7 +115,9 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     }
     setSearchLoading(true);
     try {
-      const res = await fetch(`/api/global-search?companyId=${company.id}&q=${encodeURIComponent(q)}`);
+      const token = session.getToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/global-search?companyId=${company.id}&q=${encodeURIComponent(q)}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setSearchResults(data);

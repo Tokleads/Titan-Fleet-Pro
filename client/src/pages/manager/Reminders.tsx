@@ -40,6 +40,12 @@ import {
   Car
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 type ReminderType = 'MOT' | 'SERVICE' | 'TACHO' | 'INSURANCE' | 'TAX' | 'INSPECTION';
 type ReminderStatus = 'ACTIVE' | 'SNOOZED' | 'COMPLETED' | 'DISMISSED';
@@ -103,7 +109,7 @@ export default function Reminders() {
     try {
       setLoading(true);
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/reminders?companyId=${companyId}`);
+      const response = await fetch(`/api/reminders?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setReminders(data);
@@ -118,7 +124,7 @@ export default function Reminders() {
   const fetchVehicles = async () => {
     try {
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const response = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setVehicles(data);
@@ -133,7 +139,7 @@ export default function Reminders() {
       const companyId = localStorage.getItem('companyId');
       const response = await fetch('/api/reminders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           ...formData,
           companyId: parseInt(companyId || '0'),
@@ -162,7 +168,7 @@ export default function Reminders() {
       const userId = localStorage.getItem('userId');
       const response = await fetch(`/api/reminders/${selectedReminder.id}/snooze`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           ...snoozeData,
           snoozedBy: parseInt(userId || '0'),
@@ -189,7 +195,7 @@ export default function Reminders() {
       const userId = localStorage.getItem('userId');
       const response = await fetch(`/api/reminders/${selectedReminder.id}/complete`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           completedBy: parseInt(userId || '0'),
           notes: completeData.notes,
@@ -213,6 +219,7 @@ export default function Reminders() {
     try {
       const response = await fetch(`/api/reminders/${id}/dismiss`, {
         method: 'PATCH',
+        headers: authHeaders(),
       });
       
       if (response.ok) {

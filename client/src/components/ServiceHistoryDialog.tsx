@@ -1,5 +1,11 @@
 import { X, Wrench, Calendar, Gauge, DollarSign, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface ServiceHistoryDialogProps {
   vehicle: any;
@@ -10,7 +16,7 @@ export function ServiceHistoryDialog({ vehicle, onClose }: ServiceHistoryDialogP
   const { data: history, isLoading } = useQuery({
     queryKey: ['service-history', vehicle.id],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/${vehicle.id}/service-history`);
+      const res = await fetch(`/api/manager/vehicles/${vehicle.id}/service-history`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch service history");
       return res.json();
     }

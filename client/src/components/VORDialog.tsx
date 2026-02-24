@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface VORDialogProps {
   vehicle: any;
@@ -34,7 +40,7 @@ export function VORDialog({ vehicle, onClose }: VORDialogProps) {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/vehicles/${vehicle.id}/vor`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ reason, notes })
       });
       if (!res.ok) throw new Error('Failed to set VOR status');
@@ -51,7 +57,7 @@ export function VORDialog({ vehicle, onClose }: VORDialogProps) {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/vehicles/${vehicle.id}/vor/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...authHeaders() }
       });
       if (!res.ok) throw new Error('Failed to resolve VOR status');
       return res.json();

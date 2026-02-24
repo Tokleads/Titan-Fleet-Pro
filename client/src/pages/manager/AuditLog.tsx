@@ -3,6 +3,11 @@ import { TitanCard, TitanCardContent, TitanCardHeader } from "@/components/titan
 import { TitanButton } from "@/components/titan-ui/Button";
 import { session } from "@/lib/session";
 import { useQuery } from "@tanstack/react-query";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { ClipboardList, Download, Filter, ChevronLeft, ChevronRight, User, Clock, FileText } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -62,7 +67,7 @@ export default function AuditLog() {
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -80,7 +85,7 @@ export default function AuditLog() {
       if (entityFilter) params.append('entity', entityFilter);
       if (actionFilter) params.append('action', actionFilter);
       
-      const res = await fetch(`/api/manager/audit-logs/${company?.id}?${params}`);
+      const res = await fetch(`/api/manager/audit-logs/${company?.id}?${params}`, { headers: authHeaders() });
       return res.json();
     },
     enabled: !!company?.id,

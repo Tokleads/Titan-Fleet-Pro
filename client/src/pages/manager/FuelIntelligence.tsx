@@ -18,6 +18,11 @@ import {
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { session } from "@/lib/session";
 import { ManagerLayout } from "./ManagerLayout";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
 // Date range selector component
@@ -88,7 +93,7 @@ export default function FuelIntelligence() {
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) return { vehicles: [] };
       return res.json();
     },
@@ -110,6 +115,7 @@ export default function FuelIntelligence() {
     queryFn: async () => {
       const res = await fetch(`/api/fuel-intelligence/summary?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, {
         credentials: "include",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch summary");
       return res.json();
@@ -122,6 +128,7 @@ export default function FuelIntelligence() {
     queryFn: async () => {
       const res = await fetch(`/api/fuel-intelligence/driver-performance?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, {
         credentials: "include",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch driver performance");
       return res.json();
@@ -134,6 +141,7 @@ export default function FuelIntelligence() {
     queryFn: async () => {
       const res = await fetch(`/api/fuel-intelligence/vehicle-performance?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, {
         credentials: "include",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch vehicle performance");
       return res.json();
@@ -146,6 +154,7 @@ export default function FuelIntelligence() {
     queryFn: async () => {
       const res = await fetch(`/api/fuel-intelligence/anomalies?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, {
         credentials: "include",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch anomalies");
       return res.json();
@@ -158,6 +167,7 @@ export default function FuelIntelligence() {
     queryFn: async () => {
       const res = await fetch(`/api/fuel-intelligence/opportunities?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, {
         credentials: "include",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch opportunities");
       return res.json();

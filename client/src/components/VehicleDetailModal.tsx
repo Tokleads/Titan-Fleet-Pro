@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import {
   Save,
   LayoutGrid,
@@ -603,7 +609,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
   const { data, isLoading, error } = useQuery({
     queryKey: ["vehicle-full-profile", vehicleId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles/${vehicleId}/full-profile`);
+      const res = await fetch(`/api/vehicles/${vehicleId}/full-profile`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicle");
       return res.json();
     },
@@ -615,7 +621,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
   const { data: categoriesData } = useQuery({
     queryKey: ["hierarchy-categories", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/hierarchy/categories?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/categories?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch categories");
       return res.json();
     },
@@ -625,7 +631,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
   const { data: costCentresData } = useQuery({
     queryKey: ["hierarchy-cost-centres", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/hierarchy/cost-centres?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/cost-centres?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch cost centres");
       return res.json();
     },
@@ -635,7 +641,7 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
   const { data: departmentsData } = useQuery({
     queryKey: ["hierarchy-departments", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/hierarchy/departments?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/hierarchy/departments?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch departments");
       return res.json();
     },

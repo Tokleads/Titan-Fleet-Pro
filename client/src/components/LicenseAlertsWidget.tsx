@@ -13,6 +13,12 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface LicenseAlertsWidgetProps {
   companyId: number;
@@ -32,7 +38,7 @@ export function LicenseAlertsWidget({ companyId }: LicenseAlertsWidgetProps) {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch(`/api/manager/license/alerts?companyId=${companyId}`);
+      const response = await fetch(`/api/manager/license/alerts?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setAlerts(data);

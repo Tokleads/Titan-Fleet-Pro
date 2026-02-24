@@ -6,6 +6,11 @@ import { TitanInput } from "@/components/titan-ui/Input";
 import { Car, Clock, ArrowLeft, Square, Plus, History as HistoryIcon } from "lucide-react";
 import { session } from "@/lib/session";
 import { useLocation } from "wouter";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CompanyCarRegister } from "@shared/schema";
@@ -30,7 +35,7 @@ export default function CarRegister() {
   const { data: entries = [], isLoading } = useQuery<CompanyCarRegister[]>({
     queryKey: ["car-register", user?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/car-register/driver/${user?.id}`);
+      const res = await fetch(`/api/car-register/driver/${user?.id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch car register");
       return res.json();
     },
@@ -44,7 +49,7 @@ export default function CarRegister() {
     mutationFn: async () => {
       const res = await fetch("/api/car-register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           driverId: user?.id,
           companyId: company?.id,
@@ -72,7 +77,7 @@ export default function CarRegister() {
 
   const returnMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/car-register/${id}/end`, { method: "PATCH" });
+      const res = await fetch(`/api/car-register/${id}/end`, { method: "PATCH", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to return car");
       return res.json();
     },

@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { useDebounce } from "@/hooks/use-debounce";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -140,7 +145,7 @@ export default function Deliveries() {
   }>({
     queryKey: ["delivery-stats", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/deliveries/${companyId}/stats`);
+      const res = await fetch(`/api/manager/deliveries/${companyId}/stats`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
@@ -169,7 +174,7 @@ export default function Deliveries() {
         ...(endDate && { endDate }),
         ...(statusFilter !== "all" && { status: statusFilter }),
       });
-      const res = await fetch(`/api/manager/deliveries/${companyId}?${params}`);
+      const res = await fetch(`/api/manager/deliveries/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch deliveries");
       return res.json();
     },
@@ -186,7 +191,7 @@ export default function Deliveries() {
     mutationFn: async ({ ids, status }: { ids: number[]; status: string }) => {
       const res = await fetch("/api/manager/deliveries/bulk-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ids, status }),
       });
       if (!res.ok) throw new Error("Failed to update status");
@@ -207,7 +212,7 @@ export default function Deliveries() {
     mutationFn: async ({ ids, status }: { ids: number[]; status: string }) => {
       const res = await fetch("/api/manager/deliveries/bulk-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ ids, status }),
       });
       if (!res.ok) throw new Error("Failed to update status");
@@ -235,7 +240,7 @@ export default function Deliveries() {
         ...(endDate && { endDate }),
         ...(statusFilter !== "all" && { status: statusFilter }),
       });
-      const res = await fetch(`/api/manager/deliveries/${companyId}/export/csv?${params}`);
+      const res = await fetch(`/api/manager/deliveries/${companyId}/export/csv?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

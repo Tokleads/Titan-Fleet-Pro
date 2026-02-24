@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   Fuel,
   Clock,
@@ -23,7 +29,7 @@ export default function ManagerFuelLog() {
   const { data: fuelEntries, isLoading } = useQuery({
     queryKey: ["manager-fuel", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/fuel/${companyId}?days=30`);
+      const res = await fetch(`/api/manager/fuel/${companyId}?days=30`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch fuel entries");
       return res.json();
     },
@@ -33,7 +39,7 @@ export default function ManagerFuelLog() {
   const { data: vehiclesData } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -45,7 +51,7 @@ export default function ManagerFuelLog() {
   const { data: users } = useQuery({
     queryKey: ["users", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },

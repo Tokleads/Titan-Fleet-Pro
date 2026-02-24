@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   MapPin, 
   Plus,
@@ -48,7 +54,7 @@ export default function Geofences() {
   const { data: geofences, isLoading } = useQuery<Geofence[]>({
     queryKey: ["geofences", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/geofences/${companyId}`);
+      const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch geofences");
       return res.json();
     },
@@ -59,7 +65,7 @@ export default function Geofences() {
     mutationFn: async (data: typeof formData) => {
       const res = await fetch('/api/geofences', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ ...data, companyId })
       });
       if (!res.ok) throw new Error("Failed to create geofence");
@@ -84,7 +90,7 @@ export default function Geofences() {
     mutationFn: async ({ id, data }: { id: number; data: Partial<Geofence> }) => {
       const res = await fetch(`/api/geofences/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to update geofence");
@@ -98,7 +104,8 @@ export default function Geofences() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/geofences/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
       if (!res.ok) throw new Error("Failed to delete geofence");
       return res.json();

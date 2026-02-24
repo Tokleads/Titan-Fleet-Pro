@@ -21,6 +21,12 @@ import {
   Loader2,
   FileText
 } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface LicenseStatusCardProps {
   driverId: number;
@@ -49,7 +55,7 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
   const fetchLicenseData = async () => {
     try {
       // Fetch license data
-      const licenseResponse = await fetch(`/api/manager/drivers/${driverId}/license`);
+      const licenseResponse = await fetch(`/api/manager/drivers/${driverId}/license`, { headers: authHeaders() });
       if (licenseResponse.ok) {
         const licenseData = await licenseResponse.json();
         setLicense(licenseData);
@@ -58,7 +64,7 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
       }
 
       // Fetch alerts
-      const alertsResponse = await fetch(`/api/manager/drivers/${driverId}/license/alerts`);
+      const alertsResponse = await fetch(`/api/manager/drivers/${driverId}/license/alerts`, { headers: authHeaders() });
       if (alertsResponse.ok) {
         const alertsData = await alertsResponse.json();
         setAlerts(alertsData);
@@ -83,7 +89,7 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
   const fetchVerificationHistory = async () => {
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/manager/drivers/${driverId}/license/history`);
+      const response = await fetch(`/api/manager/drivers/${driverId}/license/history`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setVerificationHistory(data);

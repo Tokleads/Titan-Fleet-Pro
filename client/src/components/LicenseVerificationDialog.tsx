@@ -6,6 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, AlertTriangle, Shield, Crown, Lock } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // Premium feature flag - DVLA API costs £0.60 per lookup
 const DVLA_LICENSE_VERIFICATION_ENABLED = false;
@@ -93,7 +99,7 @@ export function LicenseVerificationDialog({
     try {
       const response = await fetch(`/api/manager/drivers/${driverId}/verify-license`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           licenseNumber: licenseNumber.toUpperCase(),
           companyId,

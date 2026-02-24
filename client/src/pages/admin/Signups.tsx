@@ -5,6 +5,12 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserPlus, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Signup {
   id: number;
@@ -60,7 +66,7 @@ export default function AdminSignups() {
 
       try {
         const response = await fetch("/api/admin/onboarding", {
-          headers: { "x-admin-token": token },
+          headers: { "x-admin-token": token, ...authHeaders() },
         });
 
         if (!response.ok) {

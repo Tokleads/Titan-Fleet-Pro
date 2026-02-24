@@ -43,6 +43,11 @@ import {
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 interface KPIs {
   totalVehicles: number;
   totalVehiclesTrend: number;
@@ -106,15 +111,15 @@ export default function AdvancedDashboard() {
           fuelSummaryRes,
           driverMpgRes
         ] = await Promise.all([
-          fetch(`/api/dashboard/kpis?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/fleet-overview?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/cost-analysis?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/compliance?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/driver-activity?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/defect-trends?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/dashboard/recent-activity?companyId=${companyId}`, { signal: controller.signal }),
-          fetch(`/api/fuel-intelligence/summary?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal }),
-          fetch(`/api/fuel-intelligence/driver-performance?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal })
+          fetch(`/api/dashboard/kpis?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/fleet-overview?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/cost-analysis?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/compliance?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/driver-activity?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/defect-trends?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/dashboard/recent-activity?companyId=${companyId}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/fuel-intelligence/summary?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal, headers: authHeaders() }),
+          fetch(`/api/fuel-intelligence/driver-performance?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { signal: controller.signal, headers: authHeaders() })
         ]);
         
         // Parse responses

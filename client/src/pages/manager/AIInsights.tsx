@@ -1,6 +1,11 @@
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
 import { useQuery, useMutation } from "@tanstack/react-query";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useToast } from "@/hooks/use-toast";
 import { Brain, Sparkles, Shield, AlertTriangle, Truck, ChevronRight, Check, RefreshCw, Bot, Activity } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
@@ -20,7 +25,7 @@ export default function AIInsights() {
   const { data: alerts = [], isLoading: alertsLoading } = useQuery<any[]>({
     queryKey: ["/api/maintenance-alerts", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/maintenance-alerts?companyId=${companyId}`);
+      const res = await fetch(`/api/maintenance-alerts?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch alerts");
       return res.json();
     },
@@ -30,7 +35,7 @@ export default function AIInsights() {
   const { data: vehiclesData } = useQuery<any>({
     queryKey: ["/api/vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -44,7 +49,7 @@ export default function AIInsights() {
     mutationFn: async () => {
       const res = await fetch("/api/maintenance-alerts/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ companyId }),
       });
       if (!res.ok) throw new Error("Failed to run analysis");
@@ -61,7 +66,7 @@ export default function AIInsights() {
 
   const acknowledge = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/maintenance-alerts/${id}/acknowledge`, { method: "PATCH" });
+      const res = await fetch(`/api/maintenance-alerts/${id}/acknowledge`, { method: "PATCH", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to acknowledge");
       return res.json();
     },

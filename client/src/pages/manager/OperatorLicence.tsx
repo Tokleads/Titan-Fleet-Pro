@@ -2,6 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { Truck, Plus, X, Trash2, AlertTriangle, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -211,7 +217,7 @@ function VehicleAssignmentPanel({
   const { data: assignments = [] } = useQuery<VehicleAssignment[]>({
     queryKey: ["licence-vehicles", licenceId],
     queryFn: async () => {
-      const res = await fetch(`/api/operator-licences/${licenceId}/vehicles`);
+      const res = await fetch(`/api/operator-licences/${licenceId}/vehicles`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
@@ -220,7 +226,7 @@ function VehicleAssignmentPanel({
   const { data: vehiclesData } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -235,7 +241,7 @@ function VehicleAssignmentPanel({
     mutationFn: async (vehicleId: number) => {
       const res = await fetch(`/api/operator-licences/${licenceId}/vehicles`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ vehicleId }),
       });
       if (!res.ok) throw new Error("Failed to assign");
@@ -253,7 +259,7 @@ function VehicleAssignmentPanel({
 
   const removeMutation = useMutation({
     mutationFn: async (assignmentId: number) => {
-      const res = await fetch(`/api/operator-licence-vehicles/${assignmentId}`, { method: "DELETE" });
+      const res = await fetch(`/api/operator-licence-vehicles/${assignmentId}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to remove");
       return res.json();
     },
@@ -352,7 +358,7 @@ export default function OperatorLicence() {
   const { data: licences = [], isLoading } = useQuery<OperatorLicenceData[]>({
     queryKey: ["operator-licences", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/operator-licences/${companyId}`);
+      const res = await fetch(`/api/operator-licences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
@@ -362,7 +368,7 @@ export default function OperatorLicence() {
   const { data: unassignedData } = useQuery<{ count: number; total: number }>({
     queryKey: ["unassigned-count", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/operator-licences/unassigned-count/${companyId}`);
+      const res = await fetch(`/api/operator-licences/unassigned-count/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
@@ -385,7 +391,7 @@ export default function OperatorLicence() {
 
       const res = await fetch("/api/operator-licences", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to create");
@@ -416,7 +422,7 @@ export default function OperatorLicence() {
 
       const res = await fetch(`/api/operator-licences/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to update");
@@ -433,7 +439,7 @@ export default function OperatorLicence() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/operator-licences/${id}?companyId=${companyId}`, { method: "DELETE" });
+      const res = await fetch(`/api/operator-licences/${id}?companyId=${companyId}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to delete");
       return res.json();
     },

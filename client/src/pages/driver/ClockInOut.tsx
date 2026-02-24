@@ -5,6 +5,12 @@ import { Clock, MapPin, CheckCircle, XCircle, Loader2, AlertCircle, ChevronDown,
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gpsTrackingService } from '@/services/gpsTracking';
 import { session } from '@/lib/session';
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import {
   Dialog,
   DialogContent,
@@ -65,7 +71,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   const { data: geofences = [] } = useQuery<Geofence[]>({
     queryKey: ['geofences', companyId],
     queryFn: async () => {
-      const response = await fetch(`/api/geofences/${companyId}`);
+      const response = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch depots');
       return response.json();
     }
@@ -75,7 +81,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   const { data: activeTimesheet, isLoading: loadingTimesheet } = useQuery<ActiveTimesheet | null>({
     queryKey: ['active-timesheet', driverId],
     queryFn: async () => {
-      const response = await fetch(`/api/timesheets/active/${driverId}`);
+      const response = await fetch(`/api/timesheets/active/${driverId}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch active timesheet');
       const data = await response.json();
       return data.timesheet || null;
@@ -192,7 +198,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
 
       const response = await fetch('/api/timesheets/clock-in', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           driverId,
@@ -228,7 +234,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
 
       const response = await fetch('/api/timesheets/clock-out', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           timesheetId: activeTimesheet.id,
           latitude: currentLocation?.lat?.toString() || null,

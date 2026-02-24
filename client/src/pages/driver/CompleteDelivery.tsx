@@ -4,6 +4,11 @@ import { TitanButton } from "@/components/titan-ui/Button";
 import { SignaturePad } from "@/components/SignaturePad";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { useLocation, useSearch } from "wouter";
 import { api } from "@/lib/api";
 import { Textarea } from "@/components/ui/textarea";
@@ -172,7 +177,7 @@ export default function CompleteDelivery() {
     try {
       const res = await fetch("/api/deliveries/upload-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           filename: `photo-${Date.now()}.jpg`,
@@ -223,7 +228,7 @@ export default function CompleteDelivery() {
 
       const res = await fetch("/api/deliveries/upload-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company.id,
           filename: `signature-${Date.now()}.png`,
@@ -283,7 +288,7 @@ export default function CompleteDelivery() {
 
       const res = await fetch("/api/deliveries", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to submit delivery");

@@ -10,6 +10,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { pushNotificationService } from '@/services/pushNotifications';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Notification {
   id: number;
@@ -40,7 +46,7 @@ export default function NotificationCenter() {
 
   const loadNotifications = async () => {
     try {
-      const response = await fetch(`/api/notifications/history/${userId}`);
+      const response = await fetch(`/api/notifications/history/${userId}`, { headers: authHeaders() });
       const data = await response.json();
       setNotifications(data);
     } catch (error) {
@@ -102,7 +108,8 @@ export default function NotificationCenter() {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST'
+        method: 'POST',
+        headers: authHeaders()
       });
 
       setNotifications(notifications.map(n =>
@@ -116,7 +123,8 @@ export default function NotificationCenter() {
   const handleMarkAllAsRead = async () => {
     try {
       await fetch(`/api/notifications/read-all/${userId}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: authHeaders()
       });
 
       setNotifications(notifications.map(n => ({ ...n, isRead: true, readAt: new Date() })));
@@ -133,7 +141,8 @@ export default function NotificationCenter() {
   const handleDelete = async (notificationId: number) => {
     try {
       await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
 
       setNotifications(notifications.filter(n => n.id !== notificationId));

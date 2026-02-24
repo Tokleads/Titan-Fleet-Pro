@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import {
   Select,
   SelectContent,
@@ -75,7 +81,7 @@ export default function UserManagement() {
     try {
       setLoading(true);
       const companyId = localStorage.getItem('companyId');
-      const response = await fetch(`/api/users?companyId=${companyId}`);
+      const response = await fetch(`/api/users?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -93,7 +99,7 @@ export default function UserManagement() {
       const companyId = localStorage.getItem('companyId');
       const response = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           ...formData,
           companyId: Number(companyId),
@@ -120,7 +126,7 @@ export default function UserManagement() {
     try {
       const response = await fetch(`/api/users/${userId}/role`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ role: newRole }),
       });
 
@@ -140,7 +146,7 @@ export default function UserManagement() {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ active: !active }),
       });
 
@@ -161,6 +167,7 @@ export default function UserManagement() {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
+        headers: authHeaders(),
       });
 
       if (response.ok) {

@@ -2,6 +2,11 @@ import { useState } from "react";
 import { DriverLayout } from "@/components/layout/AppShell";
 import { session } from "@/lib/session";
 import { useLocation } from "wouter";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { User, Building2, LogOut, Bell, Shield, ChevronRight, KeyRound } from "lucide-react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { useBrand } from "@/hooks/use-brand";
@@ -63,7 +68,7 @@ export default function DriverSettings() {
     try {
       const verifyRes = await fetch("/api/drivers/verify-pin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           driverId: user?.id,
           companyId: company?.id,
@@ -84,7 +89,7 @@ export default function DriverSettings() {
 
       const updateRes = await fetch(`/api/drivers/${user?.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           companyId: company?.id,
           pin: newPin,

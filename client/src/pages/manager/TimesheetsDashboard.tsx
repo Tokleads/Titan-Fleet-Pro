@@ -8,6 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Download, Calendar, Users, AlertCircle, CheckCircle2, Loader2, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths } from 'date-fns';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Driver {
   id: number;
@@ -60,7 +66,7 @@ export default function TimesheetsDashboard({ companyId }: TimesheetsDashboardPr
         endDate: dateRange.end
       });
       
-      const response = await fetch(`/api/timesheets/${companyId}?${params}`);
+      const response = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch timesheets');
       return response.json();
     },
@@ -135,7 +141,7 @@ export default function TimesheetsDashboard({ companyId }: TimesheetsDashboardPr
     try {
       const response = await fetch('/api/timesheets/export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           startDate: dateRange.start,

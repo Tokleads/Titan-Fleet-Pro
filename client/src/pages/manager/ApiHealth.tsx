@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ManagerLayout } from "./ManagerLayout";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import {
   Activity,
   AlertCircle,
@@ -23,7 +29,7 @@ export default function ApiHealth() {
   const { data: statusData, isLoading: statusLoading } = useQuery<any>({
     queryKey: ["api-health-status"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/api-health/status");
+      const res = await fetch("/api/admin/api-health/status", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch status");
       return res.json();
     },
@@ -32,7 +38,7 @@ export default function ApiHealth() {
   const { data: incidents, isLoading: incidentsLoading } = useQuery<any[]>({
     queryKey: ["api-health-incidents"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/api-health/incidents?status=open");
+      const res = await fetch("/api/admin/api-health/incidents?status=open", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch incidents");
       return res.json();
     },
@@ -42,7 +48,7 @@ export default function ApiHealth() {
   const { data: pendingFixes, isLoading: fixesLoading } = useQuery<any[]>({
     queryKey: ["api-health-fixes"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/api-health/fixes/pending");
+      const res = await fetch("/api/admin/api-health/fixes/pending", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch fixes");
       return res.json();
     },
@@ -52,7 +58,7 @@ export default function ApiHealth() {
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["api-health-analytics"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/api-health/analytics?days=7");
+      const res = await fetch("/api/admin/api-health/analytics?days=7", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch analytics");
       return res.json();
     },
@@ -61,7 +67,7 @@ export default function ApiHealth() {
 
   const runHealthCheck = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/api-health/check", { method: "POST" });
+      const res = await fetch("/api/admin/api-health/check", { method: "POST", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to run health check");
       return res.json();
     },
@@ -75,7 +81,7 @@ export default function ApiHealth() {
     mutationFn: async (fixId: number) => {
       const res = await fetch(`/api/admin/api-health/fixes/${fixId}/approve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ userId: 1 }),
       });
       if (!res.ok) throw new Error("Failed to approve fix");
@@ -91,6 +97,7 @@ export default function ApiHealth() {
     mutationFn: async (fixId: number) => {
       const res = await fetch(`/api/admin/api-health/fixes/${fixId}/reject`, {
         method: "POST",
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to reject fix");
       return res.json();

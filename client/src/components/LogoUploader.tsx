@@ -1,6 +1,12 @@
 import { useState, useRef } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { Upload, X, Loader2, Image } from "lucide-react";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface LogoUploaderProps {
   currentLogoUrl?: string;
@@ -38,7 +44,7 @@ export function LogoUploader({ currentLogoUrl, companyId, onUploadComplete }: Lo
     try {
       const uploadRes = await fetch(`/api/manager/company/${companyId}/logo/upload`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
       });
       
       if (!uploadRes.ok) {
@@ -59,7 +65,7 @@ export function LogoUploader({ currentLogoUrl, companyId, onUploadComplete }: Lo
 
       const saveRes = await fetch(`/api/manager/company/${companyId}/logo`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ logoURL: uploadURL }),
       });
 

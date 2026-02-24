@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Vehicle {
   id: number;
@@ -51,7 +57,7 @@ export default function VehicleDetails() {
   const { data: vehicle, isLoading: vehicleLoading } = useQuery<Vehicle>({
     queryKey: ["/api/vehicles", id],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles/${id}`);
+      const res = await fetch(`/api/vehicles/${id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicle");
       return res.json();
     },
@@ -60,7 +66,7 @@ export default function VehicleDetails() {
   const { data: serviceHistory = [] } = useQuery<ServiceRecord[]>({
     queryKey: ["/api/manager/vehicles", id, "service-history"],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/${id}/service-history`);
+      const res = await fetch(`/api/manager/vehicles/${id}/service-history`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },

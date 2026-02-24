@@ -13,8 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Bell, Search, Filter, Mail, MessageSquare, Smartphone, CheckCircle2, XCircle, Clock, Loader2, Trash2 } from 'lucide-react';
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 import { Pagination } from '@/components/Pagination';
-import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
 interface Notification {
@@ -66,7 +71,7 @@ function NotificationHistoryContent() {
         ...(searchQuery && { search: searchQuery })
       });
       
-      const response = await fetch(`/api/notification-preferences/history?${params}`);
+      const response = await fetch(`/api/notification-preferences/history?${params}`, { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch notifications');
       
       const data = await response.json();
@@ -95,7 +100,8 @@ function NotificationHistoryContent() {
     
     try {
       const response = await fetch(`/api/notification-preferences/history/${id}?companyId=${companyId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       });
       
       if (!response.ok) throw new Error('Delete failed');

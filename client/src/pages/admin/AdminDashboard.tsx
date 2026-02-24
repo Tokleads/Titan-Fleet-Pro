@@ -3,6 +3,13 @@ import { useLocation, Link } from "wouter";
 import { AdminLayout } from "./AdminLayout";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion } from "framer-motion";
+import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   Building2, 
   Users, 
@@ -53,6 +60,7 @@ export default function AdminDashboard() {
         const response = await fetch("/api/admin/stats", {
           headers: {
             "x-admin-token": token,
+            ...authHeaders(),
           },
         });
 

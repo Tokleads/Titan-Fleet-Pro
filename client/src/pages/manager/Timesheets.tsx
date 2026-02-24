@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 import { 
   Clock, 
   MapPin, 
@@ -100,7 +106,7 @@ export default function Timesheets() {
         startDate: dateRange.start,
         endDate: dateRange.end
       });
-      const res = await fetch(`/api/timesheets/${companyId}?${params}`);
+      const res = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch timesheets");
       return res.json();
     },
@@ -110,7 +116,7 @@ export default function Timesheets() {
   const { data: pendingAdjustments, isLoading: pendingLoading } = useQuery<Timesheet[]>({
     queryKey: ["pending-adjustments", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/timesheets/pending-adjustments/${companyId}`);
+      const res = await fetch(`/api/timesheets/pending-adjustments/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch pending adjustments");
       return res.json();
     },
@@ -120,7 +126,7 @@ export default function Timesheets() {
   const { data: drivers } = useQuery<Driver[]>({
     queryKey: ["drivers", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch drivers");
       const users = await res.json();
       return users.filter((u: Driver) => u.role === "DRIVER");
@@ -131,7 +137,7 @@ export default function Timesheets() {
   const { data: depots } = useQuery<Geofence[]>({
     queryKey: ["geofences", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/geofences/${companyId}`);
+      const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch depots");
       return res.json();
     },
@@ -146,7 +152,7 @@ export default function Timesheets() {
         startDate: driverPanelDates.start,
         endDate: driverPanelDates.end,
       });
-      const res = await fetch(`/api/timesheets/${companyId}?${params}`);
+      const res = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch driver timesheets");
       return res.json();
     },
@@ -178,7 +184,7 @@ export default function Timesheets() {
     mutationFn: async ({ id, arrivalTime, departureTime, note }: { id: number; arrivalTime: string; departureTime: string; note: string }) => {
       const res = await fetch(`/api/timesheets/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           role: userRole,
           requestedBy: currentUser?.id,
@@ -200,7 +206,7 @@ export default function Timesheets() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/timesheets/${id}/approve-adjustment`, { method: "POST" });
+      const res = await fetch(`/api/timesheets/${id}/approve-adjustment`, { method: "POST", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to approve");
       return res.json();
     },
@@ -212,7 +218,7 @@ export default function Timesheets() {
 
   const rejectMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/timesheets/${id}/reject-adjustment`, { method: "POST" });
+      const res = await fetch(`/api/timesheets/${id}/reject-adjustment`, { method: "POST", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to reject");
       return res.json();
     },
@@ -239,7 +245,7 @@ export default function Timesheets() {
     try {
       const res = await fetch('/api/timesheets/export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           startDate: dateRange.start,
@@ -270,7 +276,7 @@ export default function Timesheets() {
     try {
       const res = await fetch('/api/timesheets/export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId,
           startDate: driverPanelDates.start,
