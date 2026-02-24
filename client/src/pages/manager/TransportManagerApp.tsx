@@ -25,6 +25,11 @@ import {
   Activity,
   LayoutDashboard,
   ExternalLink,
+  Download,
+  Smartphone,
+  Share2,
+  MoreHorizontal,
+  Truck,
 } from "lucide-react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -138,13 +143,14 @@ interface Geofence {
   longitude?: string;
 }
 
-type TabId = "map" | "onduty" | "checks" | "timesheets";
+type TabId = "map" | "onduty" | "checks" | "timesheets" | "more";
 
 const TABS: { id: TabId; label: string; icon: typeof Navigation }[] = [
   { id: "map", label: "Map", icon: Navigation },
   { id: "onduty", label: "On Duty", icon: Users },
   { id: "checks", label: "Checks", icon: ClipboardCheck },
   { id: "timesheets", label: "Timesheets", icon: Clock },
+  { id: "more", label: "More", icon: MoreHorizontal },
 ];
 
 function MapTab({
@@ -1016,6 +1022,154 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
   );
 }
 
+function MoreTab({ companyName }: { companyName: string }) {
+  const [, setLocation] = useLocation();
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+
+  const handleShare = async (url: string, title: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <div className="px-4 py-4 bg-white border-b border-slate-200/60">
+        <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }} data-testid="text-more-title">
+          Download Apps
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">Install to your phone's home screen for quick access</p>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="bg-slate-900 px-5 py-4 flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <Smartphone className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-base" style={{ fontFamily: "Oswald, sans-serif" }}>TM Manager App</h3>
+              <p className="text-slate-400 text-xs">For Transport Managers</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-sm text-slate-600">
+              The app you're using right now. Install it to your home screen for instant access — no app store needed.
+            </p>
+            <button
+              onClick={() => handleShare(`${appUrl}/manager/app`, `${companyName} - TM Manager App`)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors min-h-[56px]"
+              data-testid="button-share-tm-app"
+            >
+              <Share2 className="h-4 w-4" />
+              Share / Copy Link
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="bg-emerald-700 px-5 py-4 flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+              <Truck className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-base" style={{ fontFamily: "Oswald, sans-serif" }}>Driver App</h3>
+              <p className="text-emerald-300 text-xs">For your drivers</p>
+            </div>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-sm text-slate-600">
+              Send this link to your drivers so they can install the Driver App on their phone for inspections, clock in/out, and deliveries.
+            </p>
+            <button
+              onClick={() => handleShare(`${appUrl}/app`, `${companyName} - Driver App`)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 active:bg-emerald-800 transition-colors min-h-[56px]"
+              data-testid="button-share-driver-app"
+            >
+              <Share2 className="h-4 w-4" />
+              Share Driver App Link
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-2xl border border-blue-100 p-5">
+          <h3 className="font-bold text-slate-900 text-sm mb-3" style={{ fontFamily: "Oswald, sans-serif" }}>
+            How to Install
+          </h3>
+          {isIOS ? (
+            <ol className="space-y-2 text-sm text-slate-600">
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">1.</span> Tap the <strong>Share</strong> button (box with arrow) in Safari</li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">2.</span> Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">3.</span> Tap <strong>"Add"</strong> — the app icon will appear on your home screen</li>
+            </ol>
+          ) : isAndroid ? (
+            <ol className="space-y-2 text-sm text-slate-600">
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">1.</span> Tap the <strong>three dots menu</strong> (⋮) in Chrome</li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">2.</span> Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">3.</span> Tap <strong>"Add"</strong> — the app icon will appear on your home screen</li>
+            </ol>
+          ) : (
+            <ol className="space-y-2 text-sm text-slate-600">
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">1.</span> Open the link on your phone in <strong>Safari</strong> (iPhone) or <strong>Chrome</strong> (Android)</li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">2.</span> Use the browser menu to select <strong>"Add to Home Screen"</strong></li>
+              <li className="flex gap-2"><span className="font-bold text-blue-600 flex-shrink-0">3.</span> The app will appear as an icon on your home screen</li>
+            </ol>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 space-y-3">
+          <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: "Oswald, sans-serif" }}>
+            Quick Links
+          </h3>
+          <Link
+            href="/manager"
+            className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors min-h-[56px]"
+            data-testid="link-full-dashboard-more"
+          >
+            <LayoutDashboard className="h-5 w-5 text-slate-500" />
+            <div className="flex-1">
+              <p className="font-medium text-sm text-slate-900">Full Dashboard</p>
+              <p className="text-xs text-slate-400">Desktop management console</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </Link>
+          <Link
+            href="/manager/drivers"
+            className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors min-h-[56px]"
+            data-testid="link-all-drivers-more"
+          >
+            <Users className="h-5 w-5 text-slate-500" />
+            <div className="flex-1">
+              <p className="font-medium text-sm text-slate-900">All Drivers</p>
+              <p className="text-xs text-slate-400">Manage driver accounts</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </Link>
+          <Link
+            href="/manager/fleet"
+            className="flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors min-h-[56px]"
+            data-testid="link-fleet-more"
+          >
+            <Truck className="h-5 w-5 text-slate-500" />
+            <div className="flex-1">
+              <p className="font-medium text-sm text-slate-900">Fleet</p>
+              <p className="text-xs text-slate-400">Vehicles and compliance</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TransportManagerApp() {
   const [, setLocation] = useLocation();
   const user = session.getUser();
@@ -1082,6 +1236,7 @@ export default function TransportManagerApp() {
             {activeTab === "onduty" && <OnDutyTab companyId={companyId} />}
             {activeTab === "checks" && <ChecksTab companyId={companyId} />}
             {activeTab === "timesheets" && <TimesheetsTab companyId={companyId} />}
+            {activeTab === "more" && <MoreTab companyName={company.name} />}
           </motion.div>
         </AnimatePresence>
       </main>
