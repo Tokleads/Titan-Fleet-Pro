@@ -94,6 +94,11 @@ function isToday(dateStr: string) {
     date.getDate() === now.getDate();
 }
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export default function ManagerDashboard() {
   const company = session.getCompany();
   const companyId = company?.id;
@@ -118,7 +123,7 @@ export default function ManagerDashboard() {
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json();
     },
@@ -129,7 +134,7 @@ export default function ManagerDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["manager-stats", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/stats/${companyId}`);
+      const res = await fetch(`/api/manager/stats/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
@@ -140,7 +145,7 @@ export default function ManagerDashboard() {
   const { data: inspections, isLoading: inspectionsLoading } = useQuery({
     queryKey: ["manager-inspections", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/inspections/${companyId}?limit=20`);
+      const res = await fetch(`/api/manager/inspections/${companyId}?limit=20`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch inspections");
       return res.json();
     },
@@ -150,7 +155,7 @@ export default function ManagerDashboard() {
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/vehicles?companyId=${companyId}`);
+      const res = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -160,7 +165,7 @@ export default function ManagerDashboard() {
   const { data: users } = useQuery({
     queryKey: ["users", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${companyId}`);
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
@@ -170,7 +175,7 @@ export default function ManagerDashboard() {
   const { data: driverMessages, isLoading: messagesLoading } = useQuery<DriverMessage[]>({
     queryKey: ["manager-messages", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/messages/${companyId}?limit=10`);
+      const res = await fetch(`/api/manager/messages/${companyId}?limit=10`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch messages");
       return res.json();
     },
@@ -181,7 +186,7 @@ export default function ManagerDashboard() {
   const { data: unreadCountData } = useQuery<{ count: number }>({
     queryKey: ["manager-messages-unread", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/messages/${companyId}/unread-count`);
+      const res = await fetch(`/api/manager/messages/${companyId}/unread-count`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch unread count");
       return res.json();
     },
@@ -198,7 +203,7 @@ export default function ManagerDashboard() {
   }>({
     queryKey: ["compliance-score", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/compliance-score/${companyId}`);
+      const res = await fetch(`/api/manager/compliance-score/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch compliance score");
       return res.json();
     },
@@ -209,7 +214,7 @@ export default function ManagerDashboard() {
   const { data: defects } = useQuery<Defect[]>({
     queryKey: ["manager-defects", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/defects/${companyId}`);
+      const res = await fetch(`/api/manager/defects/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch defects");
       return res.json();
     },
@@ -219,7 +224,7 @@ export default function ManagerDashboard() {
   const { data: onShiftDrivers } = useQuery<Array<{ driverId: number; driverName: string; depotName: string; latitude: string; longitude: string; arrivalTime: string }>>({
     queryKey: ["on-shift-drivers", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/on-shift/${companyId}`);
+      const res = await fetch(`/api/manager/on-shift/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
       return res.json();
     },
@@ -237,7 +242,7 @@ export default function ManagerDashboard() {
       try {
         await fetch(`/api/manager/messages/${msg.id}/read`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ companyId }),
         });
         queryClient.invalidateQueries({ queryKey: ["manager-messages", companyId] });

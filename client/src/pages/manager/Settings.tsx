@@ -45,6 +45,11 @@ function FeatureToggle({ label, description, enabled, onToggle }: { label: strin
 }
 
 export default function Settings() {
+  function authHeaders(): Record<string, string> {
+    const token = session.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   const { tenant } = useBrand();
   const company = session.getCompany();
   const queryClient = useQueryClient();
@@ -82,7 +87,7 @@ export default function Settings() {
   const { data: twoFAStatus, refetch: refetchTwoFAStatus } = useQuery({
     queryKey: ['2fa-status', manager?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/2fa/status/${manager?.id}`);
+      const res = await fetch(`/api/manager/2fa/status/${manager?.id}`, { headers: authHeaders() });
       return res.json();
     },
     enabled: !!manager?.id
@@ -92,7 +97,7 @@ export default function Settings() {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/company/${company?.id}/gdrive/test`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ clientId, clientSecret, refreshToken }),
       });
       return res.json();
@@ -106,7 +111,7 @@ export default function Settings() {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/company/${company?.id}/gdrive`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ clientId, clientSecret, refreshToken, folderId }),
       });
       return res.json();
@@ -128,7 +133,7 @@ export default function Settings() {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/company/${company?.id}/gdrive`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ disconnect: true }),
       });
       return res.json();
@@ -143,7 +148,7 @@ export default function Settings() {
   // 2FA mutations
   const setup2FA = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/manager/2fa/setup/${manager?.id}`, { method: "POST" });
+      const res = await fetch(`/api/manager/2fa/setup/${manager?.id}`, { method: "POST", headers: authHeaders() });
       return res.json();
     },
     onSuccess: (data) => {
@@ -157,7 +162,7 @@ export default function Settings() {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/2fa/enable/${manager?.id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ token: totpCode }),
       });
       return res.json();
@@ -177,7 +182,7 @@ export default function Settings() {
     mutationFn: async () => {
       const res = await fetch(`/api/manager/2fa/disable/${manager?.id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ token: totpCode }),
       });
       return res.json();
@@ -199,7 +204,7 @@ export default function Settings() {
   const { data: users = [], refetch: refetchUsers } = useQuery({
     queryKey: ['users', company?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/users/${company?.id}`);
+      const res = await fetch(`/api/manager/users/${company?.id}`, { headers: authHeaders() });
       return res.json();
     },
     enabled: !!company?.id
@@ -209,7 +214,7 @@ export default function Settings() {
     mutationFn: async (userData: typeof userForm) => {
       const res = await fetch('/api/manager/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           companyId: company?.id,
           ...userData,
@@ -236,7 +241,7 @@ export default function Settings() {
     mutationFn: async ({ id, ...data }: { id: number } & Partial<typeof userForm>) => {
       const res = await fetch(`/api/manager/users/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ ...data, pin: data.pin || null, managerId: manager?.id, companyId: company?.id }),
       });
       const result = await res.json();
@@ -258,7 +263,7 @@ export default function Settings() {
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/manager/users/${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ managerId: manager?.id, companyId: company?.id }),
       });
       const data = await res.json();
@@ -704,7 +709,7 @@ export default function Settings() {
                             try {
                                 const res = await fetch(`/api/manager/company/${company.id}/settings`, {
                                     method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
+                                    headers: { "Content-Type": "application/json", ...authHeaders() },
                                     body: JSON.stringify({ settings: { podEnabled: enabled } }),
                                 });
                                 if (res.ok) {
@@ -723,7 +728,7 @@ export default function Settings() {
                             try {
                                 const res = await fetch(`/api/manager/company/${company.id}/settings`, {
                                     method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
+                                    headers: { "Content-Type": "application/json", ...authHeaders() },
                                     body: JSON.stringify({ settings: { fuelEnabled: enabled } }),
                                 });
                                 if (res.ok) {

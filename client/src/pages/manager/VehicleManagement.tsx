@@ -37,6 +37,11 @@ import {
   Minus,
 } from "lucide-react";
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 type TabId =
   | "overview"
   | "list"
@@ -137,7 +142,7 @@ function OverviewTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-overview", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/overview?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/overview?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch overview");
       return res.json();
     },
@@ -248,7 +253,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-list", companyId, page, search],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/list?companyId=${companyId}&page=${page}&perPage=${perPage}&search=${encodeURIComponent(search)}`);
+      const res = await fetch(`/api/manager/vehicles/list?companyId=${companyId}&page=${page}&perPage=${perPage}&search=${encodeURIComponent(search)}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
@@ -259,7 +264,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
     mutationFn: async (vehicleData: any) => {
       const res = await fetch('/api/manager/vehicles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(vehicleData),
       });
       const result = await res.json();
@@ -285,7 +290,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
     setIsLookingUpMot(true);
     setMotLookupResult(null);
     try {
-      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`);
+      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`, { headers: authHeaders() });
       const data = await res.json();
       if (res.ok && data.motDue) {
         setMotLookupResult({ motDue: data.motDue, status: data.status });
@@ -551,7 +556,7 @@ function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: num
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-safety-checks", companyId, startDate, endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/safety-checks?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`);
+      const res = await fetch(`/api/manager/vehicles/safety-checks?companyId=${companyId}&startDate=${startDate}&endDate=${endDate}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch safety checks");
       return res.json();
     },
@@ -560,7 +565,7 @@ function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: num
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/inspections/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/inspections/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to delete inspection");
       return res.json();
     },
@@ -573,7 +578,7 @@ function SafetyChecksTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: num
   const viewInspection = async (id: number) => {
     setLoadingDetail(true);
     try {
-      const res = await fetch(`/api/inspections/${id}`);
+      const res = await fetch(`/api/inspections/${id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch inspection");
       const detail = await res.json();
       setSelectedInspection(detail);
@@ -870,7 +875,7 @@ function DefectsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number; 
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-defects", companyId, statusFilter],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/defects?companyId=${companyId}&status=${statusFilter}`);
+      const res = await fetch(`/api/manager/vehicles/defects?companyId=${companyId}&status=${statusFilter}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch defects");
       return res.json();
     },
@@ -1189,7 +1194,7 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
   const { data: detail, isLoading } = useQuery({
     queryKey: ["defect-detail", activeDefectId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/defects/detail/${activeDefectId}`);
+      const res = await fetch(`/api/manager/defects/detail/${activeDefectId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch defect detail");
       return res.json();
     },
@@ -1588,7 +1593,7 @@ function PendingDefectsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: n
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-pending-defects", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/pending-defects?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/pending-defects?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch pending defects");
       return res.json();
     },
@@ -1641,7 +1646,7 @@ function MaintenanceTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: numb
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-maintenance", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/maintenance?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/maintenance?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch maintenance");
       return res.json();
     },
@@ -1753,7 +1758,7 @@ function ServicesDueTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-services-due", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/services-due?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/services-due?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch services due");
       return res.json();
     },
@@ -1821,7 +1826,7 @@ function MotsDueTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?:
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-mots-due", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/mots-due?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/mots-due?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch MOTs due");
       return res.json();
     },
@@ -1877,7 +1882,7 @@ function VorTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-vor", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/vor?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/vor?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch VOR");
       return res.json();
     },
@@ -1964,7 +1969,7 @@ function TaxDueTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: 
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-tax-due", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/tax-due?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/tax-due?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch tax due");
       return res.json();
     },
@@ -2007,7 +2012,7 @@ function SornTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (i
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-sorn", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/sorn?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/sorn?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch SORN");
       return res.json();
     },
@@ -2060,7 +2065,7 @@ function CollisionsTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: numbe
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-collisions", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/collisions?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/collisions?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch collisions");
       return res.json();
     },
@@ -2171,7 +2176,7 @@ function PenaltiesTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: number
   const { data, isLoading } = useQuery({
     queryKey: ["vehicle-mgmt-penalties", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/penalties?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/penalties?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch penalties");
       return res.json();
     },
@@ -2302,7 +2307,7 @@ function FuelPurchasesTab({ companyId, onVrmClick, vrmToIdMap }: { companyId: nu
   const { data, isLoading } = useQuery({
     queryKey: ["fuel-purchases", companyId, page, perPage, search, startDate, endDate, includeDiscarded],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/fuel-purchases?${params.toString()}`);
+      const res = await fetch(`/api/manager/vehicles/fuel-purchases?${params.toString()}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch fuel purchases");
       return res.json();
     },
@@ -2489,7 +2494,7 @@ export default function VehicleManagement() {
   const { data: allVehiclesData } = useQuery({
     queryKey: ["all-vehicles-lookup", companyId],
     queryFn: async () => {
-      const res = await fetch(`/api/manager/vehicles/list?companyId=${companyId}`);
+      const res = await fetch(`/api/manager/vehicles/list?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) return { vehicles: [] };
       return res.json();
     },
