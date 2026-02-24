@@ -1,0 +1,120 @@
+>
+> **IMPORTANT NOTE:** Your application already has a nearly complete system for granular permissions. The database `users` table has a `permissions` column, and the frontend `/manager/user-roles` page allows admins to toggle dashboard sections for each user. The **only missing piece** is that the backend API does not check these permissions before returning data. This prompt focuses on adding that crucial backend validation.
+
+# Replit Prompt: Implement Backend Granular Permissions
+
+I need to complete our Role-Based Access Control (RBAC) system. The frontend and database are already set up for per-user permissions, but the backend API endpoints are not protected. A user can access a URL directly even if the link is hidden in the UI.
+
+Your task is to create and apply a middleware to protect all sensitive manager API routes, ensuring they respect the granular permissions set in the `users.permissions` array.
+
+---
+
+### Step 1: Create the `requirePermission` Middleware
+
+In the `server/` directory, create a new file named `permissionGuard.ts`. This file will contain a middleware function that checks if a user has the required permission for a specific API endpoint.
+
+**File to Create:** `server/permissionGuard.ts`
+
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import { User } from '@shared/schema';
+import { RolePermissions } from '@shared/rbac';
+
+// This is our new middleware function
+export const requirePermission = (permissionKey: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as User | undefined;
+
+    // 1. If no user is attached to the request, deny access
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // 2. The ADMIN role always has access, regardless of the permissions array
+    if (user.role === 'ADMIN') {
+      return next();
+    }
+
+    // 3. Check the user's individual permissions array first.
+    // The `permissions` column on the `users` table stores per-user overrides.
+    const userHasIndividualPermission = Array.isArray(user.permissions) && user.permissions.includes(permissionKey);
+
+    if (userHasIndividualPermission) {
+      return next(); // User has the specific permission, allow access
+    }
+
+    // 4. If the user has no individual permissions set, fall back to their role's default permissions.
+    // This ensures the system still works for users who haven't been customized.
+    if (!user.permissions || user.permissions.length === 0) {
+        const rolePermissions = RolePermissions[user.role as keyof typeof RolePermissions] || [];
+        if (rolePermissions.includes(permissionKey)) {
+            return next();
+        }
+    }
+
+    // 5. If none of the above checks pass, the user does not have permission.
+    return res.status(403).json({ error: 'Forbidden', message: 'You do not have permission to access this resource.' });
+  };
+};
+```
+
+---
+
+### Step 2: Apply the Middleware to Secure API Routes
+
+Now, import and apply the `requirePermission` middleware to the relevant API routes in `server/routes.ts`. You need to protect the endpoints that expose sensitive information, such as pay rates and operator licences.
+
+**File to Modify:** `server/routes.ts`
+
+**Action:**
+
+1.  Import the new middleware at the top of the file:
+    ```typescript
+    import { requirePermission } from './permissionGuard';
+    ```
+
+2.  Apply the middleware to the specific routes that need protection. Use the `key` from `DASHBOARD_PERMISSION_KEYS` in `shared/schema.ts` for the permission string.
+
+**Example for Pay Rates:**
+
+```typescript
+// Find this route definition (around line 4127)
+app.get("/api/pay-rates/:companyId", async (req, res) => {
+  // ...
+});
+
+// Apply the middleware like this:
+app.get("/api/pay-rates/:companyId", requirePermission('pay-rates'), async (req, res) => {
+  // ...
+});
+```
+
+**Example for Operator Licences:**
+
+```typescript
+// Find this route definition (around line 5722)
+app.get("/api/operator-licences/:companyId/with-vehicles", async (req, res) => {
+  // ...
+});
+
+// Apply the middleware like this:
+app.get("/api/operator-licences/:companyId/with-vehicles", requirePermission('o-licence'), async (req, res) => {
+  // ...
+});
+```
+
+---
+
+### Step 3: Apply Protection to All Sensitive Routes
+
+Using the method from Step 2, apply the `requirePermission` middleware to the following list of routes to ensure all sensitive data endpoints are properly secured.
+
+| Route Path | Permission Key | File | Approximate Line |
+| :--- | :--- | :--- | :--- |
+| `/api/pay-rates/:companyId` | `pay-rates` | `server/routes.ts` | 4127 |
+| `/api/wages/calculate/:timesheetId` | `pay-rates` | `server/routes.ts` | 4233 |
+| `/api/operator-licences/:companyId/with-vehicles` | `o-licence` | `server/routes.ts` | 5722 |
+| `/api/manager/live-tracking/:companyId` | `live-tracking` | `server/routes.ts` | (Find this route) |
+| `/api/timesheets/company/:companyId` | `timesheets` | `server/routes.ts` | (Find this route) |
+
+By completing these steps, you will have a robust and complete permissions system that allows Transport Managers to safely delegate access to their staff.
