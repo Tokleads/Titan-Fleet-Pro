@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { session } from "@/lib/session";
 import { NotificationBell } from "@/components/NotificationBell";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,8 @@ import {
   Calendar,
   Loader2,
   Activity,
+  LayoutDashboard,
+  ExternalLink,
 } from "lucide-react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -444,7 +446,7 @@ function OnDutyTab({ companyId }: { companyId: number }) {
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="font-semibold text-slate-900">{driver.driverName}</p>
+                  <Link href="/manager/drivers" className="font-semibold text-blue-700 hover:underline" data-testid={`link-driver-${driver.driverId}`}>{driver.driverName}</Link>
                   <div className="flex items-center gap-1.5 mt-1">
                     <MapPin className="h-3.5 w-3.5 text-slate-400" />
                     <span className="text-sm text-slate-500">{driver.depotName || "Unknown"}</span>
@@ -668,11 +670,16 @@ function ChecksTab({ companyId }: { companyId: number }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-4 py-3 bg-white border-b border-slate-200/60">
-        <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }} data-testid="text-checks-title">
-          Driver Checks
-        </h2>
-        <p className="text-xs text-slate-400">{inspections.length} recent inspections</p>
+      <div className="px-4 py-3 bg-white border-b border-slate-200/60 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }} data-testid="text-checks-title">
+            Driver Checks
+          </h2>
+          <p className="text-xs text-slate-400">{inspections.length} recent inspections</p>
+        </div>
+        <Link href="/manager/inspections" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px]" data-testid="link-all-inspections">
+          View All <ExternalLink className="h-3 w-3" />
+        </Link>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -890,18 +897,23 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
             </h2>
             <p className="text-xs text-slate-400">{filtered.length} entries</p>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[44px] ${
-              showFilters
-                ? "bg-blue-50 text-blue-600 border border-blue-200"
-                : "bg-slate-100 text-slate-600"
-            }`}
-            data-testid="button-timesheets-filter"
-          >
-            <Filter className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <Link href="/manager/timesheets" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px]" data-testid="link-all-timesheets">
+              View All <ExternalLink className="h-3 w-3" />
+            </Link>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[44px] ${
+                showFilters
+                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+              data-testid="button-timesheets-filter"
+            >
+              <Filter className="h-4 w-4" />
             Filter
           </button>
+          </div>
         </div>
 
         {showFilters && (
@@ -1024,18 +1036,36 @@ export default function TransportManagerApp() {
     <div className="h-screen flex flex-col bg-slate-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-20 safe-area-top" data-testid="app-header">
         <div className="flex items-center gap-3 min-w-0">
-          <a
+          <Link
             href="/manager"
             className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors flex-shrink-0"
             data-testid="link-back-dashboard"
           >
             <ArrowLeft className="h-5 w-5" />
-          </a>
+          </Link>
           <span className="text-sm font-semibold truncate" data-testid="text-company-name">
             {company.name}
           </span>
         </div>
-        <NotificationBell />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/manager"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-white/10 hover:bg-white/20 transition-colors"
+            data-testid="link-full-dashboard"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Dashboard
+          </Link>
+          <Link
+            href="/manager/drivers"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-white/10 hover:bg-white/20 transition-colors"
+            data-testid="link-all-drivers"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Drivers
+          </Link>
+          <NotificationBell />
+        </div>
       </header>
 
       <main className="flex-1 overflow-hidden relative">
