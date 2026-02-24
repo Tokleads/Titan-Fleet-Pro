@@ -7,6 +7,11 @@ import type { Notification } from "@shared/schema";
 
 const POLL_INTERVAL = 30000;
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const priorityConfig = {
   URGENT: { color: "bg-red-500", textColor: "text-red-600", icon: AlertCircle },
   HIGH: { color: "bg-orange-500", textColor: "text-orange-600", icon: AlertTriangle },
