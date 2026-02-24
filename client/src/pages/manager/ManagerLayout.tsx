@@ -183,8 +183,20 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
+        {/* TM Mobile App Link */}
+        <div className="px-3 pt-3 pb-1">
+          <Link
+            href="/manager/app"
+            className={`flex items-center gap-3 px-3 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-150 shadow-sm ${!sidebarOpen ? 'justify-center' : ''}`}
+            data-testid="link-mobile-app-top"
+          >
+            <Smartphone className="h-5 w-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm font-semibold">TM Mobile App</span>}
+          </Link>
+        </div>
+
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {filteredNavItems.map((item) => {
             const isActive = location === item.path || 
               (item.path !== "/manager" && location.startsWith(item.path));
@@ -206,16 +218,8 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Mobile App + User section */}
-        <div className="p-3 border-t border-slate-100 space-y-1">
-          <Link
-            href="/manager/app"
-            className={`w-full flex items-center gap-3 px-3 py-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-150 ${!sidebarOpen ? 'justify-center' : ''}`}
-            data-testid="link-mobile-app"
-          >
-            <Smartphone className="h-5 w-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Mobile App</span>}
-          </Link>
+        {/* User section */}
+        <div className="p-3 border-t border-slate-100">
           <button 
             onClick={handleLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-150 ${!sidebarOpen ? 'justify-center' : ''}`}
