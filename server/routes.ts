@@ -22,6 +22,7 @@ import { triageDefect } from "./aiTriageService";
 import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
 import { maintenanceAlerts } from "@shared/schema";
 import { signToken, requireAuth, requireCompany, requireRole } from "./jwtAuth";
+import { requirePermission } from './permissionGuard';
 import { authLimiter } from "./rateLimiter";
 
 const objectStorageService = new ObjectStorageService();
@@ -3712,7 +3713,7 @@ export async function registerRoutes(
   });
 
   // Get pending adjustments for a company (must be before :companyId route)
-  app.get("/api/timesheets/pending-adjustments/:companyId", async (req, res) => {
+  app.get("/api/timesheets/pending-adjustments/:companyId", requirePermission('timesheets'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const pending = await db
@@ -3745,7 +3746,7 @@ export async function registerRoutes(
   });
 
   // Get timesheets for company
-  app.get("/api/timesheets/:companyId", async (req, res) => {
+  app.get("/api/timesheets/:companyId", requirePermission('timesheets'), async (req, res) => {
     try {
       const { status, startDate, endDate, driverId } = req.query;
       const timesheets = await storage.getTimesheets(
@@ -3763,7 +3764,7 @@ export async function registerRoutes(
   });
   
   // Export timesheets as CSV
-  app.post("/api/timesheets/export", async (req, res) => {
+  app.post("/api/timesheets/export", requirePermission('timesheets'), async (req, res) => {
     try {
       const { companyId, startDate, endDate, driverId } = req.body;
       
@@ -3793,7 +3794,7 @@ export async function registerRoutes(
   });
   
   // Manual timesheet override (with adjustment approval workflow)
-  app.patch("/api/timesheets/:id", async (req, res) => {
+  app.patch("/api/timesheets/:id", requirePermission('timesheets'), async (req, res) => {
     try {
       const { role: _clientRole, userId, requestedBy, adjustmentNote, arrivalTime, departureTime, ...otherUpdates } = req.body;
       const timesheetId = Number(req.params.id);
@@ -3854,7 +3855,7 @@ export async function registerRoutes(
   });
 
   // Approve adjustment
-  app.post("/api/timesheets/:id/approve-adjustment", async (req, res) => {
+  app.post("/api/timesheets/:id/approve-adjustment", requirePermission('timesheets'), async (req, res) => {
     try {
       const { userId } = req.body;
       if (!userId) {
@@ -3899,7 +3900,7 @@ export async function registerRoutes(
   });
 
   // Reject adjustment
-  app.post("/api/timesheets/:id/reject-adjustment", async (req, res) => {
+  app.post("/api/timesheets/:id/reject-adjustment", requirePermission('timesheets'), async (req, res) => {
     try {
       const { userId } = req.body;
       if (!userId) {
@@ -4124,7 +4125,7 @@ export async function registerRoutes(
   // ==================== PAY RATES & WAGE CALCULATIONS ====================
   
   // Get pay rates for company
-  app.get("/api/pay-rates/:companyId", async (req, res) => {
+  app.get("/api/pay-rates/:companyId", requirePermission('pay-rates'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const { initializeDefaultPayRates } = await import('./wageCalculationService');
@@ -4153,7 +4154,7 @@ export async function registerRoutes(
   });
   
   // Create or update pay rate
-  app.post("/api/pay-rates", async (req, res) => {
+  app.post("/api/pay-rates", requirePermission('pay-rates'), async (req, res) => {
     try {
       const { db } = await import('./db');
       const { payRates } = await import('../shared/schema');
@@ -4167,7 +4168,7 @@ export async function registerRoutes(
   });
   
   // Update pay rate
-  app.patch("/api/pay-rates/:id", async (req, res) => {
+  app.patch("/api/pay-rates/:id", requirePermission('pay-rates'), async (req, res) => {
     try {
       const { db } = await import('./db');
       const { payRates } = await import('../shared/schema');
@@ -4230,7 +4231,7 @@ export async function registerRoutes(
   });
   
   // Calculate wages for timesheet
-  app.post("/api/wages/calculate/:timesheetId", async (req, res) => {
+  app.post("/api/wages/calculate/:timesheetId", requirePermission('pay-rates'), async (req, res) => {
     try {
       const { calculateWages } = await import('./wageCalculationService');
       const { companyId, driverId, arrivalTime, departureTime } = req.body;
@@ -4251,7 +4252,7 @@ export async function registerRoutes(
   });
 
   // Get all pay rates for a company with driver info
-  app.get("/api/pay-rates/:companyId/drivers", async (req, res) => {
+  app.get("/api/pay-rates/:companyId/drivers", requirePermission('pay-rates'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const { db } = await import('./db');
@@ -4291,7 +4292,7 @@ export async function registerRoutes(
   });
 
   // Create or update a per-driver pay rate
-  app.post("/api/pay-rates/driver", async (req, res) => {
+  app.post("/api/pay-rates/driver", requirePermission('pay-rates'), async (req, res) => {
     try {
       const { companyId, driverId, baseRate, nightRate, weekendRate, bankHolidayRate, overtimeMultiplier } = req.body;
 
@@ -4368,7 +4369,7 @@ export async function registerRoutes(
   });
 
   // Delete a driver-specific pay rate
-  app.delete("/api/pay-rates/driver/:driverId/:companyId", async (req, res) => {
+  app.delete("/api/pay-rates/driver/:driverId/:companyId", requirePermission('pay-rates'), async (req, res) => {
     try {
       const driverId = Number(req.params.driverId);
       const companyId = Number(req.params.companyId);
@@ -4396,7 +4397,7 @@ export async function registerRoutes(
   });
 
   // Export wages as CSV
-  app.post("/api/wages/export-csv", async (req, res) => {
+  app.post("/api/wages/export-csv", requirePermission('pay-rates'), async (req, res) => {
     try {
       const { companyId, startDate, endDate } = req.body;
 
@@ -5697,7 +5698,7 @@ export async function registerRoutes(
   // ==================== OPERATOR LICENCES ====================
 
   // Get count of vehicles without an operator licence (must be before :companyId route)
-  app.get("/api/operator-licences/unassigned-count/:companyId", async (req, res) => {
+  app.get("/api/operator-licences/unassigned-count/:companyId", requirePermission('o-licence'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const allVehicles = await db.select({ id: vehicles.id })
@@ -5719,7 +5720,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/operator-licences/:companyId/with-vehicles", async (req, res) => {
+  app.get("/api/operator-licences/:companyId/with-vehicles", requirePermission('o-licence'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const licences = await db.select().from(operatorLicences)
@@ -5748,7 +5749,7 @@ export async function registerRoutes(
   });
 
   // Get all operator licences for company
-  app.get("/api/operator-licences/:companyId", async (req, res) => {
+  app.get("/api/operator-licences/:companyId", requirePermission('o-licence'), async (req, res) => {
     try {
       const companyId = Number(req.params.companyId);
       const licences = await db.select().from(operatorLicences)
@@ -5775,7 +5776,7 @@ export async function registerRoutes(
   });
 
   // Create operator licence
-  app.post("/api/operator-licences", async (req, res) => {
+  app.post("/api/operator-licences", requirePermission('o-licence'), async (req, res) => {
     try {
       const { companyId, licenceNumber, trafficArea, licenceType } = req.body;
       if (!companyId || !licenceNumber || !trafficArea || !licenceType) {
@@ -5815,7 +5816,7 @@ export async function registerRoutes(
   });
 
   // Delete operator licence
-  app.delete("/api/operator-licences/:id", async (req, res) => {
+  app.delete("/api/operator-licences/:id", requirePermission('o-licence'), async (req, res) => {
     try {
       const { companyId } = req.query;
       if (!companyId) return res.status(400).json({ error: "Missing companyId" });
@@ -5835,7 +5836,7 @@ export async function registerRoutes(
   });
 
   // Get vehicles assigned to a licence
-  app.get("/api/operator-licences/:id/vehicles", async (req, res) => {
+  app.get("/api/operator-licences/:id/vehicles", requirePermission('o-licence'), async (req, res) => {
     try {
       const assignments = await db.select({
         id: operatorLicenceVehicles.id,
@@ -5856,7 +5857,7 @@ export async function registerRoutes(
   });
 
   // Assign vehicle to licence
-  app.post("/api/operator-licences/:id/vehicles", async (req, res) => {
+  app.post("/api/operator-licences/:id/vehicles", requirePermission('o-licence'), async (req, res) => {
     try {
       const { vehicleId } = req.body;
       const [assignment] = await db.insert(operatorLicenceVehicles)
