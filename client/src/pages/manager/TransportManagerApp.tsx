@@ -850,13 +850,73 @@ function ChecksTab({ companyId }: { companyId: number }) {
   );
 }
 
+type DatePreset = "today" | "yesterday" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
+
+function getDatePresetRange(preset: DatePreset): { start: string; end: string } {
+  const today = new Date();
+  const toISO = (d: Date) => d.toISOString().split("T")[0];
+
+  switch (preset) {
+    case "today":
+      return { start: toISO(today), end: toISO(today) };
+    case "yesterday": {
+      const y = new Date(today);
+      y.setDate(y.getDate() - 1);
+      return { start: toISO(y), end: toISO(y) };
+    }
+    case "thisWeek": {
+      const dow = today.getDay();
+      const mon = new Date(today);
+      mon.setDate(today.getDate() - ((dow + 6) % 7));
+      return { start: toISO(mon), end: toISO(today) };
+    }
+    case "lastWeek": {
+      const dow = today.getDay();
+      const thisMon = new Date(today);
+      thisMon.setDate(today.getDate() - ((dow + 6) % 7));
+      const lastMon = new Date(thisMon);
+      lastMon.setDate(thisMon.getDate() - 7);
+      const lastSun = new Date(thisMon);
+      lastSun.setDate(thisMon.getDate() - 1);
+      return { start: toISO(lastMon), end: toISO(lastSun) };
+    }
+    case "thisMonth": {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start: toISO(first), end: toISO(today) };
+    }
+    case "lastMonth": {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const last = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: toISO(first), end: toISO(last) };
+    }
+    default:
+      return { start: toISO(new Date(Date.now() - 7 * 86400000)), end: toISO(today) };
+  }
+}
+
+const DATE_PRESET_LABELS: Record<DatePreset, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  thisWeek: "This Week",
+  lastWeek: "Last Week",
+  thisMonth: "This Month",
+  lastMonth: "Last Month",
+  custom: "Custom Range",
+};
+
 function TimesheetsTab({ companyId }: { companyId: number }) {
   const [driverFilter, setDriverFilter] = useState<string>("all");
-  const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0],
-    end: new Date().toISOString().split("T")[0],
-  });
-  const [showFilters, setShowFilters] = useState(false);
+  const [driverSearch, setDriverSearch] = useState("");
+  const [activePreset, setActivePreset] = useState<DatePreset>("thisWeek");
+  const [dateRange, setDateRange] = useState(() => getDatePresetRange("thisWeek"));
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+
+  const handlePresetChange = (preset: DatePreset) => {
+    setActivePreset(preset);
+    if (preset !== "custom") {
+      setDateRange(getDatePresetRange(preset));
+    }
+  };
 
   const { data: timesheets, isLoading } = useQuery<Timesheet[]>({
     queryKey: ["app-timesheets", companyId, dateRange],
@@ -889,74 +949,221 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
 
   const filtered = useMemo(() => {
     if (!timesheets) return [];
-    if (driverFilter === "all") return timesheets;
-    return timesheets.filter((t) => t.driverId === Number(driverFilter));
+    let result = timesheets;
+    if (driverFilter !== "all") {
+      result = result.filter((t) => t.driverId === Number(driverFilter));
+    }
+    return result;
   }, [timesheets, driverFilter]);
+
+  const filteredDrivers = useMemo(() => {
+    if (!drivers) return [];
+    if (!driverSearch.trim()) return drivers;
+    const q = driverSearch.toLowerCase();
+    return drivers.filter((d) => d.name.toLowerCase().includes(q));
+  }, [drivers, driverSearch]);
+
+  const driverTimesheetSummary = useMemo(() => {
+    if (!timesheets || !drivers) return [];
+    const map = new Map<number, { driver: Driver; totalMinutes: number; entries: number; latestDate: string }>();
+    for (const ts of timesheets) {
+      const existing = map.get(ts.driverId);
+      if (existing) {
+        existing.totalMinutes += ts.totalMinutes || 0;
+        existing.entries += 1;
+        if (ts.arrivalTime > existing.latestDate) existing.latestDate = ts.arrivalTime;
+      } else {
+        const driver = drivers.find((d) => d.id === ts.driverId);
+        if (driver) {
+          map.set(ts.driverId, {
+            driver,
+            totalMinutes: ts.totalMinutes || 0,
+            entries: 1,
+            latestDate: ts.arrivalTime,
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  }, [timesheets, drivers]);
+
+  const filteredSummary = useMemo(() => {
+    if (!driverSearch.trim()) return driverTimesheetSummary;
+    const q = driverSearch.toLowerCase();
+    return driverTimesheetSummary.filter((s) => s.driver.name.toLowerCase().includes(q));
+  }, [driverTimesheetSummary, driverSearch]);
+
+  if (selectedDriver) {
+    const driverEntries = filtered.filter((t) => t.driverId === selectedDriver.id);
+    const totalHours = driverEntries.reduce((sum, t) => sum + (t.totalMinutes || 0), 0);
+
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="px-4 py-3 bg-white border-b border-slate-200/60">
+          <button
+            onClick={() => setSelectedDriver(null)}
+            className="flex items-center gap-2 text-blue-600 text-sm font-medium mb-2 min-h-[44px]"
+            data-testid="button-back-to-drivers"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to all drivers
+          </button>
+          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }}>
+            {selectedDriver.name}
+          </h2>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="bg-blue-50 px-3 py-1.5 rounded-lg">
+              <span className="text-xs text-blue-600 font-medium">{driverEntries.length} entries</span>
+            </div>
+            <div className="bg-emerald-50 px-3 py-1.5 rounded-lg">
+              <span className="text-xs text-emerald-600 font-medium">{formatDuration(totalHours)} total</span>
+            </div>
+            <div className="bg-slate-100 px-3 py-1.5 rounded-lg">
+              <span className="text-xs text-slate-600 font-medium">
+                {dateRange.start === dateRange.end
+                  ? new Date(dateRange.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+                  : `${new Date(dateRange.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(dateRange.end).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {driverEntries.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">No entries for this period</p>
+              <p className="text-sm text-slate-400 mt-1">Try a different date range</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {driverEntries.map((ts) => (
+                <div
+                  key={ts.id}
+                  className="px-4 py-3.5 hover:bg-slate-50 transition-colors"
+                  data-testid={`card-timesheet-detail-${ts.id}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-900">
+                          {new Date(ts.arrivalTime).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <MapPin className="h-3 w-3 text-slate-400" />
+                        <span className="text-xs text-slate-500">{ts.depotName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Clock className="h-3 w-3 text-slate-400" />
+                        <span className="text-xs text-slate-600 font-medium">
+                          {formatTimeUK(ts.arrivalTime)}
+                          {ts.departureTime ? ` – ${formatTimeUK(ts.departureTime)}` : " – ongoing"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                          ts.status === "COMPLETED"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-blue-50 text-blue-700"
+                        }`}
+                      >
+                        {ts.status === "COMPLETED" ? "Completed" : "Active"}
+                      </span>
+                      <p className="text-sm font-bold text-slate-900 mt-1">
+                        {formatDuration(ts.totalMinutes)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-4 py-3 bg-white border-b border-slate-200/60">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }} data-testid="text-timesheets-title">
               Timesheets
             </h2>
-            <p className="text-xs text-slate-400">{filtered.length} entries</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/manager/timesheets" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px]" data-testid="link-all-timesheets">
-              View All <ExternalLink className="h-3 w-3" />
-            </Link>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[44px] ${
-                showFilters
-                  ? "bg-blue-50 text-blue-600 border border-blue-200"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-              data-testid="button-timesheets-filter"
-            >
-              <Filter className="h-4 w-4" />
-            Filter
-          </button>
-          </div>
+          <Link href="/manager/timesheets" className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors min-h-[44px]" data-testid="link-all-timesheets">
+            Full View <ExternalLink className="h-3 w-3" />
+          </Link>
         </div>
 
-        {showFilters && (
-          <div className="mt-3 space-y-2.5 pb-1">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-400" />
-              <input
-                type="date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                data-testid="input-timesheet-start-date"
-              />
-              <span className="text-slate-400 text-xs">to</span>
-              <input
-                type="date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                data-testid="input-timesheet-end-date"
-              />
-            </div>
-            <select
-              value={driverFilter}
-              onChange={(e) => setDriverFilter(e.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white"
-              data-testid="select-timesheet-driver"
+        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+          {(Object.keys(DATE_PRESET_LABELS) as DatePreset[]).map((preset) => (
+            <button
+              key={preset}
+              onClick={() => handlePresetChange(preset)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
+                activePreset === preset
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+              data-testid={`button-preset-${preset}`}
             >
-              <option value="all">All Drivers</option>
-              {drivers?.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+              {DATE_PRESET_LABELS[preset]}
+            </button>
+          ))}
+        </div>
+
+        {activePreset === "custom" && (
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              data-testid="input-timesheet-start-date"
+            />
+            <span className="text-slate-400 text-xs">to</span>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              data-testid="input-timesheet-end-date"
+            />
           </div>
         )}
+
+        <div className="relative mt-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search driver..."
+            value={driverSearch}
+            onChange={(e) => setDriverSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
+            data-testid="input-search-driver-timesheets"
+          />
+          {driverSearch && (
+            <button onClick={() => setDriverSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="h-4 w-4 text-slate-400" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-slate-400">
+            {filteredSummary.length} driver{filteredSummary.length !== 1 ? "s" : ""} · {filtered.length} total entries
+          </p>
+          <p className="text-xs text-slate-400">
+            {activePreset !== "custom" ? DATE_PRESET_LABELS[activePreset] : `${dateRange.start} – ${dateRange.end}`}
+          </p>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -964,56 +1171,46 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filteredSummary.length === 0 ? (
           <div className="text-center py-12">
             <Clock className="h-12 w-12 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500 font-medium">No timesheets found</p>
-            <p className="text-sm text-slate-400 mt-1">Adjust filters to see results</p>
+            <p className="text-sm text-slate-400 mt-1">Try a different date range or search term</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {filtered.map((ts) => (
-              <div
-                key={ts.id}
-                className="px-4 py-3.5 hover:bg-slate-50 transition-colors"
-                data-testid={`card-timesheet-${ts.id}`}
+            {filteredSummary.map((summary) => (
+              <button
+                key={summary.driver.id}
+                onClick={() => setSelectedDriver(summary.driver)}
+                className="w-full px-4 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                data-testid={`card-driver-timesheet-${summary.driver.id}`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 text-sm">
-                      {ts.driver?.name || `Driver ${ts.driverId}`}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <MapPin className="h-3 w-3 text-slate-400" />
-                      <span className="text-xs text-slate-500">{ts.depotName}</span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <span className="text-xs text-slate-400">
-                        {formatRelativeDate(ts.arrivalTime)}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {formatTimeUK(ts.arrivalTime)}
-                        {ts.departureTime ? ` – ${formatTimeUK(ts.departureTime)}` : ""}
-                      </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-4 w-4 text-slate-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 text-sm truncate">
+                          {summary.driver.name}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {summary.entries} entr{summary.entries !== 1 ? "ies" : "y"} · Last: {formatRelativeDate(summary.latestDate)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        ts.status === "COMPLETED"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-blue-50 text-blue-700"
-                      }`}
-                      data-testid={`badge-status-${ts.id}`}
-                    >
-                      {ts.status === "COMPLETED" ? "Completed" : "Active"}
-                    </span>
-                    <p className="text-sm font-semibold text-slate-900 mt-1">
-                      {formatDuration(ts.totalMinutes)}
-                    </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900">{formatDuration(summary.totalMinutes)}</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">Total</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
