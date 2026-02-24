@@ -75,7 +75,8 @@ export default function ManagerLogin() {
       session.setUser(data.manager);
       session.setCompany(data.company);
       localStorage.setItem("titanfleet_last_role", "manager");
-      setLocation("/manager");
+      const isMobile = window.innerWidth < 768;
+      setLocation(isMobile ? "/manager/app" : "/manager");
     } catch (error) {
       toast({
         title: "Login failed",

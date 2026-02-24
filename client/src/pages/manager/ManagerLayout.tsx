@@ -29,7 +29,8 @@ import {
   Gift,
   CarFront,
   ScrollText,
-  Brain
+  Brain,
+  Smartphone
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -205,8 +206,16 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User section */}
-        <div className="p-3 border-t border-slate-100">
+        {/* Mobile App + User section */}
+        <div className="p-3 border-t border-slate-100 space-y-1">
+          <Link
+            href="/manager/app"
+            className={`w-full flex items-center gap-3 px-3 py-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-150 ${!sidebarOpen ? 'justify-center' : ''}`}
+            data-testid="link-mobile-app"
+          >
+            <Smartphone className="h-5 w-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm font-medium">Mobile App</span>}
+          </Link>
           <button 
             onClick={handleLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-150 ${!sidebarOpen ? 'justify-center' : ''}`}
