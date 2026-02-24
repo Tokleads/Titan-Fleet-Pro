@@ -1,0 +1,154 @@
+# TitanFleet — Replit Troubleshooting Prompt for Login Issues
+
+---
+
+## How to Use This Prompt
+
+Copy and paste the section below directly into the **Replit AI Agent** chat window inside your TitanFleet Replit project. The more context you give it, the better the fix.
+
+---
+
+## Prompt to Copy into Replit AI Agent
+
+```
+I have a critical bug in my TitanFleet application (www.titanfleet.co.uk). My client is consistently unable to log in. Please investigate and fix all of the following issues comprehensively.
+
+---
+
+## APPLICATION OVERVIEW
+
+This is a full-stack application with:
+- Frontend: React + TypeScript + Vite + Wouter (client-side routing) + TanStack React Query
+- Backend: Node.js + Express + TypeScript
+- Database: PostgreSQL via Neon (connected as a Replit secret)
+- Auth: Custom session-based authentication + TOTP two-factor authentication (otplib)
+- ORM: Drizzle ORM
+
+There are two user types with separate login flows:
+1. **Manager Login** at `/manager/login` — two methods: (a) Company Code + Manager PIN, and (b) Email + Password
+2. **Driver Login** — linked from the manager login page but currently broken
+
+---
+
+## ISSUE 1 — BROKEN DRIVER LOGIN ROUTE (404 Error)
+
+The "Driver Login" link on the manager login page navigates to `/driver/login`, but this returns a 404 Page Not Found error. 
+
+**Please:**
+- Check the Wouter route definitions in the frontend router file and confirm whether `/driver/login` is registered as a valid route
+- If the route is missing, add it and connect it to the correct Driver login component
+- If the route exists but is unreachable, diagnose why Wouter is not matching it
+
+---
+
+## ISSUE 2 — DIRECT URL ACCESS TO PROTECTED ROUTES FAILS (404 Error)
+
+When a user navigates directly to any protected route (e.g., `/manager/dashboard`, `/manager/vehicles`, `/driver/app`) by typing the URL or refreshing the page, they receive a 404 error. This is a classic SPA (Single Page Application) routing problem on Replit.
+
+**Please:**
+- Check whether the Express backend has a catch-all route that serves `index.html` for all non-API routes. It should look something like this:
+  ```typescript
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+  ```
+- If this catch-all route is missing, add it. Ensure it is placed AFTER all API route definitions so it does not intercept API calls
+- Verify that the Vite build output directory is correctly referenced in the Express static file middleware
+- Check the `.replit` configuration file to confirm the `run` command builds the frontend before starting the server
+
+---
+
+## ISSUE 3 — MANAGER LOGIN FAILING (Company Code + PIN Method)
+
+The Company Code + Manager PIN login form is not working for the client.
+
+**Please:**
+- Locate the backend API endpoint that handles this login request (likely `POST /api/manager/login` or similar)
+- Add detailed `console.log` statements to trace the full authentication flow: credential receipt → database lookup → PIN comparison → session creation
+- Check the database query that looks up the manager by Company Code. Verify the Company Code is stored and queried in a consistent case (e.g., always uppercase). If not, normalise the input with `.toUpperCase().trim()` before the query
+- Verify that the PIN is being compared correctly. If the PIN is hashed in the database (e.g., with bcrypt), confirm `bcrypt.compare()` is being used, not a plain string comparison
+- Check the session creation logic. After a successful credential check, confirm that `req.session` is being set correctly and that `req.session.save()` is being called before sending the response
+- Check the session middleware configuration. Confirm that `express-session` (or equivalent) is initialised before the route handlers, and that the `secret`, `resave`, and `saveUninitialized` options are correctly set
+- Confirm the session cookie settings. For a production deployment, the cookie must have `secure: true` and `sameSite: 'lax'` or `'none'` (with `secure: true`) to work correctly over HTTPS
+
+---
+
+## ISSUE 4 — MANAGER LOGIN FAILING (Email + Password Method)
+
+The Email + Password login method may also be failing.
+
+**Please:**
+- Locate the backend API endpoint for email-based login
+- Check the database query that looks up the manager by email address. Ensure the email is normalised to lowercase before querying: `.toLowerCase().trim()`
+- Verify the password comparison logic. Confirm `bcrypt.compare()` is used and not a plain string comparison
+- Check for any rate-limiting middleware that may be blocking repeated login attempts from the client's IP address. If rate limiting is too aggressive, temporarily increase the threshold or add a whitelist for testing
+- Confirm the "Forgot your password?" reset flow works end-to-end. Check that the Resend email service API key is correctly set as a Replit Secret and that password reset emails are actually being sent
+
+---
+
+## ISSUE 5 — TWO-FACTOR AUTHENTICATION (TOTP) BLOCKING LOGIN
+
+Our application uses TOTP-based 2FA via `otplib`. If 2FA is enabled for the client's account, it may be silently failing.
+
+**Please:**
+- Check whether the client's manager account has 2FA enabled in the database
+- If 2FA is enabled, confirm the TOTP validation step in the login flow is working correctly
+- Check for time-drift issues: TOTP codes are time-sensitive. Ensure the Replit server's system clock is synchronised. You can verify this by running `date` in the Replit shell
+- If the client has lost access to their 2FA authenticator app, provide a way to temporarily disable 2FA for their account directly in the database so they can log in and re-enrol
+
+---
+
+## ISSUE 6 — DATABASE CONNECTION PROBLEMS
+
+The application connects to a Neon PostgreSQL database. A broken database connection would silently prevent all logins.
+
+**Please:**
+- Check the Replit Secrets panel and confirm the `DATABASE_URL` secret is present and correctly formatted (it should be a full Neon connection string including `?sslmode=require`)
+- Add a database connectivity check at server startup that logs a clear success or failure message
+- Check the Drizzle ORM configuration and confirm the connection pool settings are appropriate for a serverless/Replit environment (Neon recommends using `@neondatabase/serverless` with HTTP transport for serverless deployments)
+- Look for any recent database errors in the server logs
+
+---
+
+## ISSUE 7 — SESSION PERSISTENCE AND COOKIE PROBLEMS
+
+Even if login succeeds, the client may be getting logged out immediately due to session or cookie issues.
+
+**Please:**
+- Confirm the session store is configured correctly. If using the default in-memory session store, note that this will lose all sessions when the Replit server restarts. Consider switching to a database-backed session store (e.g., `connect-pg-simple`) for persistence
+- Check the `SESSION_SECRET` environment variable is set in Replit Secrets. If it is missing or changes between restarts, all existing sessions will be invalidated
+- Confirm the response from the login API endpoint includes a `Set-Cookie` header with the session cookie
+- Check for any CORS configuration issues that might be stripping cookies from cross-origin requests
+
+---
+
+## WHAT I NEED FROM YOU
+
+1. Diagnose all of the above issues by reading the relevant source files
+2. Fix each issue you find, explaining what was wrong and what you changed
+3. After making fixes, run the application and confirm the Manager login works for both the Company Code + PIN method and the Email + Password method
+4. Confirm the Driver Login route is accessible and functional
+5. Confirm that refreshing the page on any route does not produce a 404 error
+6. Provide a summary of all changes made
+
+Please start by reading the main server entry point, the authentication route handlers, the frontend router configuration, and the session middleware setup.
+```
+
+---
+
+## Additional Context to Tell Replit AI
+
+If the AI agent asks for more context, or if the above prompt does not fully resolve the issue, provide the following additional information:
+
+**Regarding the client's specific symptoms:** Ask your client exactly what they see when they try to log in. The answer will point to a specific issue:
+
+| What the Client Sees | Most Likely Cause |
+|---|---|
+| Page goes blank or spins forever | Backend API is not responding; check server logs |
+| "Invalid credentials" error message | Wrong Company Code, PIN, or password; or case-sensitivity mismatch in database query |
+| Redirected back to login immediately after signing in | Session is not being saved; check `req.session.save()` and cookie settings |
+| 404 error after clicking Sign In | The login API route is not registered on the backend |
+| 2FA code screen appears but never accepts the code | TOTP time-drift issue or incorrect secret stored in database |
+| Login works but dashboard shows 404 on refresh | Missing Express catch-all route for SPA routing |
+
+**Regarding the Replit deployment environment:** Replit uses HTTPS in production. Ensure all session cookies have `secure: true` set. If cookies are set without this flag, they will be silently dropped by the browser on HTTPS connections, which will make it appear as though login is failing even when authentication succeeds on the server.
