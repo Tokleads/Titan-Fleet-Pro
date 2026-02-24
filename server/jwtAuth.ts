@@ -2,11 +2,11 @@ import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 import type { UserRole } from '../shared/rbac';
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.ENCRYPTION_KEY;
+const JWT_SECRET = process.env.SESSION_SECRET;
 const JWT_EXPIRY = '24h';
 
 if (!JWT_SECRET) {
-  throw new Error('SESSION_SECRET or ENCRYPTION_KEY environment variable must be set for JWT authentication');
+  throw new Error('SESSION_SECRET environment variable must be set for JWT authentication');
 }
 
 const SECRET = JWT_SECRET;

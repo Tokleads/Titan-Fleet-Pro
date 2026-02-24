@@ -1132,7 +1132,7 @@ export async function registerRoutes(
   // Driver login
   app.post("/api/driver/login", authLimiter, async (req, res) => {
     try {
-      const companyCode = (req.body.companyCode || "").trim();
+      const companyCode = (req.body.companyCode || "").trim().toUpperCase();
       const pin = (req.body.pin || "").trim();
       if (!companyCode || !pin) {
         return res.status(400).json({ error: "Missing company code or PIN" });
@@ -1181,7 +1181,7 @@ export async function registerRoutes(
   // Manager login
   app.post("/api/manager/login", authLimiter, async (req, res) => {
     try {
-      const companyCode = (req.body.companyCode || "").trim();
+      const companyCode = (req.body.companyCode || "").trim().toUpperCase();
       const pin = (req.body.pin || "").trim();
       const totpToken = req.body.totpToken;
       if (!companyCode || !pin) {

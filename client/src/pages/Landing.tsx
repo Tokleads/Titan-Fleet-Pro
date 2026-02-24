@@ -82,14 +82,7 @@ export default function Landing() {
           session.setToken(token);
         }
         session.setCompany(company);
-        session.setUser({
-          ...user,
-          pin: null,
-          password: null,
-          createdAt: new Date(),
-          totpSecret: null,
-          totpEnabled: null,
-        });
+        session.setUser(user);
         refreshCompany();
         const isManager = ['TRANSPORT_MANAGER', 'ADMIN', 'MANAGER'].includes(user.role);
         localStorage.setItem("titanfleet_last_role", isManager ? "manager" : "driver");

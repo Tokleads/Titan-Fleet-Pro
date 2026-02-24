@@ -1,0 +1,111 @@
+# TitanFleet — Full-Stack Code Audit Report
+
+---
+
+## 1. Executive Summary
+
+Following your request, I have conducted a comprehensive, full-stack audit of the `Tokleads/Titan-Fleet-Pro` GitHub repository. The initial investigation focused on critical login bugs, but this deep-dive audit has uncovered **10 additional issues** spanning security, data integrity, and frontend logic.
+
+While the three critical login bugs are the most urgent, addressing the other issues identified in this report is essential for creating a secure, stable, and maintainable application. The findings are categorized by severity and area of concern.
+
+## 2. Critical Bugs (Preventing Login)
+
+These three bugs are the primary reason your client cannot log in. They were detailed in the previous prompt and are summarized here for completeness.
+
+| # | Severity | File | The Bug |
+|---|---|---|---|
+| 1 | **Critical** | `client/src/lib/queryClient.ts` | Unauthenticated drivers are redirected to `/driver/login`, a route that **does not exist**, causing a 404 error loop. The correct path is `/app`. |
+| 2 | **Critical** | `client/src/pages/manager/ManagerLayout.tsx` | The main manager layout is **missing an authentication guard**. A logged-out user accessing a manager URL is not redirected to the login page, causing the app to crash. |
+| 3 | **Critical** | `server/storage.ts` | The PIN login function (`getUserByCompanyAndPin`) uses incorrect lowercase role names (`'manager'`) instead of the correct uppercase enum values (`'TRANSPORT_MANAGER'`), causing PIN validation to **silently fail** for all managers. |
+
+## 3. Security Vulnerabilities
+
+### 3.1. Missing Rate Limiting on Email/Password Login
+
+*   **Severity:** **High**
+*   **File:** `server/authRoutes.ts`
+*   **Problem:** The PIN-based login at `/api/manager/login` is correctly protected by the `authLimiter` (5 attempts per 15 mins). However, the email/password login endpoint at `/api/auth/login` **has no rate-limiting middleware applied**. This leaves the primary authentication method vulnerable to high-speed brute-force attacks against user passwords.
+*   **Recommendation:** Apply the `authLimiter` to the email/password login route in `server/authRoutes.ts` immediately.
+
+    ```typescript
+    // In server/authRoutes.ts
+    import { authLimiter } from "./rateLimiter"; // Import the limiter
+
+    // Apply it to the login route
+    router.post("/login", authLimiter, async (req, res) => {
+      // ... existing login logic
+    });
+    ```
+
+### 3.2. Inconsistent Case-Sensitive Company Code Login
+
+*   **Severity:** **Medium**
+*   **File:** `server/routes.ts` (line 1184)
+*   **Problem:** The frontend correctly converts the company code to uppercase before sending it (`companyCode.toUpperCase()`). However, the backend endpoint `/api/manager/login` only performs a `.trim()` and does not enforce uppercase. The database query in `storage.ts` (`getCompanyByCode`) is case-sensitive. If a user manually enters a lowercase code, the login will fail even if the PIN is correct, which is confusing for users.
+*   **Recommendation:** Enforce `.toUpperCase()` on the backend for all company code lookups to ensure consistency.
+
+    ```typescript
+    // In server/routes.ts, line 1184
+    const companyCode = (req.body.companyCode || "").trim().toUpperCase(); // Add .toUpperCase()
+    ```
+
+## 4. Architectural & Data Integrity Issues
+
+### 4.1. Client-Side Session Management is Not Secure
+
+*   **Severity:** **High**
+*   **File:** `client/src/lib/session.ts`
+*   **Problem:** The application stores the JWT (authentication token), user object, and company object directly in `localStorage`. This is a significant security risk. `localStorage` is accessible to any third-party script running on your page (e.g., from a browser extension or a compromised CDN), making it trivial to steal a user's session token and gain full access to their account.
+*   **Recommendation:** Store the JWT in a **secure, `HttpOnly` cookie** instead. This makes the token inaccessible to JavaScript, mitigating the risk of XSS-based session hijacking. The backend should set this cookie upon login, and the browser will automatically include it in subsequent API requests.
+
+### 4.2. JWT Secret Relies on Potentially Insecure Fallback
+
+*   **Severity:** **Medium**
+*   **File:** `server/jwtAuth.ts` (line 5)
+*   **Problem:** The JWT secret is defined as `process.env.SESSION_SECRET || process.env.ENCRYPTION_KEY`. While the code correctly throws an error if neither is set, this fallback mechanism is fragile. If `SESSION_SECRET` is accidentally removed, it could fall back to `ENCRYPTION_KEY`, which may not be intended for this purpose or could be weaker, invalidating all active sessions.
+*   **Recommendation:** Remove the fallback and rely on a single, strong, and explicitly named environment variable like `JWT_SIGNING_SECRET`.
+
+    ```typescript
+    // In server/jwtAuth.ts
+    const JWT_SECRET = process.env.JWT_SIGNING_SECRET;
+    if (!JWT_SECRET) {
+      throw new Error("JWT_SIGNING_SECRET environment variable must be set");
+    }
+    ```
+
+### 4.3. Redundant and Conflicting Login Endpoints
+
+*   **Severity:** **Medium**
+*   **File:** `server/authRoutes.ts` and `server/routes.ts`
+*   **Problem:** There are two completely separate login systems: one for email/password in `authRoutes.ts` and another for company/PIN in `routes.ts`. This creates code duplication (e.g., JWT signing, user/company fetching) and makes the system harder to maintain and secure. It also led to the rate-limiting vulnerability mentioned above.
+*   **Recommendation:** Consolidate all authentication logic into a single router, preferably `authRoutes.ts`. Create a unified `/api/auth/login` endpoint that can handle both methods based on the presence of `email`/`password` or `companyCode`/`pin` in the request body.
+
+## 5. Frontend & UX Issues
+
+### 5.1. Driver Login Redirects to `/app` Instead of a Login Form
+
+*   **Severity:** **Low**
+*   **File:** `client/src/pages/driver/DriverDashboard.tsx` (line 87)
+*   **Problem:** When a logged-out user tries to access the driver dashboard, they are correctly redirected to `/app`. However, `/app` is the main entry point for drivers and also contains the login form. This can create a confusing UX where the user is redirected to the same page they were just on.
+*   **Recommendation:** Create a dedicated, simple login page at `/driver/login` that only contains the login form. The `/app` route can then be the protected route that the auth guard redirects to *after* a successful login.
+
+### 5.2. Sensitive User Data is Stripped on Login
+
+*   **Severity:** **Low**
+*   **File:** `client/src/pages/Landing.tsx` (lines 85-92)
+*   **Problem:** After a successful driver login, the code creates a new user object for the session but explicitly sets `pin`, `password`, and `totpSecret` to `null`. While this is done for security, it's unnecessary because the backend should never send these fields to the client in the first place. This client-side stripping indicates a potential lack of trust in the API's data filtering.
+*   **Recommendation:** Modify the backend login endpoints (`/api/driver/login` and `/api/auth/login`) to never return sensitive fields like `password`, `pin`, or `totpSecret`. The frontend should then be able to store the returned user object directly without modification.
+
+### 5.3. Inconsistent Casing for Company Code Input
+
+*   **Severity:** **Low**
+*   **File:** `client/src/pages/manager/ManagerLogin.tsx` (line 154)
+*   **Problem:** The company code input on the manager login page forces uppercase via `e.target.value.toUpperCase()`. However, the driver login page (`Landing.tsx`) does not. This creates an inconsistent user experience.
+*   **Recommendation:** Apply the `.toUpperCase()` transformation to the company code input on the driver login page (`Landing.tsx`) as well for a consistent experience.
+
+### 5.4. Unused `jwtAuth.ts` Middleware
+
+*   **Severity:** **Informational**
+*   **File:** `server/jwtAuth.ts`
+*   **Problem:** The `jwtAuth.ts` file defines several useful Express middleware functions like `requireAuth` and `requireRole`. However, these are not used anywhere in the application. Instead, a manual and less reusable check (`if (!req.user) ...`) is implemented directly in `server/routes.ts`.
+*   **Recommendation:** Refactor the authentication checks in `server/routes.ts` to use the `requireAuth` and `requireRole` middleware for cleaner, more declarative, and more maintainable code.
