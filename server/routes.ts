@@ -3695,15 +3695,27 @@ export async function registerRoutes(
     try {
       const companyId = Number(req.params.companyId);
       const driverId = Number(req.params.driverId);
+      const { startDate, endDate } = req.query;
+      
+      const conditions = [
+        eq(timesheets.companyId, companyId),
+        eq(timesheets.driverId, driverId),
+      ];
+
+      if (startDate) {
+        conditions.push(gte(timesheets.arrivalTime, new Date(startDate as string)));
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(sql`${timesheets.arrivalTime} <= ${end}`);
+      }
       
       const results = await db.select()
         .from(timesheets)
-        .where(and(
-          eq(timesheets.companyId, companyId),
-          eq(timesheets.driverId, driverId)
-        ))
+        .where(and(...conditions))
         .orderBy(desc(timesheets.arrivalTime))
-        .limit(50);
+        .limit(200);
       
       res.json(results);
     } catch (error) {
@@ -4682,6 +4694,47 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch public notifications:", error);
       res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/notifications/sent", async (req, res) => {
+    try {
+      const { companyId, senderId, limit: limitParam } = req.query;
+      
+      if (!companyId || !senderId) {
+        return res.status(400).json({ error: "Missing companyId or senderId" });
+      }
+      
+      const sentNotifications = await db
+        .select({
+          id: notifications.id,
+          companyId: notifications.companyId,
+          senderId: notifications.senderId,
+          recipientId: notifications.recipientId,
+          isBroadcast: notifications.isBroadcast,
+          title: notifications.title,
+          message: notifications.message,
+          priority: notifications.priority,
+          isRead: notifications.isRead,
+          readAt: notifications.readAt,
+          createdAt: notifications.createdAt,
+          recipientName: users.name,
+        })
+        .from(notifications)
+        .leftJoin(users, eq(notifications.recipientId, users.id))
+        .where(
+          and(
+            eq(notifications.companyId, Number(companyId)),
+            eq(notifications.senderId, Number(senderId))
+          )
+        )
+        .orderBy(desc(notifications.createdAt))
+        .limit(limitParam ? Number(limitParam) : 50);
+      
+      res.json(sentNotifications);
+    } catch (error) {
+      console.error("Failed to fetch sent notifications:", error);
+      res.status(500).json({ error: "Failed to fetch sent notifications" });
     }
   });
 

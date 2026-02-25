@@ -740,7 +740,7 @@ export default function Timesheets() {
                               <span className="text-blue-600 font-medium">In Progress</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                          <td className={`px-4 py-3 text-sm font-medium ${timesheet.totalMinutes && timesheet.totalMinutes >= 840 ? "text-red-600 font-bold" : "text-slate-900"}`}>
                             {formatDuration(timesheet.totalMinutes)}
                           </td>
                           <td className="px-4 py-3">
@@ -949,7 +949,7 @@ export default function Timesheets() {
             <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-700">Total Hours</span>
-                <span className="text-lg font-bold text-blue-800" data-testid="text-grand-total-hours">
+                <span className={`text-lg font-bold ${driverGrandTotalMinutes >= 840 ? "text-red-600" : "text-blue-800"}`} data-testid="text-grand-total-hours">
                   {Math.floor(driverGrandTotalMinutes / 60)}h {driverGrandTotalMinutes % 60}m
                 </span>
               </div>
@@ -969,7 +969,7 @@ export default function Timesheets() {
                         <Calendar className="h-3.5 w-3.5 inline mr-1.5 text-slate-400" />
                         {day.date}
                       </span>
-                      <span className="text-xs font-medium text-slate-500" data-testid={`text-day-total-${day.date}`}>
+                      <span className={`text-xs font-medium ${day.totalMinutes >= 840 ? "text-red-600 font-bold" : "text-slate-500"}`} data-testid={`text-day-total-${day.date}`}>
                         {Math.floor(day.totalMinutes / 60)}h {day.totalMinutes % 60}m
                       </span>
                     </div>

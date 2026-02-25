@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { DriverLayout } from "@/components/layout/AppShell";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
@@ -8,9 +8,19 @@ function authHeaders(): Record<string, string> {
   const token = session.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut } from "lucide-react";
+import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+
+function getMonday(d: Date): Date {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.getFullYear(), d.getMonth(), diff);
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
 
 export default function DriverHistory() {
   const [, setLocation] = useLocation();
@@ -20,6 +30,51 @@ export default function DriverHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "inspections" | "fuel" | "shifts">("all");
   const [expandedShiftId, setExpandedShiftId] = useState<number | null>(null);
+
+  const today = new Date();
+  const mondayThisWeek = getMonday(today);
+  const [shiftDateRange, setShiftDateRange] = useState({
+    start: toDateStr(mondayThisWeek),
+    end: toDateStr(today),
+  });
+  const [shiftPreset, setShiftPreset] = useState<string>("thisWeek");
+
+  const handleShiftPreset = useCallback((preset: string) => {
+    setShiftPreset(preset);
+    const now = new Date();
+    switch (preset) {
+      case "thisWeek": {
+        setShiftDateRange({ start: toDateStr(getMonday(now)), end: toDateStr(now) });
+        break;
+      }
+      case "lastWeek": {
+        const mon = getMonday(now);
+        const lastMon = new Date(mon);
+        lastMon.setDate(mon.getDate() - 7);
+        const lastSun = new Date(mon);
+        lastSun.setDate(mon.getDate() - 1);
+        setShiftDateRange({ start: toDateStr(lastMon), end: toDateStr(lastSun) });
+        break;
+      }
+      case "thisMonth": {
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        setShiftDateRange({ start: toDateStr(first), end: toDateStr(now) });
+        break;
+      }
+      case "lastMonth": {
+        const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const last = new Date(now.getFullYear(), now.getMonth(), 0);
+        setShiftDateRange({ start: toDateStr(first), end: toDateStr(last) });
+        break;
+      }
+      case "last30": {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 30);
+        setShiftDateRange({ start: toDateStr(d), end: toDateStr(now) });
+        break;
+      }
+    }
+  }, []);
 
   const user = session.getUser();
   const company = session.getCompany();
@@ -49,13 +104,23 @@ export default function DriverHistory() {
     };
     loadHistory();
 
-    fetch(`/api/driver/timesheets/${company.id}/${user.id}`, { headers: authHeaders() })
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !company) return;
+    let mounted = true;
+    const params = new URLSearchParams({
+      startDate: shiftDateRange.start,
+      endDate: shiftDateRange.end,
+    });
+    fetch(`/api/driver/timesheets/${company.id}/${user.id}?${params}`, { headers: authHeaders() })
       .then(res => res.json())
-      .then(data => { if (mounted) setTimesheetEntries(data); })
+      .then(data => { if (mounted) setTimesheetEntries(Array.isArray(data) ? data : []); })
       .catch(err => console.error("Failed to load timesheets:", err));
 
     return () => { mounted = false; };
-  }, []);
+  }, [shiftDateRange]);
 
   const timeline = useMemo(() => {
     const items: Array<{ type: "inspection" | "fuel" | "shift"; date: Date; data: any }> = [];
@@ -116,27 +181,79 @@ export default function DriverHistory() {
           </div>
         ) : (
           <>
-            {activeTab === "shifts" && timesheetEntries.length > 0 && (
-              <div className="titan-card p-4 mb-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200/60">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-purple-600 font-medium uppercase tracking-wider">Total Hours (Last 30 Days)</p>
-                    <p className="text-2xl font-bold text-purple-900 mt-1">
-                      {(() => {
-                        const totalMins = timesheetEntries
-                          .filter(t => t.status === "COMPLETED" && t.totalMinutes)
-                          .reduce((sum, t) => sum + t.totalMinutes, 0);
-                        const h = Math.floor(totalMins / 60);
-                        const m = totalMins % 60;
-                        return `${h}h ${m}m`;
-                      })()}
-                    </p>
+            {activeTab === "shifts" && (
+              <div className="space-y-3 mb-4">
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                  {[
+                    { key: "thisWeek", label: "This Week" },
+                    { key: "lastWeek", label: "Last Week" },
+                    { key: "thisMonth", label: "This Month" },
+                    { key: "lastMonth", label: "Last Month" },
+                    { key: "last30", label: "Last 30 Days" },
+                    { key: "custom", label: "Custom" },
+                  ].map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => handleShiftPreset(p.key)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
+                        shiftPreset === p.key
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                      data-testid={`button-shift-preset-${p.key}`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {shiftPreset === "custom" && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                    <input
+                      type="date"
+                      value={shiftDateRange.start}
+                      onChange={(e) => setShiftDateRange({ ...shiftDateRange, start: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                      data-testid="input-shift-start-date"
+                    />
+                    <span className="text-slate-400 text-xs">to</span>
+                    <input
+                      type="date"
+                      value={shiftDateRange.end}
+                      onChange={(e) => setShiftDateRange({ ...shiftDateRange, end: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                      data-testid="input-shift-end-date"
+                    />
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">Completed Shifts</p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {timesheetEntries.filter(t => t.status === "COMPLETED").length}
-                    </p>
+                )}
+
+                <div className="titan-card p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200/60">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-purple-600 font-medium uppercase tracking-wider">
+                        Total Hours
+                      </p>
+                      <p className="text-2xl font-bold text-purple-900 mt-1" data-testid="text-total-hours">
+                        {(() => {
+                          const totalMins = timesheetEntries
+                            .filter(t => t.status === "COMPLETED" && t.totalMinutes)
+                            .reduce((sum, t) => sum + t.totalMinutes, 0);
+                          const h = Math.floor(totalMins / 60);
+                          const m = totalMins % 60;
+                          return `${h}h ${m}m`;
+                        })()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Completed Shifts</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {timesheetEntries.filter(t => t.status === "COMPLETED").length}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {new Date(shiftDateRange.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(shiftDateRange.end).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

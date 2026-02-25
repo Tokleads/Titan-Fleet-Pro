@@ -118,6 +118,7 @@ export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").references(() => companies.id).notNull(),
   vrm: varchar("vrm", { length: 20 }).notNull(), // Registration
+  vin: varchar("vin", { length: 17 }), // Vehicle Identification Number
   make: text("make").notNull(),
   model: text("model").notNull(),
   fleetNumber: varchar("fleet_number", { length: 50 }),

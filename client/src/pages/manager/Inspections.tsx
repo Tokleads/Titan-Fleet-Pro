@@ -50,6 +50,18 @@ export default function ManagerInspections() {
   });
   const [selectedInspection, setSelectedInspection] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [inspectionTab, setInspectionTab] = useState<"vehicle" | "endOfShift">("vehicle");
+  const [enlargedPhoto, setEnlargedPhoto] = useState<string | null>(null);
+
+  const { data: shiftChecks, isLoading: shiftChecksLoading } = useQuery<any[]>({
+    queryKey: ["shift-checks", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/shift-checks/${companyId}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch shift checks");
+      return res.json();
+    },
+    enabled: !!companyId && inspectionTab === "endOfShift",
+  });
 
   const { data: inspectionsData, isLoading } = useQuery<{ inspections: any[]; total: number }>({
     queryKey: ["manager-inspections", companyId, page, filterStatus, filterVehicle, filterDriver, dateRange],
@@ -181,7 +193,7 @@ export default function ManagerInspections() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Inspections</h1>
-            <p className="text-slate-500 mt-0.5">All vehicle inspection records</p>
+            <p className="text-slate-500 mt-0.5">Vehicle and end-of-shift inspection records</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -294,6 +306,97 @@ export default function ManagerInspections() {
           </div>
         )}
 
+        <div className="flex gap-2 mb-2">
+          <button
+            onClick={() => setInspectionTab("vehicle")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              inspectionTab === "vehicle"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+            data-testid="tab-vehicle-inspections"
+          >
+            <ClipboardCheck className="h-4 w-4 inline mr-1.5" />
+            Vehicle Inspections
+          </button>
+          <button
+            onClick={() => setInspectionTab("endOfShift")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              inspectionTab === "endOfShift"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+            data-testid="tab-end-of-shift"
+          >
+            <Timer className="h-4 w-4 inline mr-1.5" />
+            End of Shift Checks
+          </button>
+        </div>
+
+        {inspectionTab === "endOfShift" ? (
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full" data-testid="table-shift-checks">
+                <thead className="bg-slate-50/50">
+                  <tr>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date/Time</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Driver</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {shiftChecksLoading ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-12 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+                      </td>
+                    </tr>
+                  ) : (!shiftChecks || shiftChecks.length === 0) ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-12 text-center text-slate-400">
+                        No end-of-shift checks found
+                      </td>
+                    </tr>
+                  ) : (
+                    shiftChecks.map((check: any) => (
+                      <tr key={check.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-4">
+                          <p className="text-sm font-medium text-slate-900">
+                            {new Date(check.completedAt || check.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(check.completedAt || check.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {check.driver?.name || getDriverName(check.driverId)}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600 font-mono">
+                          {check.vehicle?.vrm || getVehicleVrm(check.vehicleId)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            check.status === 'COMPLETED' 
+                              ? 'bg-emerald-50 text-emerald-700' 
+                              : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {check.status === 'COMPLETED' ? (
+                              <><CheckCircle2 className="h-3 w-3" /> Completed</>
+                            ) : (
+                              <><Clock className="h-3 w-3" /> {check.status}</>
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full" data-testid="table-inspections">
@@ -439,15 +542,31 @@ export default function ManagerInspections() {
             </div>
           </div>
         </div>
+      </>
+      )}
       </div>
 
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] p-0" data-testid="modal-inspection-details">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
-            <DialogTitle className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-blue-600" />
-              Inspection Details
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-blue-600" />
+                Inspection Details
+              </DialogTitle>
+              {selectedInspection && (
+                <a
+                  href={`/api/inspections/${selectedInspection.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  data-testid="button-download-pdf-modal"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </a>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedInspection && (
@@ -605,7 +724,8 @@ export default function ManagerInspections() {
                               <img 
                                 src={defect.photo.startsWith("/objects/") ? defect.photo : `/objects/${defect.photo}`}
                                 alt={`Defect photo ${index + 1}`}
-                                className="rounded-lg border border-amber-200 object-cover h-40 max-w-full"
+                                className="rounded-lg border border-amber-200 object-cover h-40 max-w-full cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setEnlargedPhoto(defect.photo.startsWith("/objects/") ? defect.photo : `/objects/${defect.photo}`)}
                                 data-testid={`img-defect-photo-${index}`}
                               />
                             </div>
@@ -627,7 +747,8 @@ export default function ManagerInspections() {
                             key={idx} 
                             src={imgSrc} 
                             alt={`Cab photo ${idx + 1}`} 
-                            className="rounded-lg border border-slate-200 object-cover h-32 w-full"
+                            className="rounded-lg border border-slate-200 object-cover h-32 w-full cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setEnlargedPhoto(imgSrc)}
                             data-testid={`img-cab-photo-${idx}`}
                           />
                         );
@@ -650,6 +771,19 @@ export default function ManagerInspections() {
       {selectedVehicleId && (
         <VehicleDetailModal vehicleId={selectedVehicleId} onClose={() => setSelectedVehicleId(null)} />
       )}
+
+      <Dialog open={!!enlargedPhoto} onOpenChange={() => setEnlargedPhoto(null)}>
+        <DialogContent className="max-w-4xl max-h-[95vh] p-2" data-testid="modal-photo-enlarge">
+          {enlargedPhoto && (
+            <img
+              src={enlargedPhoto}
+              alt="Enlarged inspection photo"
+              className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              data-testid="img-enlarged-photo"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </ManagerLayout>
   );
 }

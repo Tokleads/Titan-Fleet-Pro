@@ -103,6 +103,7 @@ const ROLE_OPTIONS = [
   { value: "DRIVER", label: "Driver" },
   { value: "TRANSPORT_MANAGER", label: "Transport Manager" },
   { value: "ADMIN", label: "Admin" },
+  { value: "PLANNER", label: "Planner" },
 ];
 
 function DriverForm({ 

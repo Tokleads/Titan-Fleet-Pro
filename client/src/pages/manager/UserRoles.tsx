@@ -82,6 +82,13 @@ const ROLES = [
     description: 'Read-only access to manager console and dashboard',
     color: 'bg-teal-500',
     permissionCount: 10
+  },
+  {
+    value: 'PLANNER',
+    label: 'Planner',
+    description: 'View-only access to on-duty drivers and vehicles',
+    color: 'bg-cyan-500',
+    permissionCount: 2
   }
 ];
 

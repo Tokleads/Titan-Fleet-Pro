@@ -27,6 +27,7 @@ export interface DVSAVehicle {
   registration: string;
   make: string;
   model: string;
+  vin?: string;
   primaryColour: string;
   fuelType: string;
   firstUsedDate: string;
@@ -148,12 +149,15 @@ class DVSAService {
     lastOdometer: number | null;
     make: string | null;
     model: string | null;
+    vin: string | null;
     hasOutstandingRecall: string | null;
   } | null> {
     const vehicle = await this.getVehicleByRegistration(registration);
     if (!vehicle) {
       return null;
     }
+
+    const vin = vehicle.vin || null;
 
     if (!vehicle.motTests || vehicle.motTests.length === 0) {
       return {
@@ -164,6 +168,7 @@ class DVSAService {
         lastOdometer: null,
         make: vehicle.make || null,
         model: vehicle.model || null,
+        vin,
         hasOutstandingRecall: vehicle.hasOutstandingRecall || null,
       };
     }
@@ -181,6 +186,7 @@ class DVSAService {
       lastOdometer: latestTest.odometerValue ? parseInt(latestTest.odometerValue, 10) : null,
       make: vehicle.make || null,
       model: vehicle.model || null,
+      vin,
       hasOutstandingRecall: vehicle.hasOutstandingRecall || null,
     };
   }

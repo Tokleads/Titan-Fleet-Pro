@@ -461,7 +461,11 @@ function OnDutyTab({ companyId }: { companyId: number }) {
                     <span className="text-xs text-slate-400">
                       Arrived: {formatTimeUK(driver.arrivalTime)}
                     </span>
-                    <span className="text-xs font-medium text-blue-600">
+                    <span className={`text-xs font-medium ${
+                      (Date.now() - new Date(driver.arrivalTime).getTime()) / 60000 >= 840
+                        ? "text-red-600 font-bold"
+                        : "text-blue-600"
+                    }`}>
                       {liveDuration(driver.arrivalTime)}
                     </span>
                   </div>
@@ -1016,7 +1020,7 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
               <span className="text-xs text-blue-600 font-medium">{driverEntries.length} entries</span>
             </div>
             <div className="bg-emerald-50 px-3 py-1.5 rounded-lg">
-              <span className="text-xs text-emerald-600 font-medium">{formatDuration(totalHours)} total</span>
+              <span className={`text-xs font-medium ${totalHours >= 840 ? "text-red-600 font-bold" : "text-emerald-600"}`}>{formatDuration(totalHours)} total</span>
             </div>
             <div className="bg-slate-100 px-3 py-1.5 rounded-lg">
               <span className="text-xs text-slate-600 font-medium">
@@ -1074,7 +1078,9 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
                       >
                         {ts.status === "COMPLETED" ? "Completed" : "Active"}
                       </span>
-                      <p className="text-sm font-bold text-slate-900 mt-1">
+                      <p className={`text-sm font-bold mt-1 ${
+                        ts.totalMinutes && ts.totalMinutes >= 840 ? "text-red-600" : "text-slate-900"
+                      }`}>
                         {formatDuration(ts.totalMinutes)}
                       </p>
                     </div>
@@ -1204,7 +1210,7 @@ function TimesheetsTab({ companyId }: { companyId: number }) {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-right">
-                      <p className="text-sm font-bold text-slate-900">{formatDuration(summary.totalMinutes)}</p>
+                      <p className={`text-sm font-bold ${summary.totalMinutes >= 840 ? "text-red-600" : "text-slate-900"}`}>{formatDuration(summary.totalMinutes)}</p>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wide">Total</p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-slate-300" />

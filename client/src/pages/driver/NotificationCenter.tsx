@@ -36,21 +36,31 @@ export default function NotificationCenter() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Get user ID from session (placeholder - implement your auth)
-  const userId = 1; // TODO: Get from auth context
+  const user = session.getUser();
+  const userId = user?.id;
 
   useEffect(() => {
-    loadNotifications();
-    checkSubscriptionStatus();
-  }, []);
+    if (userId) {
+      loadNotifications();
+      checkSubscriptionStatus();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
 
   const loadNotifications = async () => {
+    if (!userId) return;
     try {
       const response = await fetch(`/api/notifications/history/${userId}`, { headers: authHeaders() });
+      if (!response.ok) {
+        setNotifications([]);
+        return;
+      }
       const data = await response.json();
-      setNotifications(data);
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load notifications:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -157,16 +167,20 @@ export default function NotificationCenter() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
-      handleMarkAsRead(notification.id);
-    }
-
-    if (notification.clickAction) {
-      if (notification.clickAction.startsWith('tel:')) {
-        window.location.href = notification.clickAction;
-      } else {
-        window.location.href = notification.clickAction;
+    try {
+      if (!notification.isRead) {
+        handleMarkAsRead(notification.id);
       }
+
+      if (notification.clickAction) {
+        if (notification.clickAction.startsWith('tel:') || notification.clickAction.startsWith('http')) {
+          window.location.href = notification.clickAction;
+        } else if (notification.clickAction.startsWith('/')) {
+          window.location.href = notification.clickAction;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to handle notification click:', error);
     }
   };
 

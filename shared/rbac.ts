@@ -10,6 +10,7 @@ export const UserRole = {
   DRIVER: 'DRIVER',
   MECHANIC: 'MECHANIC',
   AUDITOR: 'AUDITOR',
+  PLANNER: 'PLANNER',
 } as const;
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
@@ -278,6 +279,15 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     // Settings (view only)
     Permission.SETTINGS_VIEW,
   ],
+
+  // Planner: View-only access to timesheets and vehicles (on-duty drivers dashboard)
+  [UserRole.PLANNER]: [
+    // Vehicles (view only)
+    Permission.VEHICLE_VIEW,
+
+    // Timesheets (view only, no clock in/out)
+    Permission.TIMESHEET_VIEW_ALL,
+  ],
 };
 
 /**
@@ -317,6 +327,7 @@ export const RoleDescriptions: Record<UserRole, string> = {
   [UserRole.DRIVER]: 'Field operations. Can perform inspections, report defects, and manage own timesheets.',
   [UserRole.MECHANIC]: 'Workshop operations. Can view and rectify assigned defects.',
   [UserRole.AUDITOR]: 'Read-only compliance access. Can view all records and export audit trails.',
+  [UserRole.PLANNER]: 'View-only planner access. Can see who is clocked in and view vehicles but cannot clock drivers in or out.',
 };
 
 /**
@@ -328,4 +339,5 @@ export const RoleNames: Record<UserRole, string> = {
   [UserRole.DRIVER]: 'Driver',
   [UserRole.MECHANIC]: 'Mechanic',
   [UserRole.AUDITOR]: 'Auditor',
+  [UserRole.PLANNER]: 'Planner',
 };

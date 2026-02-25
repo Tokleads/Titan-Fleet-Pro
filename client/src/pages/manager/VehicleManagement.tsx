@@ -244,9 +244,9 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
   const [search, setSearch] = useState("");
   const perPage = 25;
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addFormData, setAddFormData] = useState({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+  const [addFormData, setAddFormData] = useState({ vrm: '', vin: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
   const [addError, setAddError] = useState<string | null>(null);
-  const [motLookupResult, setMotLookupResult] = useState<{ motDue?: string; status?: string; error?: string } | null>(null);
+  const [motLookupResult, setMotLookupResult] = useState<{ motDue?: string; status?: string; make?: string; model?: string; vin?: string; error?: string } | null>(null);
   const [isLookingUpMot, setIsLookingUpMot] = useState(false);
   const queryClient = useQueryClient();
 
@@ -276,7 +276,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
       queryClient.invalidateQueries({ queryKey: ['fleet-vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-mgmt-overview'] });
       setShowAddForm(false);
-      setAddFormData({ vrm: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
+      setAddFormData({ vrm: '', vin: '', make: '', model: '', fleetNumber: '', vehicleCategory: 'HGV', motDue: '' });
       setAddError(null);
       setMotLookupResult(null);
     },
@@ -292,9 +292,16 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
     try {
       const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`, { headers: authHeaders() });
       const data = await res.json();
-      if (res.ok && data.motDue) {
-        setMotLookupResult({ motDue: data.motDue, status: data.status });
-        setAddFormData(d => ({ ...d, motDue: data.motDue }));
+      if (res.ok && (data.expiryDate || data.make)) {
+        const motDue = data.expiryDate || '';
+        setMotLookupResult({ motDue, status: data.valid ? 'VALID' : 'EXPIRED', make: data.make, model: data.model, vin: data.vin });
+        setAddFormData(d => ({
+          ...d,
+          motDue: motDue ? motDue.split('T')[0] : d.motDue,
+          make: data.make || d.make,
+          model: data.model || d.model,
+          vin: data.vin || d.vin,
+        }));
       } else {
         setMotLookupResult({ error: data.error || 'Vehicle not found in DVSA database' });
       }
@@ -313,6 +320,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
     createMutation.mutate({
       companyId,
       vrm: addFormData.vrm.toUpperCase().replace(/\s/g, ''),
+      vin: addFormData.vin || null,
       make: addFormData.make,
       model: addFormData.model,
       fleetNumber: addFormData.fleetNumber || null,
@@ -380,7 +388,7 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
               </div>
               {motLookupResult && (
                 <p className={`text-xs mt-1.5 ${motLookupResult.error ? 'text-red-600' : 'text-green-600'}`} data-testid="text-mot-lookup-result">
-                  {motLookupResult.error || `MOT ${motLookupResult.status} — Due: ${motLookupResult.motDue}`}
+                  {motLookupResult.error || `MOT ${motLookupResult.status} — Due: ${motLookupResult.motDue}${motLookupResult.make ? ` | ${motLookupResult.make} ${motLookupResult.model || ''}` : ''}${motLookupResult.vin ? ` | VIN: ${motLookupResult.vin}` : ''}`}
                 </p>
               )}
             </div>
@@ -404,6 +412,18 @@ function VehicleListTab({ companyId, onVrmClick }: { companyId: number; onVrmCli
                 placeholder="e.g. XF 480"
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 data-testid="input-add-model"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">VIN</label>
+              <input
+                type="text"
+                value={addFormData.vin}
+                onChange={(e) => setAddFormData(d => ({ ...d, vin: e.target.value.toUpperCase() }))}
+                placeholder="e.g. WDB9634031L123456"
+                maxLength={17}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase"
+                data-testid="input-add-vin"
               />
             </div>
             <div>

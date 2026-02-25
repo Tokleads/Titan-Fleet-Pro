@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { VALID_PERMISSION_KEYS } from '@shared/schema';
 
-const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'AUDITOR', 'MECHANIC', 'manager'];
+const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'AUDITOR', 'MECHANIC', 'PLANNER', 'manager'];
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'ADMIN': [...VALID_PERMISSION_KEYS],
@@ -10,6 +10,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'OFFICE': ['dashboard', 'inspections', 'defects', 'fuel-log', 'fleet', 'documents', 'notifications'],
   'AUDITOR': ['dashboard', 'inspections', 'defects', 'fleet', 'documents', 'o-licence'],
   'MECHANIC': ['dashboard', 'defects', 'fleet', 'vehicle-mgmt'],
+  'PLANNER': ['dashboard'],
 };
 
 export const requirePermission = (permissionKey: string) => {

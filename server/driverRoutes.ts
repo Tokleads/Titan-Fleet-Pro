@@ -76,6 +76,9 @@ router.get("/", async (req, res) => {
         id: driver.id,
         name: driver.name,
         email: driver.email,
+        phone: driver.phone,
+        pin: driver.pin,
+        licenseNumber: driver.licenseNumber,
         role: driver.role,
         active: driver.active,
         currentLocation: latestLocation

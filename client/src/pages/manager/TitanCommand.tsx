@@ -15,16 +15,35 @@ import {
   CheckCircle2,
   Zap,
   Bell,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  Eye,
+  EyeOff,
+  MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 
-interface User {
+interface UserInfo {
   id: number;
   name: string;
   email: string;
   role: string;
   active: boolean;
+}
+
+interface SentNotification {
+  id: number;
+  companyId: number;
+  senderId: number;
+  recipientId: number | null;
+  isBroadcast: boolean;
+  title: string;
+  message: string;
+  priority: string;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+  recipientName: string | null;
 }
 
 export default function TitanCommand() {
@@ -41,15 +60,25 @@ export default function TitanCommand() {
   const [priority, setPriority] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
 
   // Fetch all drivers
-  const { data: drivers } = useQuery<User[]>({
+  const { data: drivers } = useQuery<UserInfo[]>({
     queryKey: ["users", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       const users = await res.json();
-      return users.filter((u: User) => u.role === "DRIVER" && u.active);
+      return users.filter((u: UserInfo) => u.role === "DRIVER" && u.active);
     },
     enabled: !!companyId,
+  });
+
+  const { data: sentNotifications, isLoading: sentLoading } = useQuery<SentNotification[]>({
+    queryKey: ["sent-notifications", companyId, manager?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/notifications/sent?companyId=${companyId}&senderId=${manager?.id}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch sent notifications");
+      return res.json();
+    },
+    enabled: !!companyId && !!manager?.id,
   });
 
   // Send broadcast mutation
@@ -69,6 +98,7 @@ export default function TitanCommand() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["sent-notifications"] });
       setTitle("");
       setMessage("");
       setPriority("NORMAL");
@@ -92,6 +122,7 @@ export default function TitanCommand() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["sent-notifications"] });
       setTitle("");
       setMessage("");
       setPriority("NORMAL");
@@ -341,7 +372,102 @@ export default function TitanCommand() {
             </div>
           </div>
         </div>
+        {/* Message History */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-600" />
+            Message History
+          </h2>
+          
+          {sentLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            </div>
+          ) : sentNotifications && sentNotifications.length > 0 ? (
+            <div className="space-y-3">
+              {sentNotifications.map((notif) => {
+                const pConfig = priorityConfig[notif.priority as keyof typeof priorityConfig] || priorityConfig.NORMAL;
+                const PIcon = pConfig.icon;
+                const timeAgo = formatTimeAgo(notif.createdAt);
+                return (
+                  <div
+                    key={notif.id}
+                    className="border border-slate-200 rounded-xl p-4 hover:bg-slate-50 transition-colors"
+                    data-testid={`sent-notification-${notif.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="text-sm font-semibold text-slate-900 truncate">{notif.title}</h3>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${pConfig.color}`}>
+                            <PIcon className="h-3 w-3" />
+                            {notif.priority}
+                          </span>
+                          {notif.isBroadcast ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                              <Radio className="h-3 w-3" />
+                              All Drivers
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                              <User className="h-3 w-3" />
+                              {notif.recipientName || "Unknown"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600 line-clamp-2">{notif.message}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {timeAgo}
+                        </span>
+                        {notif.isBroadcast ? (
+                          <span className="text-xs text-slate-400 flex items-center gap-1">
+                            <Send className="h-3 w-3" />
+                            Broadcast
+                          </span>
+                        ) : notif.isRead ? (
+                          <span className="text-xs text-emerald-500 flex items-center gap-1" data-testid={`status-read-${notif.id}`}>
+                            <Eye className="h-3 w-3" />
+                            Read
+                          </span>
+                        ) : (
+                          <span className="text-xs text-amber-500 flex items-center gap-1" data-testid={`status-unread-${notif.id}`}>
+                            <EyeOff className="h-3 w-3" />
+                            Unread
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <MessageSquare className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">No messages sent yet</p>
+              <p className="text-xs text-slate-300 mt-1">Messages you send will appear here</p>
+            </div>
+          )}
+        </div>
       </div>
     </ManagerLayout>
   );
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }

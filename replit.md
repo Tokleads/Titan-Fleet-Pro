@@ -37,7 +37,7 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 
 **Core Features & Implementations:**
 - **Authentication**: PIN-based login for drivers, email/password with 2FA for managers, secure account setup and password reset flows.
-- **Role-Based Access**: ADMIN (full access + approval authority), TRANSPORT_MANAGER (standard management), OFFICE (read-only dashboard view), DRIVER, MECHANIC, AUDITOR.
+- **Role-Based Access**: ADMIN (full access + approval authority), TRANSPORT_MANAGER (standard management), PLANNER (view-only: on-duty drivers, no clock in/out), OFFICE (read-only dashboard view), DRIVER, MECHANIC, AUDITOR.
 - **Timesheet Approval Workflow**: Time adjustments by transport managers require ADMIN approval. Pending/Approved/Rejected states with server-side role enforcement.
 - **Company Car Register**: Drivers log which company car they're using (number plate, date/time) for fine attribution. Located at /driver/car-register.
 - **Data Models**: Comprehensive schema for Companies, Users, Vehicles, Inspections, Fuel Entries, Defects, Deliveries, Subscriptions, and CompanyCarRegister.
@@ -45,7 +45,11 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 - **Fleet Management**: Vehicle list with O-licence filtering, geofence management (10m minimum radius).
 - **Per-Driver Wage System**: Individual hourly rates, night/weekend/holiday premiums, overtime threshold (14hr default), CSV export.
 - **Messaging System**: In-app communication between drivers and transport managers.
-- **PDF Generation**: Dynamic generation of inspection reports and Proof of Delivery documents.
+- **PDF Generation**: Dynamic generation of inspection reports and Proof of Delivery documents with embedded photos.
+- **14-Hour Working Limit**: Red highlight warning when driver hours reach/exceed 14h (840 minutes) in timesheets and TM app.
+- **VIN Auto-Populate**: DVSA lookup auto-fills VIN, make, and model when adding vehicles by registration.
+- **End-of-Shift Inspections**: Visible in manager Inspections tab via dedicated "End of Shift Checks" sub-tab.
+- **Titan Command Message History**: Sent message history with recipient, priority, and read status displayed below compose form.
 - **Environmental Variables**: Secure management of API keys and database connections.
 
 **UI/UX Decisions:**
