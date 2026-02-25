@@ -15,6 +15,17 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
+function isChunkLoadError(error: Error | null): boolean {
+  if (!error) return false;
+  const msg = error.message || '';
+  return (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Loading CSS chunk') ||
+    msg.includes('Importing a module script failed')
+  );
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -33,7 +44,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to console in development
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     this.setState({
@@ -41,8 +51,15 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // TODO: Log to external error tracking service (Sentry, LogRocket, etc.)
-    // logErrorToService(error, errorInfo);
+    if (isChunkLoadError(error)) {
+      const lastReload = sessionStorage.getItem('chunk-reload-ts');
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        sessionStorage.setItem('chunk-reload-ts', String(now));
+        window.location.reload();
+        return;
+      }
+    }
   }
 
   handleReset = () => {
@@ -63,12 +80,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Custom fallback UI if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default error UI
+      const isStaleChunk = isChunkLoadError(this.state.error);
+
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background">
           <Card className="max-w-2xl w-full">
@@ -78,20 +95,24 @@ export class ErrorBoundary extends Component<Props, State> {
                   <AlertTriangle className="h-6 w-6 text-destructive" />
                 </div>
                 <div>
-                  <CardTitle>Something went wrong</CardTitle>
+                  <CardTitle>{isStaleChunk ? 'App Updated' : 'Something went wrong'}</CardTitle>
                   <CardDescription>
-                    We're sorry, but something unexpected happened
+                    {isStaleChunk
+                      ? 'A new version is available. Please refresh to continue.'
+                      : "We're sorry, but something unexpected happened"}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Error Details:</p>
-                <p className="text-sm text-muted-foreground font-mono">
-                  {this.state.error?.message || 'Unknown error'}
-                </p>
-              </div>
+              {!isStaleChunk && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm font-medium mb-2">Error Details:</p>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    {this.state.error?.message || 'Unknown error'}
+                  </p>
+                </div>
+              )}
 
               {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
                 <details className="p-4 bg-muted rounded-lg">
@@ -105,9 +126,9 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="flex gap-3">
-                <Button onClick={this.handleReset} className="flex-1">
+                <Button onClick={() => window.location.reload()} className="flex-1">
                   <RefreshCcw className="h-4 w-4 mr-2" />
-                  Try Again
+                  {isStaleChunk ? 'Refresh Now' : 'Try Again'}
                 </Button>
                 <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
                   <Home className="h-4 w-4 mr-2" />
@@ -115,9 +136,11 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Button>
               </div>
 
-              <p className="text-xs text-muted-foreground text-center">
-                If this problem persists, please contact support with the error details above.
-              </p>
+              {!isStaleChunk && (
+                <p className="text-xs text-muted-foreground text-center">
+                  If this problem persists, please contact support with the error details above.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
