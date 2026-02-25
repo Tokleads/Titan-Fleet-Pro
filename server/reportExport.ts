@@ -5,7 +5,14 @@
  */
 
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 import type { ReportData } from "./reports";
+
+const LOGO_PATH = path.join(process.cwd(), 'server', 'assets', 'titan-fleet-logo.png');
+function getLogoBuffer(): Buffer | null {
+  try { return fs.existsSync(LOGO_PATH) ? fs.readFileSync(LOGO_PATH) : null; } catch { return null; }
+}
 
 /**
  * Generate CSV from report data
@@ -67,18 +74,19 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       });
       doc.on('error', reject);
       
+      const logo = getLogoBuffer();
       const headerTop = doc.y;
       const pageWidth = doc.page.width - 100;
       doc.save();
-      doc.rect(50, headerTop, pageWidth, 70).fill('#1e293b');
-      doc.rect(50, headerTop + 70, pageWidth, 4).fill('#10b981');
-      doc.fontSize(26).font('Helvetica-Bold').fillColor('#ffffff').text('TITAN', 70, headerTop + 12, { continued: true }).fillColor('#10b981').text(' FLEET');
-      doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text('Fleet Management System', 70, headerTop + 46);
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff').text(reportData.title, 300, headerTop + 14, { width: pageWidth - 270, align: 'right' });
-      doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 300, headerTop + 38, { width: pageWidth - 270, align: 'right' });
-      doc.fontSize(8).fillColor('#64748b').text(reportData.description, 300, headerTop + 52, { width: pageWidth - 270, align: 'right' });
+      doc.rect(50, headerTop, pageWidth, 60).fill('#1e293b');
+      doc.rect(50, headerTop + 60, pageWidth, 3).fill('#10b981');
+      if (logo) {
+        try { doc.image(logo, 65, headerTop + 10, { height: 40 }); } catch {}
+      }
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff').text(reportData.title, 50, headerTop + 14, { width: pageWidth - 20, align: 'right' });
+      doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 50, headerTop + 36, { width: pageWidth - 20, align: 'right' });
       doc.restore();
-      doc.y = headerTop + 90;
+      doc.y = headerTop + 76;
       doc.fillColor('#000000');
       doc.moveDown(0.5);
       
