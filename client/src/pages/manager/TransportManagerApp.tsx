@@ -422,6 +422,7 @@ function OnDutyTab({ companyId }: { companyId: number }) {
         <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: "Oswald, sans-serif" }} data-testid="text-on-duty-count">
           {onShiftDrivers?.length || 0} Drivers On Duty
         </h2>
+        {user?.role !== 'PLANNER' && (
         <button
           onClick={() => setShowClockInModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors min-h-[56px]"
@@ -430,6 +431,7 @@ function OnDutyTab({ companyId }: { companyId: number }) {
           <UserPlus className="h-4 w-4" />
           Clock In
         </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -470,6 +472,7 @@ function OnDutyTab({ companyId }: { companyId: number }) {
                     </span>
                   </div>
                 </div>
+                {user?.role !== 'PLANNER' && (
                 <button
                   onClick={() => clockOutMutation.mutate(driver.driverId)}
                   disabled={clockOutMutation.isPending}
@@ -479,6 +482,7 @@ function OnDutyTab({ companyId }: { companyId: number }) {
                   <LogOut className="h-4 w-4" />
                   Clock Out
                 </button>
+                )}
               </div>
             </div>
           ))

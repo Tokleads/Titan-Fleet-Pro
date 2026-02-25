@@ -22,6 +22,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserInfo {
   id: number;
@@ -52,6 +53,7 @@ export default function TitanCommand() {
   const companyId = company?.id;
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const [messageType, setMessageType] = useState<"broadcast" | "individual">("broadcast");
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
@@ -102,6 +104,10 @@ export default function TitanCommand() {
       setTitle("");
       setMessage("");
       setPriority("NORMAL");
+      toast({ title: "Broadcast Sent", description: "Message sent to all drivers" });
+    },
+    onError: () => {
+      toast({ title: "Failed", description: "Could not send broadcast", variant: "destructive" });
     }
   });
 
@@ -127,12 +133,16 @@ export default function TitanCommand() {
       setMessage("");
       setPriority("NORMAL");
       setSelectedDriver(null);
+      toast({ title: "Message Sent", description: "Message delivered to driver" });
+    },
+    onError: () => {
+      toast({ title: "Failed", description: "Could not send message", variant: "destructive" });
     }
   });
 
   const handleSend = () => {
     if (!title || !message) {
-      alert("Please fill in all fields");
+      toast({ title: "Missing Fields", description: "Please fill in title and message", variant: "destructive" });
       return;
     }
 
@@ -140,7 +150,7 @@ export default function TitanCommand() {
       broadcastMutation.mutate({ title, message, priority });
     } else {
       if (!selectedDriver) {
-        alert("Please select a driver");
+        toast({ title: "No Driver Selected", description: "Please select a driver to send to", variant: "destructive" });
         return;
       }
       individualMutation.mutate({ recipientId: selectedDriver, title, message, priority });
