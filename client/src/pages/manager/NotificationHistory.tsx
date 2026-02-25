@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Search, Filter, CheckCircle2, Circle, AlertTriangle, AlertOctagon, Info, Loader2, CheckCheck } from 'lucide-react';
+import { Bell, Search, Filter, CheckCircle2, Circle, AlertTriangle, AlertOctagon, Info, Loader2, CheckCheck, ChevronRight } from 'lucide-react';
 import { session } from "@/lib/session";
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,12 +41,26 @@ export default function NotificationHistory() {
 function NotificationHistoryContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const user = session.getUser();
   const companyId = session.getCompany()?.id || 1;
   const userId = user?.id;
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [readFilter, setReadFilter] = useState('all');
+
+  const getNotificationRoute = (notification: NotificationItem): string | null => {
+    const title = (notification.title || '').toLowerCase();
+    const msg = (notification.message || '').toLowerCase();
+    if (title.includes('inspection') || title.includes('walk-around')) return '/manager/inspections';
+    if (title.includes('defect')) return '/manager/defects';
+    if (title.includes('mot') || title.includes('tax') || title.includes('service due') || title.includes('expir')) return '/manager/reminders';
+    if (title.includes('fuel') || msg.includes('fuel')) return '/manager/fuel-intelligence';
+    if (title.includes('vor')) return '/manager/fleet';
+    if (title.includes('message') || title.includes('driver message')) return '/manager/titan-command';
+    if (title.includes('timesheet') || title.includes('clock')) return '/manager/timesheets';
+    return null;
+  };
 
   const { data: notifications = [], isLoading } = useQuery<NotificationItem[]>({
     queryKey: ["all-notifications", companyId, userId],
@@ -243,13 +258,15 @@ function NotificationHistoryContent() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`flex items-start gap-4 p-4 rounded-xl border transition-colors cursor-pointer ${
+                  className={`flex items-start gap-4 p-4 rounded-xl border transition-colors cursor-pointer group ${
                     notification.isRead
                       ? 'bg-white border-slate-100 hover:bg-slate-50'
                       : 'bg-blue-50/50 border-blue-100 hover:bg-blue-50'
                   }`}
                   onClick={() => {
                     if (!notification.isRead) markReadMutation.mutate(notification.id);
+                    const route = getNotificationRoute(notification);
+                    if (route) navigate(route);
                   }}
                   data-testid={`notification-item-${notification.id}`}
                 >
@@ -283,6 +300,11 @@ function NotificationHistoryContent() {
                       )}
                     </div>
                   </div>
+                  {getNotificationRoute(notification) && (
+                    <div className="flex-shrink-0 self-center">
+                      <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
