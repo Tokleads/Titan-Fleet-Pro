@@ -1190,13 +1190,11 @@ export async function registerRoutes(
       }
 
       const company = await storage.getCompanyByCode(companyCode);
-      console.log(`[Manager Login] Company lookup for "${companyCode}":`, company ? `id=${company.id}, name=${company.name}` : 'NOT FOUND');
       if (!company) {
         return res.status(401).json({ error: "Invalid company code" });
       }
 
       const manager = await storage.getUserByCompanyAndPin(company.id, pin, "manager");
-      console.log(`[Manager Login] PIN lookup for company ${company.id}, pin="${pin}":`, manager ? `id=${manager.id}, name=${manager.name}, role=${manager.role}` : 'NOT FOUND');
       if (!manager) {
         return res.status(401).json({ error: "Invalid PIN" });
       }
