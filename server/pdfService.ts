@@ -77,13 +77,18 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
     minute: '2-digit'
   });
 
-  doc.fontSize(20).font('Helvetica-Bold').text('Vehicle Inspection Report', { align: 'center' });
+  const headerTop = doc.y;
+  doc.save();
+  doc.rect(50, headerTop, 495, 70).fill('#1e293b');
+  doc.rect(50, headerTop + 70, 495, 4).fill('#10b981');
+  doc.fontSize(26).font('Helvetica-Bold').fillColor('#ffffff').text('TITAN', 70, headerTop + 12, { continued: true }).fillColor('#10b981').text(' FLEET');
+  doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text('Fleet Management System', 70, headerTop + 46);
+  doc.fontSize(16).font('Helvetica-Bold').fillColor('#ffffff').text('Vehicle Inspection Report', 280, headerTop + 18, { width: 250, align: 'right' });
+  doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${dateStr} at ${timeStr}`, 280, headerTop + 46, { width: 250, align: 'right' });
+  doc.restore();
+  doc.y = headerTop + 90;
+  doc.fillColor('#000000');
   doc.moveDown(0.5);
-  doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Generated: ${dateStr} at ${timeStr}`, { align: 'center' });
-  doc.moveDown(1);
-
-  doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#dddddd');
-  doc.moveDown(1);
 
   doc.fillColor('#000000');
   doc.fontSize(12).font('Helvetica-Bold').text('Company: ', { continued: true }).font('Helvetica').text(inspection.companyName);
@@ -241,18 +246,22 @@ export function generateDVSAComplianceReport(data: {
   const stream = new PassThrough();
   doc.pipe(stream);
 
-  // Header
-  doc.fontSize(20).font('Helvetica-Bold').text('DVSA Compliance Report', { align: 'center' });
-  doc.moveDown();
+  const headerTop = doc.y;
+  doc.save();
+  doc.rect(50, headerTop, 495, 70).fill('#1e293b');
+  doc.rect(50, headerTop + 70, 495, 4).fill('#10b981');
+  doc.fontSize(26).font('Helvetica-Bold').fillColor('#ffffff').text('TITAN', 70, headerTop + 12, { continued: true }).fillColor('#10b981').text(' FLEET');
+  doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text('Fleet Management System', 70, headerTop + 46);
+  doc.fontSize(16).font('Helvetica-Bold').fillColor('#ffffff').text('DVSA Compliance Report', 280, headerTop + 18, { width: 250, align: 'right' });
+  doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${new Date().toLocaleString('en-GB')}`, 280, headerTop + 46, { width: 250, align: 'right' });
+  doc.restore();
+  doc.y = headerTop + 90;
+  doc.fillColor('#000000');
+  doc.moveDown(0.5);
 
-  // Company & Period Info
   doc.fontSize(12).font('Helvetica');
   doc.text(`Company: ${data.companyName}`);
   doc.text(`Report Period: ${data.startDate.toLocaleDateString('en-GB')} - ${data.endDate.toLocaleDateString('en-GB')}`);
-  doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`);
-  doc.moveDown();
-
-  doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#dddddd');
   doc.moveDown();
 
   // Summary Statistics

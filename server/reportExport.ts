@@ -67,26 +67,20 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       });
       doc.on('error', reject);
       
-      // Title
-      doc.fontSize(20)
-         .font('Helvetica-Bold')
-         .text(reportData.title, { align: 'center' });
-      
+      const headerTop = doc.y;
+      const pageWidth = doc.page.width - 100;
+      doc.save();
+      doc.rect(50, headerTop, pageWidth, 70).fill('#1e293b');
+      doc.rect(50, headerTop + 70, pageWidth, 4).fill('#10b981');
+      doc.fontSize(26).font('Helvetica-Bold').fillColor('#ffffff').text('TITAN', 70, headerTop + 12, { continued: true }).fillColor('#10b981').text(' FLEET');
+      doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text('Fleet Management System', 70, headerTop + 46);
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff').text(reportData.title, 300, headerTop + 14, { width: pageWidth - 270, align: 'right' });
+      doc.fontSize(9).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 300, headerTop + 38, { width: pageWidth - 270, align: 'right' });
+      doc.fontSize(8).fillColor('#64748b').text(reportData.description, 300, headerTop + 52, { width: pageWidth - 270, align: 'right' });
+      doc.restore();
+      doc.y = headerTop + 90;
+      doc.fillColor('#000000');
       doc.moveDown(0.5);
-      
-      // Description
-      doc.fontSize(12)
-         .font('Helvetica')
-         .text(reportData.description, { align: 'center' });
-      
-      doc.moveDown(0.3);
-      
-      // Generated date
-      doc.fontSize(10)
-         .fillColor('#666666')
-         .text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, { align: 'center' });
-      
-      doc.moveDown(1);
       
       // Summary section
       if (reportData.summary) {
