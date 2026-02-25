@@ -52,6 +52,32 @@ export default function ManagerInspections() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [inspectionTab, setInspectionTab] = useState<"vehicle" | "endOfShift">("vehicle");
   const [enlargedPhoto, setEnlargedPhoto] = useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
+
+  const downloadPdf = async (inspectionId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDownloadingPdfId(inspectionId);
+    try {
+      const res = await fetch(`/api/inspections/${inspectionId}/pdf`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition');
+      const match = disposition?.match(/filename="(.+)"/);
+      const filename = match ? match[1] : `inspection-${inspectionId}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download PDF. Please try again.');
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
 
   const { data: shiftChecks, isLoading: shiftChecksLoading } = useQuery<any[]>({
     queryKey: ["shift-checks", companyId],
@@ -498,15 +524,19 @@ export default function ManagerInspections() {
                           >
                             <Eye className="h-4 w-4 text-slate-400" />
                           </button>
-                          <a 
-                            href={`/api/inspections/${inspection.id}/pdf`}
-                            download
+                          <button 
+                            onClick={(e) => downloadPdf(inspection.id, e)}
+                            disabled={downloadingPdfId === inspection.id}
                             className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
                             data-testid={`button-download-pdf-${inspection.id}`}
                             title="Download PDF"
                           >
-                            <Download className="h-4 w-4 text-slate-400" />
-                          </a>
+                            {downloadingPdfId === inspection.id ? (
+                              <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4 text-slate-400" />
+                            )}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -555,16 +585,19 @@ export default function ManagerInspections() {
                 Inspection Details
               </DialogTitle>
               {selectedInspection && (
-                <a
-                  href={`/api/inspections/${selectedInspection.id}/pdf`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                <button
+                  onClick={() => downloadPdf(selectedInspection.id)}
+                  disabled={downloadingPdfId === selectedInspection.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                   data-testid="button-download-pdf-modal"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Download PDF
-                </a>
+                  {downloadingPdfId === selectedInspection.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  {downloadingPdfId === selectedInspection.id ? 'Generating...' : 'Download PDF'}
+                </button>
               )}
             </div>
           </DialogHeader>
