@@ -111,9 +111,8 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       
       doc.moveDown(0.5);
       
-      // Calculate column widths
-      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-      const columnWidth = pageWidth / reportData.columns.length;
+      const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const columnWidth = tableWidth / reportData.columns.length;
       
       // Table header
       doc.fontSize(9)
@@ -124,7 +123,7 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       let startY = doc.y;
       
       // Draw header background
-      doc.rect(startX, startY, pageWidth, 20)
+      doc.rect(startX, startY, tableWidth, 20)
          .fill('#f3f4f6');
       
       // Draw header text
@@ -156,7 +155,7 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
         
         // Alternate row colors
         if (rowIndex % 2 === 0) {
-          doc.rect(startX, startY, pageWidth, 15)
+          doc.rect(startX, startY, tableWidth, 15)
              .fill('#fafafa');
         }
         

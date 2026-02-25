@@ -88,8 +88,6 @@ const HEADER_MAP: Record<string, string> = {
   plate: "vrm",
   vehicle_type: "vehicleType",
   vehicletype: "vehicleType",
-  vehicle_category: "vehicleCategory",
-  vehiclecategory: "vehicleCategory",
   type: "vehicleType",
   assigned_driver: "assignedDriver",
   assigned_driver_s_: "assignedDriver",
