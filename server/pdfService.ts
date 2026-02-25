@@ -96,34 +96,28 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
   const contentWidth = right - left;
 
   const headerTop = doc.y;
-  doc.save();
-  doc.rect(left, headerTop, contentWidth, 60).fill('#1e293b');
-  doc.rect(left, headerTop + 60, contentWidth, 3).fill('#10b981');
   if (logo) {
     try {
-      doc.image(logo, left + 15, headerTop + 10, { height: 40 });
+      doc.rect(left, headerTop, 160, 45).fill('#1e293b');
+      doc.image(logo, left + 8, headerTop + 6, { height: 33 });
     } catch { }
   }
-  doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff')
-    .text('Vehicle Inspection Report', left, headerTop + 16, { width: contentWidth - 20, align: 'right' });
-  doc.fontSize(8).font('Helvetica').fillColor('#94a3b8')
-    .text(`Generated: ${dateStr} at ${timeStr}`, left, headerTop + 38, { width: contentWidth - 20, align: 'right' });
-  doc.restore();
-  doc.y = headerTop + 76;
+  doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000')
+    .text('Vehicle Inspection Report', left, headerTop + 6, { width: contentWidth, align: 'right' });
+  doc.fontSize(9).font('Helvetica').fillColor('#555555')
+    .text(`Generated: ${dateStr} at ${timeStr}`, left, headerTop + 28, { width: contentWidth, align: 'right' });
+  doc.y = headerTop + 52;
+  doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(1).stroke('#000000');
+  doc.y += 12;
   doc.fillColor('#000000');
 
-  const detailBoxTop = doc.y;
-  doc.rect(left, detailBoxTop, contentWidth, 1).fill('#e2e8f0');
-  doc.y = detailBoxTop + 8;
-
-  const col1X = left + 10;
-  const col2X = left + contentWidth / 2 + 10;
-  const labelW = 90;
-  const valW = contentWidth / 2 - 30;
+  const col1X = left;
+  const col2X = left + contentWidth / 2;
+  const valW = contentWidth / 2 - 10;
 
   const drawField = (x: number, y: number, label: string, value: string) => {
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748b').text(label.toUpperCase(), x, y, { width: labelW });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b').text(value, x, y + 10, { width: valW });
+    doc.fontSize(8).font('Helvetica').fillColor('#555555').text(label.toUpperCase(), x, y);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(value, x, y + 11, { width: valW });
   };
 
   let fieldY = doc.y;
@@ -147,27 +141,23 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
     const endTime = new Date(inspection.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const duration = inspection.durationSeconds ? `${Math.floor(inspection.durationSeconds / 60)}m ${inspection.durationSeconds % 60}s` : 'N/A';
     
-    doc.rect(left, doc.y, contentWidth, 24).fill('#f0fdf4');
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#166534').text('DVSA TIMING EVIDENCE', col1X, doc.y + 3);
-    doc.fontSize(9).font('Helvetica').fillColor('#166534')
-      .text(`Started: ${startTime}   |   Completed: ${endTime}   |   Duration: ${duration}`, col1X, doc.y + 2, { width: contentWidth - 20 });
-    doc.y += 10;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000').text('DVSA TIMING EVIDENCE');
+    doc.fontSize(9).font('Helvetica').fillColor('#000000')
+      .text(`Started: ${startTime}   |   Completed: ${endTime}   |   Duration: ${duration}`);
+    doc.moveDown(0.5);
   }
 
-  const statusColor = inspection.status === 'PASS' ? '#16a34a' : '#dc2626';
-  const statusBg = inspection.status === 'PASS' ? '#f0fdf4' : '#fef2f2';
-  const resultY = doc.y;
-  doc.rect(left, resultY, contentWidth, 32).fill(statusBg);
-  doc.rect(left, resultY, 4, 32).fill(statusColor);
-  doc.fontSize(16).font('Helvetica-Bold').fillColor(statusColor)
-    .text(`Result: ${inspection.status}`, left + 16, resultY + 8, { width: contentWidth - 30, align: 'center' });
-  doc.y = resultY + 42;
-  doc.fillColor('#000000');
+  doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(0.5).stroke('#999999');
+  doc.y += 8;
 
-  doc.rect(left, doc.y, contentWidth, 1).fill('#e2e8f0');
+  doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000')
+    .text(`Result: ${inspection.status}`, { align: 'center' });
+  doc.moveDown(0.5);
+
+  doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(0.5).stroke('#999999');
   doc.y += 10;
 
-  doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e293b').text('Checklist Items');
+  doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000').text('Checklist Items');
   doc.moveDown(0.3);
 
   if (Array.isArray(inspection.checklist)) {
@@ -180,32 +170,17 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
       if (item.section !== currentSection) {
         currentSection = item.section;
         doc.moveDown(0.3);
-        const sectionY = doc.y;
-        doc.rect(left, sectionY, contentWidth, 18).fill('#f1f5f9');
-        doc.fontSize(9).font('Helvetica-Bold').fillColor('#334155').text(currentSection, left + 10, sectionY + 4);
-        doc.y = sectionY + 22;
-        doc.fillColor('#000000');
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(currentSection);
+        doc.moveDown(0.1);
       }
 
-      const rowY = doc.y;
-      const isFail = item.status === 'fail';
-      if (isFail) {
-        doc.rect(left, rowY, contentWidth, 16).fill('#fef2f2');
-      }
-      
       const statusText = item.status === 'pass' ? 'PASS' : item.status === 'fail' ? 'FAIL' : item.status === 'na' ? 'N/A' : '--';
-      const statusClr = item.status === 'pass' ? '#16a34a' : item.status === 'fail' ? '#dc2626' : '#6b7280';
-      const statusBgClr = item.status === 'pass' ? '#dcfce7' : item.status === 'fail' ? '#fecaca' : '#f3f4f6';
       
-      doc.rect(left + 8, rowY + 2, 36, 12).fillAndStroke(statusBgClr, statusClr);
-      doc.fontSize(7).font('Helvetica-Bold').fillColor(statusClr).text(statusText, left + 8, rowY + 4, { width: 36, align: 'center' });
-      doc.fontSize(9).font('Helvetica').fillColor('#1e293b').text(item.item, left + 52, rowY + 3, { width: contentWidth - 60 });
-      doc.y = rowY + 17;
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000').text(`  [${statusText}]  `, { continued: true });
+      doc.font('Helvetica').text(item.item);
       
       if (item.defectNote) {
-        doc.fontSize(8).font('Helvetica-Oblique').fillColor('#dc2626').text(`Defect: ${item.defectNote}`, left + 52, doc.y, { width: contentWidth - 60 });
-        doc.moveDown(0.2);
-        doc.fillColor('#000000');
+        doc.fontSize(8).font('Helvetica-Oblique').fillColor('#000000').text(`           Defect: ${item.defectNote}`);
       }
     });
   }
@@ -213,25 +188,19 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
   if (inspection.defects && inspection.defects.length > 0) {
     if (doc.y > doc.page.height - 120) doc.addPage();
     doc.moveDown(0.5);
-    doc.rect(left, doc.y, contentWidth, 1).fill('#e2e8f0');
+    doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(0.5).stroke('#999999');
     doc.y += 10;
 
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#dc2626').text('Defects Reported');
-    doc.fillColor('#000000');
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000').text('Defects Reported');
     doc.moveDown(0.3);
 
     inspection.defects.forEach((defect: any, idx: number) => {
       if (doc.y > doc.page.height - 100) doc.addPage();
       
-      const defectY = doc.y;
-      doc.rect(left, defectY, contentWidth, 1).fill('#fecaca');
-      doc.y = defectY + 6;
-      
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#991b1b').text(`${idx + 1}. ${defect.item || 'General'}`);
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(`${idx + 1}. ${defect.item || 'General'}`);
       if (defect.note) {
-        doc.fontSize(9).font('Helvetica').fillColor('#7f1d1d').text(defect.note, { indent: 16 });
+        doc.fontSize(9).font('Helvetica').fillColor('#000000').text(`   ${defect.note}`);
       }
-      doc.fillColor('#000000');
 
       if (defect.photo) {
         const photoBuffer = photoBuffers.get(defect.photo);
@@ -242,7 +211,7 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
             doc.image(photoBuffer, left + 16, doc.y, { fit: [220, 180] });
             doc.y += 185;
           } catch {
-            doc.fontSize(8).fillColor('#6b7280').text(`Photo: ${defect.photo.split('/').pop() || 'attached'}`, { indent: 16 });
+            doc.fontSize(8).fillColor('#000000').text(`   Photo: ${defect.photo.split('/').pop() || 'attached'}`);
           }
         }
       }
@@ -253,11 +222,10 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
   if (inspection.cabPhotos && inspection.cabPhotos.length > 0) {
     if (doc.y > doc.page.height - 120) doc.addPage();
     doc.moveDown(0.5);
-    doc.rect(left, doc.y, contentWidth, 1).fill('#e2e8f0');
+    doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(0.5).stroke('#999999');
     doc.y += 10;
 
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e40af').text('Cab Condition Photos');
-    doc.fillColor('#000000');
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#000000').text('Cab Condition Photos');
     doc.moveDown(0.3);
 
     inspection.cabPhotos.forEach((photo: string, idx: number) => {
@@ -269,7 +237,7 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
           doc.y += 185;
           doc.moveDown(0.3);
         } catch {
-          doc.fontSize(8).font('Helvetica').text(`Photo ${idx + 1}: could not embed`);
+          doc.fontSize(8).font('Helvetica').fillColor('#000000').text(`Photo ${idx + 1}: could not embed`);
         }
       }
     });
@@ -277,13 +245,12 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
 
   if (doc.y > doc.page.height - 80) doc.addPage();
   doc.moveDown(1);
-  const footerY = doc.y;
-  doc.rect(left, footerY, contentWidth, 1).fill('#e2e8f0');
-  doc.y = footerY + 8;
-  doc.fontSize(7).font('Helvetica').fillColor('#94a3b8')
+  doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(0.5).stroke('#999999');
+  doc.y += 8;
+  doc.fontSize(7).font('Helvetica').fillColor('#555555')
     .text('This document is an official record of a vehicle safety inspection. Any tampering with this document is prohibited.', { align: 'center' });
   doc.moveDown(0.2);
-  doc.fontSize(7).fillColor('#94a3b8')
+  doc.fontSize(7).fillColor('#555555')
     .text(`Report ID: TF-${String(inspection.id).padStart(6, '0')}  |  Titan Fleet  |  titanfleet.co.uk`, { align: 'center' });
 
   doc.end();
@@ -319,18 +286,19 @@ export function generateDVSAComplianceReport(data: {
 
   const logo = getLogoBuffer();
   const headerTop = doc.y;
-  doc.save();
-  doc.rect(50, headerTop, 495, 60).fill('#1e293b');
-  doc.rect(50, headerTop + 60, 495, 3).fill('#10b981');
   if (logo) {
-    try { doc.image(logo, 65, headerTop + 10, { height: 40 }); } catch {}
+    try {
+      doc.rect(50, headerTop, 160, 45).fill('#1e293b');
+      doc.image(logo, 58, headerTop + 6, { height: 33 });
+    } catch {}
   }
-  doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff')
-    .text('DVSA Compliance Report', 50, headerTop + 16, { width: 480, align: 'right' });
-  doc.fontSize(8).font('Helvetica').fillColor('#94a3b8')
-    .text(`Generated: ${new Date().toLocaleString('en-GB')}`, 50, headerTop + 38, { width: 480, align: 'right' });
-  doc.restore();
-  doc.y = headerTop + 76;
+  doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000')
+    .text('DVSA Compliance Report', 50, headerTop + 6, { width: 495, align: 'right' });
+  doc.fontSize(9).font('Helvetica').fillColor('#555555')
+    .text(`Generated: ${new Date().toLocaleString('en-GB')}`, 50, headerTop + 28, { width: 495, align: 'right' });
+  doc.y = headerTop + 52;
+  doc.moveTo(50, doc.y).lineTo(545, doc.y).lineWidth(1).stroke('#000000');
+  doc.y += 12;
   doc.fillColor('#000000');
   doc.moveDown(0.5);
 

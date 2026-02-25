@@ -77,16 +77,17 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       const logo = getLogoBuffer();
       const headerTop = doc.y;
       const pageWidth = doc.page.width - 100;
-      doc.save();
-      doc.rect(50, headerTop, pageWidth, 60).fill('#1e293b');
-      doc.rect(50, headerTop + 60, pageWidth, 3).fill('#10b981');
       if (logo) {
-        try { doc.image(logo, 65, headerTop + 10, { height: 40 }); } catch {}
+        try {
+          doc.rect(50, headerTop, 160, 45).fill('#1e293b');
+          doc.image(logo, 58, headerTop + 6, { height: 33 });
+        } catch {}
       }
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff').text(reportData.title, 50, headerTop + 14, { width: pageWidth - 20, align: 'right' });
-      doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 50, headerTop + 36, { width: pageWidth - 20, align: 'right' });
-      doc.restore();
-      doc.y = headerTop + 76;
+      doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000').text(reportData.title, 50, headerTop + 6, { width: pageWidth, align: 'right' });
+      doc.fontSize(8).font('Helvetica').fillColor('#555555').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 50, headerTop + 28, { width: pageWidth, align: 'right' });
+      doc.y = headerTop + 52;
+      doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).lineWidth(1).stroke('#000000');
+      doc.y += 12;
       doc.fillColor('#000000');
       doc.moveDown(0.5);
       
