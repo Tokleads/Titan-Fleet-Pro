@@ -19,6 +19,7 @@ export default function ManagerLogin() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showPin, setShowPin] = useState(false);
   
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [totpToken, setTotpToken] = useState("");
@@ -161,14 +162,26 @@ export default function ManagerLogin() {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Manager PIN</label>
-                        <TitanInput
-                          type="password"
-                          value={pin}
-                          onChange={(e) => setPin(e.target.value)}
-                          placeholder="Enter PIN"
-                          maxLength={6}
-                          data-testid="input-pin"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPin ? "text" : "password"}
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                            placeholder="Enter PIN"
+                            maxLength={6}
+                            data-testid="input-pin"
+                            className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 pr-12 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPin(!showPin)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                            data-testid="button-toggle-pin"
+                            tabIndex={-1}
+                          >
+                            {showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
                       </div>
                     </>
                   ) : (
