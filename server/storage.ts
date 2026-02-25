@@ -1264,8 +1264,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async generateTimesheetCSV(timesheets: (Timesheet & { driver?: User; wageCalculation?: any })[]): Promise<string> {
-    // Enhanced CSV format for wage invoices with detailed pay breakdown
-    const header = 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Regular Hours,Night Hours,Weekend Hours,Bank Holiday Hours,Overtime Hours,Base Rate,Night Rate,Weekend Rate,Holiday Rate,Overtime Rate,Regular Pay,Night Pay,Weekend Pay,Holiday Pay,Overtime Pay,Total Pay,Status\n';
+    const hasWages = timesheets.some(ts => ts.wageCalculation && ts.wageCalculation.totalPay > 0);
+
+    let header: string;
+    if (hasWages) {
+      header = 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Regular Hours,Overtime Hours,Night Hours,Weekend Hours,Holiday Hours,Total Pay,Status\n';
+    } else {
+      header = 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Status\n';
+    }
     
     const rows = timesheets.map(ts => {
       const driverName = ts.driver?.name || 'Unknown';
@@ -1278,34 +1284,31 @@ export class DatabaseStorage implements IStorage {
       const totalMinutes = ts.totalMinutes || 0;
       const totalHours = (totalMinutes / 60).toFixed(2);
       
-      // Calculate break time (30 mins for shifts > 6 hours)
+      if (!hasWages) {
+        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${ts.status}`;
+      }
+
+      const wage = ts.wageCalculation;
       const breakTime = totalMinutes > 360 ? 30 : 0;
       const netMinutes = totalMinutes - breakTime;
-      const netHours = (netMinutes / 60).toFixed(2);
-      
-      // Get wage calculation if available
-      const wage = ts.wageCalculation;
       
       if (wage) {
-        // Use calculated wage breakdown
         const regularHours = (wage.regularMinutes / 60).toFixed(2);
+        const overtimeHours = (wage.overtimeMinutes / 60).toFixed(2);
         const nightHours = (wage.nightMinutes / 60).toFixed(2);
         const weekendHours = (wage.weekendMinutes / 60).toFixed(2);
         const holidayHours = (wage.bankHolidayMinutes / 60).toFixed(2);
-        const overtimeHours = (wage.overtimeMinutes / 60).toFixed(2);
         
-        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName}",${totalHours},${regularHours},${nightHours},${weekendHours},${holidayHours},${overtimeHours},${wage.baseRate || '0.00'},${wage.nightRate || '0.00'},${wage.weekendRate || '0.00'},${wage.holidayRate || '0.00'},${wage.overtimeRate || '0.00'},${wage.regularPay},${wage.nightPay},${wage.weekendPay},${wage.bankHolidayPay},${wage.overtimePay},${wage.totalPay},${ts.status}`;
+        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${regularHours},${overtimeHours},${nightHours},${weekendHours},${holidayHours},${wage.totalPay},${ts.status}`;
       } else {
-        // Fallback to basic calculation
         const overtimeMinutes = Math.max(0, netMinutes - 480);
         const overtime = (overtimeMinutes / 60).toFixed(2);
         const regularHours = ((netMinutes - overtimeMinutes) / 60).toFixed(2);
         
-        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName}",${totalHours},${regularHours},0.00,0.00,0.00,${overtime},0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,${ts.status}`;
+        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${regularHours},${overtime},0.00,0.00,0.00,0.00,${ts.status}`;
       }
     }).join('\n');
     
-    // Add weekly summary at the bottom
     const driverSummaries = new Map<number, { name: string; totalHours: number; shifts: number }>();
     
     timesheets.forEach(ts => {
@@ -1326,7 +1329,7 @@ export class DatabaseStorage implements IStorage {
       }
     });
     
-    let summary = '\n\n--- WEEKLY SUMMARY ---\n';
+    let summary = '\n\n--- SUMMARY ---\n';
     summary += 'Driver Name,Total Shifts,Total Hours,Regular Hours,Overtime Hours\n';
     
     driverSummaries.forEach(({ name, totalHours, shifts }) => {

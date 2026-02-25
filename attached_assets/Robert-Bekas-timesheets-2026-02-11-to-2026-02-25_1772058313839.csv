@@ -1,0 +1,10 @@
+Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Regular Hours,Night Hours,Weekend Hours,Bank Holiday Hours,Overtime Hours,Base Rate,Night Rate,Weekend Rate,Holiday Rate,Overtime Rate,Regular Pay,Night Pay,Weekend Pay,Holiday Pay,Overtime Pay,Total Pay,Status
+"Robert Bekas",25/02/2026,11:20,11:26,"Rossington",0.10,0.10,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,COMPLETED
+"Robert Bekas",20/02/2026,08:56,14:27,"Rossington",5.50,5.50,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,COMPLETED
+"Robert Bekas",19/02/2026,07:23,07:28,"Rossington",0.08,0.08,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,COMPLETED
+"Robert Bekas",19/02/2026,06:33,06:38,"Rossington",0.08,0.08,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,COMPLETED
+"Robert Bekas",19/02/2026,06:11,06:16,"Rossington",0.08,0.08,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,COMPLETED
+
+--- WEEKLY SUMMARY ---
+Driver Name,Total Shifts,Total Hours,Regular Hours,Overtime Hours
+"Robert Bekas",5,5.85,5.85,0.00
