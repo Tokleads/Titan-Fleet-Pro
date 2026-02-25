@@ -121,7 +121,7 @@ export default function FleetDocuments() {
       if (!response.ok) throw new Error('Failed to fetch documents');
       
       const data = await response.json();
-      setDocuments(data.documents);
+      setDocuments(Array.isArray(data.documents) ? data.documents : []);
     } catch (error) {
       toast({
         title: 'Error',
@@ -177,8 +177,9 @@ export default function FleetDocuments() {
           statsResponse.json()
         ]);
         
-        setDocuments(docsData.documents);
-        setTotalItems(docsData.total || docsData.documents.length);
+        const docs = Array.isArray(docsData.documents) ? docsData.documents : [];
+        setDocuments(docs);
+        setTotalItems(docsData.total || docs.length);
         setStats(statsData);
       } catch (error: any) {
         if (error.name !== 'AbortError') {

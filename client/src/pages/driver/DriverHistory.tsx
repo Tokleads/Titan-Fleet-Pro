@@ -93,8 +93,8 @@ export default function DriverHistory() {
           api.getFuelEntries(company.id, user.id, 30)
         ]);
         if (mounted) {
-          setInspections(inspectionData);
-          setFuelEntries(fuelData);
+          setInspections(Array.isArray(inspectionData) ? inspectionData : []);
+          setFuelEntries(Array.isArray(fuelData) ? fuelData : []);
         }
       } catch (error) {
         console.error("Failed to load history:", error);

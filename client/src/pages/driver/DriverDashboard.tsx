@@ -119,9 +119,9 @@ export default function DriverDashboard() {
         ]);
         
         if (mounted) {
-          setRecentVehicles(recents);
-          setInspections(inspectionData);
-          setFuelEntries(fuelData);
+          setRecentVehicles(Array.isArray(recents) ? recents : []);
+          setInspections(Array.isArray(inspectionData) ? inspectionData : []);
+          setFuelEntries(Array.isArray(fuelData) ? fuelData : []);
         }
       } catch (error) {
         if (mounted) {
@@ -146,7 +146,7 @@ export default function DriverDashboard() {
         const response = await fetch(`/api/notifications/public/${company.companyCode}`);
         if (response.ok) {
           const data = await response.json();
-          setAnnouncements(data);
+          setAnnouncements(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.error('Failed to load announcements:', error);
@@ -172,8 +172,8 @@ export default function DriverDashboard() {
         api.getInspections(company.id, user.id, 7),
         api.getFuelEntries(company.id, user.id, 7)
       ]);
-      setInspections(inspectionData);
-      setFuelEntries(fuelData);
+      setInspections(Array.isArray(inspectionData) ? inspectionData : []);
+      setFuelEntries(Array.isArray(fuelData) ? fuelData : []);
     } catch (error) {
       console.error("Failed to load activity:", error);
     }
@@ -184,7 +184,7 @@ export default function DriverDashboard() {
     setIsSearching(true);
     try {
       const matches = await api.searchVehicles(company.id, query);
-      setResults(matches);
+      setResults(Array.isArray(matches) ? matches : []);
       setHasSearched(true);
     } catch (error) {
       console.error("Search failed:", error);

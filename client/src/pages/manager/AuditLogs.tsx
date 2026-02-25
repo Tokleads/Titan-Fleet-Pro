@@ -70,7 +70,7 @@ export default function AuditLogs() {
       const response = await fetch(`/api/audit-logs?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
+        setLogs(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       toast.error('Failed to load audit logs');

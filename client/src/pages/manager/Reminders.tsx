@@ -127,7 +127,7 @@ export default function Reminders() {
       const response = await fetch(`/api/vehicles?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
-        setVehicles(data);
+        setVehicles(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Failed to load vehicles:', error);

@@ -41,7 +41,7 @@ export function LicenseAlertsWidget({ companyId }: LicenseAlertsWidgetProps) {
       const response = await fetch(`/api/manager/license/alerts?companyId=${companyId}`, { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
-        setAlerts(data);
+        setAlerts(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Error fetching license alerts:", error);
