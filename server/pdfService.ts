@@ -1,18 +1,10 @@
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
-import path from 'path';
-import fs from 'fs';
 import { ObjectStorageService } from './objectStorage';
 
-const LOGO_PATH = path.join(process.cwd(), 'server', 'assets', 'titan-fleet-logo.png');
-
-function getLogoBuffer(): Buffer | null {
-  try {
-    if (fs.existsSync(LOGO_PATH)) {
-      return fs.readFileSync(LOGO_PATH);
-    }
-  } catch {}
-  return null;
+function drawTitanFleetLogo(doc: PDFKit.PDFDocument, x: number, y: number) {
+  doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e293b').text('Titan', x, y, { continued: true });
+  doc.fillColor('#4a5568').text(' Fleet');
 }
 
 interface InspectionData {
@@ -90,23 +82,17 @@ export async function generateInspectionPDF(inspection: InspectionData): Promise
     minute: '2-digit'
   });
 
-  const logo = getLogoBuffer();
   const left = 50;
   const right = 545;
   const contentWidth = right - left;
 
   const headerTop = doc.y;
-  if (logo) {
-    try {
-      doc.rect(left, headerTop, 160, 45).fill('#1e293b');
-      doc.image(logo, left + 8, headerTop + 6, { height: 33 });
-    } catch { }
-  }
+  drawTitanFleetLogo(doc, left, headerTop);
   doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000')
     .text('Vehicle Inspection Report', left, headerTop + 6, { width: contentWidth, align: 'right' });
   doc.fontSize(9).font('Helvetica').fillColor('#555555')
     .text(`Generated: ${dateStr} at ${timeStr}`, left, headerTop + 28, { width: contentWidth, align: 'right' });
-  doc.y = headerTop + 52;
+  doc.y = headerTop + 42;
   doc.moveTo(left, doc.y).lineTo(right, doc.y).lineWidth(1).stroke('#000000');
   doc.y += 12;
   doc.fillColor('#000000');
@@ -284,19 +270,13 @@ export function generateDVSAComplianceReport(data: {
   const stream = new PassThrough();
   doc.pipe(stream);
 
-  const logo = getLogoBuffer();
   const headerTop = doc.y;
-  if (logo) {
-    try {
-      doc.rect(50, headerTop, 160, 45).fill('#1e293b');
-      doc.image(logo, 58, headerTop + 6, { height: 33 });
-    } catch {}
-  }
+  drawTitanFleetLogo(doc, 50, headerTop);
   doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000')
     .text('DVSA Compliance Report', 50, headerTop + 6, { width: 495, align: 'right' });
   doc.fontSize(9).font('Helvetica').fillColor('#555555')
     .text(`Generated: ${new Date().toLocaleString('en-GB')}`, 50, headerTop + 28, { width: 495, align: 'right' });
-  doc.y = headerTop + 52;
+  doc.y = headerTop + 42;
   doc.moveTo(50, doc.y).lineTo(545, doc.y).lineWidth(1).stroke('#000000');
   doc.y += 12;
   doc.fillColor('#000000');

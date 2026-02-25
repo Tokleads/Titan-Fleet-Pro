@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +73,7 @@ interface ChartData {
 
 export default function AdvancedDashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const companyId = session.getCompany()?.id || 1;
   
   // State
@@ -231,7 +233,7 @@ export default function AdvancedDashboard() {
         {kpis && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Total Vehicles */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/fleet')} data-testid="kpi-total-vehicles">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Vehicles
@@ -255,7 +257,7 @@ export default function AdvancedDashboard() {
             </Card>
 
             {/* Active Drivers */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/drivers')} data-testid="kpi-active-drivers">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Active Drivers
@@ -279,7 +281,7 @@ export default function AdvancedDashboard() {
             </Card>
 
             {/* Inspections MTD */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/inspections')} data-testid="kpi-inspections-mtd">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Inspections MTD
@@ -303,7 +305,7 @@ export default function AdvancedDashboard() {
             </Card>
 
             {/* Compliance Rate */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/inspections')} data-testid="kpi-compliance-rate">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Compliance Rate
@@ -327,7 +329,7 @@ export default function AdvancedDashboard() {
             </Card>
 
             {/* Average MPG */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/fuel-intelligence')} data-testid="kpi-avg-mpg">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Fleet Avg MPG
@@ -343,7 +345,7 @@ export default function AdvancedDashboard() {
             </Card>
 
             {/* Fuel Cost MTD */}
-            <Card>
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setLocation('/manager/fuel-intelligence')} data-testid="kpi-fuel-cost-mtd">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Fuel Cost MTD

@@ -5,13 +5,11 @@
  */
 
 import PDFDocument from "pdfkit";
-import path from "path";
-import fs from "fs";
 import type { ReportData } from "./reports";
 
-const LOGO_PATH = path.join(process.cwd(), 'server', 'assets', 'titan-fleet-logo.png');
-function getLogoBuffer(): Buffer | null {
-  try { return fs.existsSync(LOGO_PATH) ? fs.readFileSync(LOGO_PATH) : null; } catch { return null; }
+function drawTitanFleetLogo(doc: PDFKit.PDFDocument, x: number, y: number) {
+  doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e293b').text('Titan', x, y, { continued: true });
+  doc.fillColor('#4a5568').text(' Fleet');
 }
 
 /**
@@ -74,18 +72,12 @@ export async function generatePDF(reportData: ReportData): Promise<Buffer> {
       });
       doc.on('error', reject);
       
-      const logo = getLogoBuffer();
       const headerTop = doc.y;
       const pageWidth = doc.page.width - 100;
-      if (logo) {
-        try {
-          doc.rect(50, headerTop, 160, 45).fill('#1e293b');
-          doc.image(logo, 58, headerTop + 6, { height: 33 });
-        } catch {}
-      }
+      drawTitanFleetLogo(doc, 50, headerTop);
       doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000').text(reportData.title, 50, headerTop + 6, { width: pageWidth, align: 'right' });
       doc.fontSize(8).font('Helvetica').fillColor('#555555').text(`Generated: ${new Date(reportData.generatedAt).toLocaleString('en-GB')}`, 50, headerTop + 28, { width: pageWidth, align: 'right' });
-      doc.y = headerTop + 52;
+      doc.y = headerTop + 42;
       doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).lineWidth(1).stroke('#000000');
       doc.y += 12;
       doc.fillColor('#000000');
