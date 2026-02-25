@@ -67,8 +67,9 @@ export function NotificationBell() {
       const res = await fetch(`/api/notifications?companyId=${company.id}&userId=${user.id}&limit=20`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+        const list = Array.isArray(data) ? data : [];
+        setNotifications(list);
+        setUnreadCount(list.filter((n: Notification) => !n.isRead).length);
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);

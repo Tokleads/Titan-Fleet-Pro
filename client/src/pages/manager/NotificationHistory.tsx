@@ -75,9 +75,9 @@ function NotificationHistoryContent() {
       if (!response.ok) throw new Error('Failed to fetch notifications');
       
       const data = await response.json();
-      setNotifications(data.history);
-      setTotalItems(data.total);
-      setTotalPages(Math.ceil(data.total / itemsPerPage));
+      setNotifications(data.notifications || data.history || []);
+      setTotalItems(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
     } catch (error) {
       toast({
         title: 'Error',
@@ -122,7 +122,7 @@ function NotificationHistoryContent() {
   };
   
   // Filter notifications (API already filters)
-  const filteredNotifications = notifications;
+  const filteredNotifications = notifications || [];
   
   const getStatusIcon = (status: string) => {
     switch (status) {
