@@ -377,6 +377,11 @@ export class DatabaseStorage implements IStorage {
 
   // Manager auth
   async getUserByCompanyAndPin(companyId: number, pin: string, role: string): Promise<User | undefined> {
+    const allWithPin = await db.select({ id: users.id, name: users.name, pin: users.pin, role: users.role, active: users.active })
+      .from(users)
+      .where(and(eq(users.companyId, companyId), eq(users.pin, pin)));
+    console.log(`[PIN Debug] All users with companyId=${companyId} pin="${pin}":`, JSON.stringify(allWithPin));
+
     const conditions = [
       eq(users.companyId, companyId),
       eq(users.pin, pin),
