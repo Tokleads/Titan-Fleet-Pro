@@ -569,8 +569,18 @@ h2{margin:0 0 0.5rem}p{color:#64748b;margin:0.5rem 0}
       log('Notification scheduler started', 'scheduler');
 
       // Run database migrations in background (don't block server start)
-      runStartupMigrations().then(() => {
+      runStartupMigrations().then(async () => {
         console.log('Startup migrations completed');
+        try {
+          const { db } = await import('./db');
+          const { users, companies } = await import('../shared/schema');
+          const { eq, sql } = await import('drizzle-orm');
+          const allCompanies = await db.select({ id: companies.id, code: companies.companyCode, name: companies.name }).from(companies);
+          console.log('[DB Debug] All companies:', JSON.stringify(allCompanies));
+          const managers = await db.select({ id: users.id, name: users.name, role: users.role, pin: users.pin, active: users.active, companyId: users.companyId })
+            .from(users).where(sql`LOWER(role) IN ('manager', 'transport_manager', 'admin')`);
+          console.log('[DB Debug] All managers:', JSON.stringify(managers));
+        } catch (e) { console.error('[DB Debug] Error:', e); }
       }).catch((err) => {
         console.error('Startup migrations failed (non-fatal):', err);
       });
