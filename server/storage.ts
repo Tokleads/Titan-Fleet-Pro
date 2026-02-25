@@ -1264,6 +1264,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async generateTimesheetCSV(timesheets: (Timesheet & { driver?: User; wageCalculation?: any })[]): Promise<string> {
+    const esc = (v: string) => `"${(v || '').replace(/"/g, '""')}"`;
+    
+    if (timesheets.length === 0) {
+      return 'Driver Name,Date,Clock In,Clock Out,Depot,Total Hours,Status\nNo data for selected period\n';
+    }
+
     const hasWages = timesheets.some(ts => ts.wageCalculation && ts.wageCalculation.totalPay > 0);
 
     let header: string;
@@ -1285,7 +1291,7 @@ export class DatabaseStorage implements IStorage {
       const totalHours = (totalMinutes / 60).toFixed(2);
       
       if (!hasWages) {
-        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${ts.status}`;
+        return `${esc(driverName)},${date},${clockIn},${clockOut},${esc(ts.depotName || '')},${totalHours},${ts.status}`;
       }
 
       const wage = ts.wageCalculation;
@@ -1293,19 +1299,19 @@ export class DatabaseStorage implements IStorage {
       const netMinutes = totalMinutes - breakTime;
       
       if (wage) {
-        const regularHours = (wage.regularMinutes / 60).toFixed(2);
-        const overtimeHours = (wage.overtimeMinutes / 60).toFixed(2);
-        const nightHours = (wage.nightMinutes / 60).toFixed(2);
-        const weekendHours = (wage.weekendMinutes / 60).toFixed(2);
-        const holidayHours = (wage.bankHolidayMinutes / 60).toFixed(2);
+        const regularHours = ((wage.regularMinutes || 0) / 60).toFixed(2);
+        const overtimeHours = ((wage.overtimeMinutes || 0) / 60).toFixed(2);
+        const nightHours = ((wage.nightMinutes || 0) / 60).toFixed(2);
+        const weekendHours = ((wage.weekendMinutes || 0) / 60).toFixed(2);
+        const holidayHours = ((wage.bankHolidayMinutes || 0) / 60).toFixed(2);
         
-        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${regularHours},${overtimeHours},${nightHours},${weekendHours},${holidayHours},${wage.totalPay},${ts.status}`;
+        return `${esc(driverName)},${date},${clockIn},${clockOut},${esc(ts.depotName || '')},${totalHours},${regularHours},${overtimeHours},${nightHours},${weekendHours},${holidayHours},${wage.totalPay || '0.00'},${ts.status}`;
       } else {
         const overtimeMinutes = Math.max(0, netMinutes - 480);
         const overtime = (overtimeMinutes / 60).toFixed(2);
         const regularHours = ((netMinutes - overtimeMinutes) / 60).toFixed(2);
         
-        return `"${driverName}",${date},${clockIn},${clockOut},"${ts.depotName || ''}",${totalHours},${regularHours},${overtime},0.00,0.00,0.00,0.00,${ts.status}`;
+        return `${esc(driverName)},${date},${clockIn},${clockOut},${esc(ts.depotName || '')},${totalHours},${regularHours},${overtime},0.00,0.00,0.00,0.00,${ts.status}`;
       }
     }).join('\n');
     
@@ -1335,7 +1341,7 @@ export class DatabaseStorage implements IStorage {
     driverSummaries.forEach(({ name, totalHours, shifts }) => {
       const regularHours = Math.min(totalHours, 40).toFixed(2);
       const overtimeHours = Math.max(0, totalHours - 40).toFixed(2);
-      summary += `"${name}",${shifts},${totalHours.toFixed(2)},${regularHours},${overtimeHours}\n`;
+      summary += `${esc(name)},${shifts},${totalHours.toFixed(2)},${regularHours},${overtimeHours}\n`;
     });
     
     return header + rows + summary;

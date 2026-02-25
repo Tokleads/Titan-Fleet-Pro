@@ -5555,6 +5555,9 @@ export async function registerRoutes(
       if (!delivery) {
         return res.status(404).json({ error: "Delivery not found" });
       }
+      if (req.user && delivery.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
 
       const company = await storage.getCompanyById(delivery.companyId);
       const driver = await storage.getUser(delivery.driverId);
