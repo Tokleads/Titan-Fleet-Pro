@@ -1,38 +1,32 @@
-/**
- * Notification History Page
- * 
- * Shows a history of all sent notifications with filtering and search.
- */
-
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ManagerLayout } from './ManagerLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Bell, Search, Filter, Mail, MessageSquare, Smartphone, CheckCircle2, XCircle, Clock, Loader2, Trash2 } from 'lucide-react';
+import { Bell, Search, Filter, CheckCircle2, Circle, AlertTriangle, AlertOctagon, Info, Loader2, CheckCheck } from 'lucide-react';
 import { session } from "@/lib/session";
+import { useToast } from '@/hooks/use-toast';
 
 function authHeaders(): Record<string, string> {
   const token = session.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-import { Pagination } from '@/components/Pagination';
-import { useToast } from '@/hooks/use-toast';
 
-interface Notification {
+interface NotificationItem {
   id: number;
-  type: string;
-  channel: string;
-  recipient: string;
-  subject: string | null;
+  companyId: number;
+  recipientId: number;
+  senderId: number | null;
+  title: string;
   message: string;
-  status: string;
-  sentAt: string | null;
+  priority: string;
+  isRead: boolean;
+  readAt: string | null;
+  isBroadcast: boolean;
   createdAt: string;
-  metadata: any;
 }
 
 export default function NotificationHistory() {
@@ -45,160 +39,142 @@ export default function NotificationHistory() {
 
 function NotificationHistoryContent() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const user = session.getUser();
   const companyId = session.getCompany()?.id || 1;
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const userId = user?.id;
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [channelFilter, setChannelFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  
-  // Fetch notifications
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        companyId: companyId.toString(),
-        limit: itemsPerPage.toString(),
-        offset: ((currentPage - 1) * itemsPerPage).toString(),
-        ...(typeFilter !== 'all' && { type: typeFilter }),
-        ...(statusFilter !== 'all' && { status: statusFilter }),
-        ...(channelFilter !== 'all' && { channel: channelFilter }),
-        ...(searchQuery && { search: searchQuery })
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [readFilter, setReadFilter] = useState('all');
+
+  const { data: notifications = [], isLoading } = useQuery<NotificationItem[]>({
+    queryKey: ["all-notifications", companyId, userId],
+    queryFn: async () => {
+      const res = await fetch(`/api/notifications?companyId=${companyId}&userId=${userId}&limit=200`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!companyId && !!userId,
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/notifications/mark-all-read", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ companyId, userId }),
       });
-      
-      const response = await fetch(`/api/notification-preferences/history?${params}`, { headers: authHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      
-      const data = await response.json();
-      setNotifications(data.notifications || data.history || []);
-      setTotalItems(data.total || 0);
-      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load notification history',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Load notifications on mount and when filters change
-  useEffect(() => {
-    fetchNotifications();
-  }, [typeFilter, statusFilter, channelFilter, searchQuery, currentPage]);
-  
-  // Handle delete
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this notification?')) return;
-    
-    try {
-      const response = await fetch(`/api/notification-preferences/history/${id}?companyId=${companyId}`, {
-        method: 'DELETE',
-        headers: authHeaders()
-      });
-      
-      if (!response.ok) throw new Error('Delete failed');
-      
-      toast({
-        title: 'Success',
-        description: 'Notification deleted successfully'
-      });
-      
-      fetchNotifications();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete notification',
-        variant: 'destructive'
-      });
-    }
-  };
-  
-  // Filter notifications (API already filters)
-  const filteredNotifications = notifications || [];
-  
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'SENT':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'FAILED':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'PENDING':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+      if (!res.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unread-count"] });
+      toast({ title: "All notifications marked as read" });
+    },
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unread-count"] });
+    },
+  });
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((n) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!n.title.toLowerCase().includes(q) && !n.message.toLowerCase().includes(q)) return false;
+      }
+      if (priorityFilter !== 'all' && n.priority !== priorityFilter) return false;
+      if (readFilter === 'unread' && n.isRead) return false;
+      if (readFilter === 'read' && !n.isRead) return false;
+      return true;
+    });
+  }, [notifications, searchQuery, priorityFilter, readFilter]);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'URGENT':
+        return <Badge className="bg-red-100 text-red-700 border-red-200">Urgent</Badge>;
+      case 'HIGH':
+        return <Badge className="bg-orange-100 text-orange-700 border-orange-200">High</Badge>;
+      case 'NORMAL':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Normal</Badge>;
+      case 'LOW':
+        return <Badge className="bg-slate-100 text-slate-600 border-slate-200">Low</Badge>;
       default:
-        return null;
+        return <Badge variant="outline">{priority}</Badge>;
     }
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'SENT':
-        return <Badge variant="default" className="bg-green-500">Sent</Badge>;
-      case 'FAILED':
-        return <Badge variant="destructive">Failed</Badge>;
-      case 'PENDING':
-        return <Badge variant="secondary">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
-  const getChannelIcon = (channel: string) => {
-    switch (channel) {
-      case 'EMAIL':
-        return <Mail className="h-4 w-4" />;
-      case 'SMS':
-        return <MessageSquare className="h-4 w-4" />;
-      case 'IN_APP':
-        return <Smartphone className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-  
-  const getTypeLabel = (type: string) => {
-    return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-  };
-  
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not sent';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
   };
 
-  
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'URGENT':
+        return <AlertOctagon className="h-5 w-5 text-red-500" />;
+      case 'HIGH':
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
+      case 'NORMAL':
+        return <Info className="h-5 w-5 text-blue-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-slate-400" />;
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Notification History</h1>
-        <p className="text-muted-foreground">
-          View all notifications sent to your team
-        </p>
+    <div className="container py-8 max-w-4xl">
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Notifications</h1>
+          <p className="text-muted-foreground">
+            {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up'}
+          </p>
+        </div>
+        {unreadCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending}
+            data-testid="button-mark-all-read"
+          >
+            <CheckCheck className="h-4 w-4 mr-1.5" />
+            Mark all read
+          </Button>
+        )}
       </div>
-      
-      {/* Filters */}
+
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4" />
             Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -206,65 +182,49 @@ function NotificationHistoryContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
+                data-testid="input-search-notifications"
               />
             </div>
-            
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Notification Type" />
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger data-testid="select-priority-filter">
+                <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="MOT_EXPIRY">MOT Expiry</SelectItem>
-                <SelectItem value="TAX_EXPIRY">Tax Expiry</SelectItem>
-                <SelectItem value="SERVICE_DUE">Service Due</SelectItem>
-                <SelectItem value="LICENSE_EXPIRY">License Expiry</SelectItem>
-                <SelectItem value="VOR_STATUS">VOR Status</SelectItem>
-                <SelectItem value="DEFECT_REPORTED">Defect Reported</SelectItem>
-                <SelectItem value="INSPECTION_FAILED">Inspection Failed</SelectItem>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="NORMAL">Normal</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
+
+            <Select value={readFilter} onValueChange={setReadFilter}>
+              <SelectTrigger data-testid="select-read-filter">
+                <SelectValue placeholder="Read Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="SENT">Sent</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={channelFilter} onValueChange={setChannelFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Channel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Channels</SelectItem>
-                <SelectItem value="EMAIL">Email</SelectItem>
-                <SelectItem value="SMS">SMS</SelectItem>
-                <SelectItem value="IN_APP">In-App</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="unread">Unread</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
-      
-      {/* Notifications Table */}
+
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Notifications ({filteredNotifications.length})
           </CardTitle>
           <CardDescription>
-            {filteredNotifications.length === 0 ? 'No notifications found' : 'Recent notification activity'}
+            {filteredNotifications.length === 0 ? 'No notifications found' : 'Your recent notifications'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
@@ -273,79 +233,58 @@ function NotificationHistoryContent() {
               <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium mb-2">No notifications found</p>
               <p className="text-muted-foreground">
-                Try adjusting your filters or search query
+                {searchQuery || priorityFilter !== 'all' || readFilter !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'You have no notifications yet'}
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Sent At</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredNotifications.map((notification) => (
-                    <TableRow key={notification.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(notification.status)}
-                          {getStatusBadge(notification.status)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getTypeLabel(notification.type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getChannelIcon(notification.channel)}
-                          <span className="text-sm">{notification.channel}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        <div className="font-medium">{notification.subject}</div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {notification.message}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{notification.recipient}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(notification.sentAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(notification.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          
-          {!loading && notifications.length > 0 && (
-            <div className="mt-4">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
-              />
+            <div className="space-y-2">
+              {filteredNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`flex items-start gap-4 p-4 rounded-xl border transition-colors cursor-pointer ${
+                    notification.isRead
+                      ? 'bg-white border-slate-100 hover:bg-slate-50'
+                      : 'bg-blue-50/50 border-blue-100 hover:bg-blue-50'
+                  }`}
+                  onClick={() => {
+                    if (!notification.isRead) markReadMutation.mutate(notification.id);
+                  }}
+                  data-testid={`notification-item-${notification.id}`}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getPriorityIcon(notification.priority)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`text-sm font-semibold ${notification.isRead ? 'text-slate-700' : 'text-slate-900'}`}>
+                        {notification.title}
+                      </p>
+                      {!notification.isRead && (
+                        <Circle className="h-2 w-2 fill-blue-500 text-blue-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className={`text-sm ${notification.isRead ? 'text-slate-500' : 'text-slate-600'}`}>
+                      {notification.message}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+                      {getPriorityBadge(notification.priority)}
+                      {notification.isBroadcast && (
+                        <Badge variant="outline" className="text-xs">Broadcast</Badge>
+                      )}
+                      <span className="text-xs text-slate-400">
+                        {formatTimeAgo(notification.createdAt)}
+                      </span>
+                      {notification.isRead && (
+                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Read
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
