@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { gpsTrackingService, type TrackingStatus } from '@/services/gpsTracking';
+import { session } from '@/lib/session';
 
 export interface UseGPSTrackingOptions {
   driverId: number;
@@ -19,10 +20,6 @@ export interface UseGPSTrackingReturn {
   error: string | null;
 }
 
-/**
- * React hook for GPS tracking
- * Provides easy integration of GPS tracking into driver components
- */
 export function useGPSTracking(options: UseGPSTrackingOptions): UseGPSTrackingReturn {
   const { driverId, vehicleId = null, companyId, autoStart = false } = options;
   
@@ -30,19 +27,20 @@ export function useGPSTracking(options: UseGPSTrackingOptions): UseGPSTrackingRe
     gpsTrackingService.getStatus()
   );
 
-  // Subscribe to status changes
+  useEffect(() => {
+    gpsTrackingService.setAuthTokenProvider(() => session.getToken());
+  }, []);
+
   useEffect(() => {
     const unsubscribe = gpsTrackingService.onStatusChange(setStatus);
     return unsubscribe;
   }, []);
 
-  // Auto-start tracking if enabled
   useEffect(() => {
     if (autoStart && driverId) {
       gpsTrackingService.startTracking(driverId, vehicleId, companyId);
     }
 
-    // Cleanup on unmount
     return () => {
       if (autoStart) {
         gpsTrackingService.stopTracking();

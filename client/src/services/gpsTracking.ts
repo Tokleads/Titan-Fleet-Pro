@@ -42,7 +42,7 @@ class GPSTrackingService {
   private isSending: boolean = false;
   private getAuthToken: (() => string | null) | null = null;
   private config: TrackingConfig = {
-    updateInterval: 5 * 60 * 1000, // 5 minutes default
+    updateInterval: 2 * 60 * 1000, // 2 minutes default
     highAccuracy: true,
     maxAge: 30000,
     timeout: 10000,
@@ -53,14 +53,11 @@ class GPSTrackingService {
   private batteryLevel: number | null = null;
 
   constructor() {
-    // Listen for online/offline events
     window.addEventListener('online', this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     
-    // Monitor battery level if available
     this.initBatteryMonitoring();
-    
-    // Load offline queue from localStorage
     this.loadOfflineQueue();
   }
 
@@ -91,16 +88,13 @@ class GPSTrackingService {
     if (!this.config.batteryOptimization || this.batteryLevel === null) return;
 
     if (this.batteryLevel < 0.15) {
-      // Low battery: 15 minute intervals
-      this.config.updateInterval = 15 * 60 * 1000;
+      this.config.updateInterval = 10 * 60 * 1000;
       this.config.highAccuracy = false;
     } else if (this.batteryLevel < 0.30) {
-      // Medium battery: 10 minute intervals
-      this.config.updateInterval = 10 * 60 * 1000;
+      this.config.updateInterval = 5 * 60 * 1000;
       this.config.highAccuracy = true;
     } else {
-      // Good battery: 5 minute intervals
-      this.config.updateInterval = 5 * 60 * 1000;
+      this.config.updateInterval = 2 * 60 * 1000;
       this.config.highAccuracy = true;
     }
 
@@ -190,13 +184,17 @@ class GPSTrackingService {
       companyId: companyId ?? 0,
     };
 
-    // Check if location has changed significantly
     if (this.shouldSkipUpdate(locationData)) {
       return;
     }
 
+    const isFirstFix = this.lastLocation === null;
     this.lastLocation = locationData;
     this.notifyStatusChange();
+
+    if (isFirstFix || !this.lastSentLocation) {
+      this.sendLocationUpdate();
+    }
   }
 
   /**
@@ -401,6 +399,12 @@ class GPSTrackingService {
     this.notifyStatusChange();
   };
 
+  private handleVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible' && this.watchId !== null) {
+      this.sendLocationUpdate();
+    }
+  };
+
   /**
    * Get current tracking status
    */
@@ -497,6 +501,7 @@ class GPSTrackingService {
     this.stopTracking();
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     this.statusCallbacks.clear();
   }
 }
