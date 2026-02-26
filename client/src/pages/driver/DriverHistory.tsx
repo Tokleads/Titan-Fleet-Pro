@@ -164,6 +164,94 @@ export default function DriverHistory() {
           ))}
         </div>
 
+        <div className="space-y-3 mb-4">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+            {[
+              { key: "thisWeek", label: "This Week" },
+              { key: "lastWeek", label: "Last Week" },
+              { key: "thisMonth", label: "This Month" },
+              { key: "lastMonth", label: "Last Month" },
+              { key: "last30", label: "Last 30 Days" },
+              { key: "custom", label: "Custom" },
+            ].map((p) => (
+              <button
+                key={p.key}
+                onClick={() => handleShiftPreset(p.key)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
+                  shiftPreset === p.key
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+                data-testid={`button-shift-preset-${p.key}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {shiftPreset === "custom" && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+              <input
+                type="date"
+                value={shiftDateRange.start}
+                onChange={(e) => setShiftDateRange({ ...shiftDateRange, start: e.target.value })}
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                data-testid="input-shift-start-date"
+              />
+              <span className="text-slate-400 text-xs">to</span>
+              <input
+                type="date"
+                value={shiftDateRange.end}
+                onChange={(e) => setShiftDateRange({ ...shiftDateRange, end: e.target.value })}
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                data-testid="input-shift-end-date"
+              />
+            </div>
+          )}
+
+          {(() => {
+            const completedShifts = timesheetEntries.filter(t => t.status === "COMPLETED" && t.totalMinutes);
+            const totalMins = completedShifts.reduce((sum, t) => sum + t.totalMinutes, 0);
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            const avgPerShift = completedShifts.length > 0 ? Math.round(totalMins / completedShifts.length) : 0;
+            const avgH = Math.floor(avgPerShift / 60);
+            const avgM = avgPerShift % 60;
+            return (
+              <div className="titan-card p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200/60">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-purple-600 font-medium uppercase tracking-wider">
+                      Total Working Hours
+                    </p>
+                    <p className="text-3xl font-bold text-purple-900 mt-1" data-testid="text-total-hours">
+                      {h}h {m}m
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">Shifts</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {completedShifts.length}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-purple-200/40">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase">Avg Per Shift</p>
+                      <p className="text-sm font-semibold text-slate-700">{avgH}h {avgM}m</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {new Date(shiftDateRange.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(shiftDateRange.end).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
         {isLoading ? (
           <div className="space-y-3">
             {[1,2,3].map(i => (
@@ -181,83 +269,6 @@ export default function DriverHistory() {
           </div>
         ) : (
           <>
-            {activeTab === "shifts" && (
-              <div className="space-y-3 mb-4">
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                  {[
-                    { key: "thisWeek", label: "This Week" },
-                    { key: "lastWeek", label: "Last Week" },
-                    { key: "thisMonth", label: "This Month" },
-                    { key: "lastMonth", label: "Last Month" },
-                    { key: "last30", label: "Last 30 Days" },
-                    { key: "custom", label: "Custom" },
-                  ].map((p) => (
-                    <button
-                      key={p.key}
-                      onClick={() => handleShiftPreset(p.key)}
-                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors min-h-[36px] ${
-                        shiftPreset === p.key
-                          ? "bg-purple-600 text-white shadow-sm"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
-                      data-testid={`button-shift-preset-${p.key}`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                {shiftPreset === "custom" && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                    <input
-                      type="date"
-                      value={shiftDateRange.start}
-                      onChange={(e) => setShiftDateRange({ ...shiftDateRange, start: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                      data-testid="input-shift-start-date"
-                    />
-                    <span className="text-slate-400 text-xs">to</span>
-                    <input
-                      type="date"
-                      value={shiftDateRange.end}
-                      onChange={(e) => setShiftDateRange({ ...shiftDateRange, end: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                      data-testid="input-shift-end-date"
-                    />
-                  </div>
-                )}
-
-                <div className="titan-card p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200/60">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-purple-600 font-medium uppercase tracking-wider">
-                        Total Hours
-                      </p>
-                      <p className="text-2xl font-bold text-purple-900 mt-1" data-testid="text-total-hours">
-                        {(() => {
-                          const totalMins = timesheetEntries
-                            .filter(t => t.status === "COMPLETED" && t.totalMinutes)
-                            .reduce((sum, t) => sum + t.totalMinutes, 0);
-                          const h = Math.floor(totalMins / 60);
-                          const m = totalMins % 60;
-                          return `${h}h ${m}m`;
-                        })()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">Completed Shifts</p>
-                      <p className="text-lg font-bold text-slate-900">
-                        {timesheetEntries.filter(t => t.status === "COMPLETED").length}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        {new Date(shiftDateRange.start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – {new Date(shiftDateRange.end).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="space-y-2">
               {timeline.map((item, idx) => (
                 <motion.div
