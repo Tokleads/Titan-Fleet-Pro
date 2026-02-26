@@ -119,9 +119,18 @@ export function VORDialog({ vehicle, onClose }: VORDialogProps) {
                   <span className="text-slate-400">Status:</span>
                   <span className="text-amber-400 font-medium">Off Road</span>
                 </div>
+                {vehicle.vorStartDate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">VOR Since:</span>
+                    <span className="text-slate-300">
+                      {new Date(vehicle.vorStartDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
+                      {new Date(vehicle.vorStartDate).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Duration:</span>
-                  <span className="text-slate-300">{vorDuration} days</span>
+                  <span className="text-slate-300">{vorDuration} day{vorDuration !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Reason:</span>

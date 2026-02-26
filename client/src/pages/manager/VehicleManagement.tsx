@@ -1314,8 +1314,10 @@ function EditDefectModal({ defectId, companyId, onClose }: { defectId: number; c
           </div>
 
           {detail?.vehicleVorStatus && (
-            <div className="bg-blue-50 border border-blue-200 rounded px-4 py-3 text-sm text-blue-800" data-testid="banner-vor-status">
-              This vehicle is VOR {detail.vehicleVorStartDate ? new Date(detail.vehicleVorStartDate).toLocaleDateString("en-GB") : ""}: {detail.vehicleVorReason || "No reason specified"} -
+            <div className="bg-red-50 border border-red-200 rounded px-4 py-3 text-sm text-red-800" data-testid="banner-vor-status">
+              <span className="font-semibold">VOR</span> since {detail.vehicleVorStartDate
+                ? `${new Date(detail.vehicleVorStartDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })} at ${new Date(detail.vehicleVorStartDate).toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' })}`
+                : "unknown date"} — {detail.vehicleVorReason || "No reason specified"}
             </div>
           )}
 
@@ -1923,23 +1925,37 @@ function VorTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id
                   <th className="text-left px-4 py-3 font-medium text-slate-600">VRM</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Make/Model</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Reason</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Start Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">VOR Date & Time</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">Duration</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {!data?.current || data.current.length === 0 ? (
-                  <tr><td colSpan={5}><EmptyState message="No vehicles currently VOR" /></td></tr>
+                  <tr><td colSpan={6}><EmptyState message="No vehicles currently VOR" /></td></tr>
                 ) : (
-                  data.current.map((v: any) => (
+                  data.current.map((v: any) => {
+                    const startDate = v.vorStartDate ? new Date(v.vorStartDate) : null;
+                    const daysSince = startDate ? Math.floor((Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                    return (
                     <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                       <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{v.vorStartDate || "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {startDate
+                          ? `${startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${daysSince >= 7 ? 'bg-red-100 text-red-700' : daysSince >= 3 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {daysSince} day{daysSince !== 1 ? 's' : ''}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{v.vorNotes || "—"}</td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1956,25 +1972,33 @@ function VorTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (id
                   <th className="text-left px-4 py-3 font-medium text-slate-600">VRM</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Make/Model</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Reason</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Start Date</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">Resolved Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">VOR Date & Time</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">Resolved Date & Time</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">Total Days</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {!data?.history || data.history.length === 0 ? (
-                  <tr><td colSpan={6}><EmptyState message="No VOR history" /></td></tr>
+                  <tr><td colSpan={7}><EmptyState message="No VOR history" /></td></tr>
                 ) : (
-                  data.history.map((v: any) => (
+                  data.history.map((v: any) => {
+                    const startDate = v.vorStartDate ? new Date(v.vorStartDate) : null;
+                    const resolvedDate = v.vorResolvedDate ? new Date(v.vorResolvedDate) : null;
+                    const totalDays = startDate && resolvedDate ? Math.ceil((resolvedDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const fmtDate = (d: Date) => `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+                    return (
                     <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.vrm} vehicleId={v.id} onClick={onVrmClick} /></td>
                       <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                       <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{v.vorStartDate || "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{v.vorResolvedDate || "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{startDate ? fmtDate(startDate) : "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{resolvedDate ? fmtDate(resolvedDate) : "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{totalDays !== null ? `${totalDays} day${totalDays !== 1 ? 's' : ''}` : "—"}</td>
                       <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{v.vorNotes || "—"}</td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -2049,7 +2073,7 @@ function SornTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (i
               <th className="text-left px-4 py-3 font-medium text-slate-600">Make/Model</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">VOR Reason</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Start Date</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-600">VOR Date & Time</th>
               <th className="text-left px-4 py-3 font-medium text-slate-600">Notes</th>
             </tr>
           </thead>
@@ -2059,16 +2083,21 @@ function SornTab({ companyId, onVrmClick }: { companyId: number; onVrmClick?: (i
             ) : !data || data.length === 0 ? (
               <tr><td colSpan={6}><EmptyState message="No SORN vehicles" /></td></tr>
             ) : (
-              data.map((v: any) => (
+              data.map((v: any) => {
+                const sd = v.vorStartDate ? new Date(v.vorStartDate) : null;
+                return (
                 <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900"><ClickableVrm vrm={v.registration} vehicleId={v.id} onClick={onVrmClick} /></td>
                   <td className="px-4 py-3 text-slate-600">{v.make} {v.model}</td>
                   <td className="px-4 py-3 text-slate-600">{v.vehicleCategory}</td>
                   <td className="px-4 py-3 text-slate-600">{v.vorReason || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{v.vorStartDate || "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {sd ? `${sd.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${sd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : "—"}
+                  </td>
                   <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{v.vorNotes || "—"}</td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
