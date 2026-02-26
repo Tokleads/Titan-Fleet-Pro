@@ -34,6 +34,8 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 - **Mobile-first**: All driver-facing functionalities are optimized for mobile devices, prioritizing ease of use and accessibility.
 - **Scalability**: Utilizing a robust tech stack and architectural patterns to support future growth and feature expansion.
 - **Compliance Automation**: Integration of agentic systems for automated compliance checks, notifications, and proactive management.
+- **GPS Tracking Persistence**: Tracking lifecycle managed in DriverLayout (AppShell.tsx) via `useDriverGPSTracking` hook — persists across all driver pages, syncs with active timesheet every 30s.
+- **Clock-in from anywhere**: No geofence restriction. Out-of-geofence clock-ins flagged for manager review.
 
 **Core Features & Implementations:**
 - **Authentication**: PIN-based login for drivers, email/password with 2FA for managers, secure account setup and password reset flows.

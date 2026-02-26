@@ -1,14 +1,67 @@
 import { useBrand } from "@/hooks/use-brand";
 import { useLocation, useRoute } from "wouter";
 import { LogOut, Home, History, UploadCloud, Settings, Menu, X, Truck, FileText, HelpCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
+import { gpsTrackingService } from "@/services/gpsTracking";
+import { session } from "@/lib/session";
+
+function useDriverGPSTracking() {
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    gpsTrackingService.setAuthTokenProvider(() => session.getToken());
+
+    const check = () => {
+      const u = session.getUser();
+      const c = session.getCompany();
+      if (u && c) setSessionReady(true);
+    };
+    check();
+    const t = setInterval(check, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    const user = session.getUser();
+    const company = session.getCompany();
+    if (!user || !company) return;
+
+    const syncTracking = async () => {
+      try {
+        const token = session.getToken();
+        const res = await fetch(`/api/timesheets/active/${user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const isCurrentlyTracking = gpsTrackingService.getStatus().isTracking;
+        if (data.timesheet && !isCurrentlyTracking) {
+          gpsTrackingService.startTracking(user.id, null, company.id);
+        } else if (!data.timesheet && isCurrentlyTracking) {
+          gpsTrackingService.stopTracking();
+        }
+      } catch {
+      }
+    };
+
+    syncTracking();
+    const interval = setInterval(syncTracking, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [sessionReady]);
+}
 
 export function DriverLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { currentCompany, tenant } = useBrand();
+
+  useDriverGPSTracking();
 
   const isActive = (path: string) => location === path;
 
