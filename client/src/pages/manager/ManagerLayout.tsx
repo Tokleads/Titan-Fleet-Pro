@@ -247,7 +247,7 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 mr-80 h-screen overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-6 flex-shrink-0 z-20">
+        <header className="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-6 flex-shrink-0 z-[1000] relative">
           <div className="flex items-center gap-4">
             <div className="relative" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />

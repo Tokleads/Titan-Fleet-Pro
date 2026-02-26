@@ -1395,7 +1395,7 @@ export default function TransportManagerApp() {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-      <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-20 safe-area-top" data-testid="app-header">
+      <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-[1000] relative safe-area-top" data-testid="app-header">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/manager"
