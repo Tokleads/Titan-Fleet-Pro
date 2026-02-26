@@ -296,7 +296,7 @@ router.post('/login', async (req, res) => {
     const matchingUsers = await db.select().from(users)
       .where(eq(users.email, emailKey));
     
-    const MANAGER_ROLE_PRIORITY = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'];
+    const MANAGER_ROLE_PRIORITY = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'PLANNER', 'AUDITOR', 'MECHANIC', 'manager'];
     const user = matchingUsers.length > 1
       ? matchingUsers.find(u => MANAGER_ROLE_PRIORITY.includes(u.role)) || matchingUsers[0]
       : matchingUsers[0];

@@ -108,7 +108,7 @@ export async function registerRoutes(
   app.get('/api/health/live', livenessProbe);
   app.get('/api/health/ready', readinessProbe);
 
-  const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'manager'] as const;
+  const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'PLANNER', 'AUDITOR', 'MECHANIC', 'manager'] as const;
 
   app.use('/api/manager', (req, res, next) => {
     if (req.path === '/login' || req.path === '/login/') return next();

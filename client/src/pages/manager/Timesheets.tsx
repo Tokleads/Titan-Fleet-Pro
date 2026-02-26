@@ -1002,7 +1002,7 @@ export default function Timesheets() {
                                 ? new Date(entry.departureTime).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })
                                 : "—"}
                             </span>
-                            <span className="font-medium text-slate-700">
+                            <span className={`font-medium ${entry.totalMinutes && entry.totalMinutes >= 840 ? "text-red-600 font-bold" : "text-slate-700"}`}>
                               {formatDuration(entry.totalMinutes)}
                             </span>
                           </div>
