@@ -25,7 +25,7 @@ import {
   companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages, companyCarRegister
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, count, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, gte, count, inArray, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Company operations
@@ -948,34 +948,35 @@ export class DatabaseStorage implements IStorage {
   
   async getLatestDriverLocations(companyId: number): Promise<(DriverLocation & { driver?: User })[]> {
     try {
-      // Get the latest location for each driver
+      const activeShifts = await db
+        .select({ driverId: timesheets.driverId })
+        .from(timesheets)
+        .where(and(eq(timesheets.companyId, companyId), eq(timesheets.status, "ACTIVE"), isNull(timesheets.departureTime)));
+
+      const activeDriverIds = new Set(activeShifts.map(s => s.driverId));
+      if (activeDriverIds.size === 0) return [];
+
       const latestLocations = await db
         .select()
         .from(driverLocations)
         .where(eq(driverLocations.companyId, companyId))
         .orderBy(desc(driverLocations.timestamp));
       
-      // If no locations found, return empty array
-      if (!latestLocations || latestLocations.length === 0) {
-        return [];
-      }
+      if (!latestLocations || latestLocations.length === 0) return [];
       
-      // Group by driver and get only the most recent
       const locationMap = new Map<number, DriverLocation>();
       for (const loc of latestLocations) {
-        if (!locationMap.has(loc.driverId)) {
+        if (!locationMap.has(loc.driverId) && activeDriverIds.has(loc.driverId)) {
           locationMap.set(loc.driverId, loc);
         }
       }
       
-      // Fetch driver info
       const result = [];
       for (const location of locationMap.values()) {
         try {
           const driver = await this.getUser(location.driverId);
           result.push({ ...location, driver });
         } catch (error) {
-          // If driver not found, include location without driver info
           console.warn(`Driver ${location.driverId} not found for location`);
           result.push({ ...location, driver: undefined });
         }
@@ -984,7 +985,6 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       console.error("Error in getLatestDriverLocations:", error);
-      // Return empty array instead of throwing to prevent crashes
       return [];
     }
   }

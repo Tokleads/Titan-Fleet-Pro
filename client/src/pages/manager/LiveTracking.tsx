@@ -251,7 +251,8 @@ export default function LiveTracking() {
   }, [locations, onShiftDrivers]);
 
   const onShiftCount = onShiftDrivers?.length || 0;
-  const activeDrivers = Math.max(locations?.filter(l => !l.isStagnant).length || 0, onShiftCount);
+  const gpsActiveCount = locations?.filter(l => !l.isStagnant).length || 0;
+  const activeDrivers = onShiftCount;
   const stagnantDrivers = locations?.filter(l => l.isStagnant).length || 0;
   const avgSpeed = locations && locations.length > 0
     ? Math.round(locations.reduce((sum, l) => sum + l.speed, 0) / locations.length)
