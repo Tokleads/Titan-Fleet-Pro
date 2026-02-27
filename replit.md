@@ -29,6 +29,16 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 - **Database**: PostgreSQL with Drizzle ORM
 - **UI Components**: Custom "Titan Fleet" design system, ensuring a consistent and premium user experience.
 
+**Server Route Architecture:**
+Routes are split across focused files registered via `register...Routes(app)` pattern:
+- `routes.ts` (~2977 lines): Auth middleware, login endpoints, inspections, defects, fuel, vehicle CRUD, fleet hierarchy, referrals
+- `complianceRoutes.ts`: Reminders, DVLA license verification, operator licences, company car register, GDPR
+- `operationsRoutes.ts`: Shift checks, GPS tracking, geofencing, stagnation alerts, delivery/POD
+- `financialRoutes.ts`: Timesheets, pay rates, wage calculations, CSV exports
+- `settingsRoutes.ts`: 2FA/TOTP, company feature settings, Google Drive, logo upload
+- `coreRoutes.ts`: Audit logs, documents, driver messages, PDF report generation, Titan Command notifications, report endpoints
+- Plus existing: `vehicleManagementRoutes.ts`, `fuelIntelligenceRoutes.ts`, `apiHealthRoutes.ts`, `driverRoutes.ts`, `authRoutes.ts`, `adminRoutes.ts`, `dashboardRoutes.ts`, `fleetDocumentsRoutes.ts`, `notificationPreferencesRoutes.ts`, `userRolesRoutes.ts`
+
 **Design Principles:**
 - **Multi-tenancy**: Designed from the ground up to support multiple companies with isolated data and configurable branding.
 - **Mobile-first**: All driver-facing functionalities are optimized for mobile devices, prioritizing ease of use and accessibility.
@@ -38,7 +48,7 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 - **Clock-in from anywhere**: No geofence restriction. Out-of-geofence clock-ins flagged for manager review.
 
 **Core Features & Implementations:**
-- **Authentication**: PIN-based login for drivers, email/password with 2FA for managers, secure account setup and password reset flows. JWT tokens stored in httpOnly cookies (cookie name: `tf_token`, 24h expiry, secure in production, sameSite: lax). Bearer token header still supported as fallback for backward compatibility.
+- **Authentication**: PIN-based login for drivers, email/password with 2FA for managers, secure account setup and password reset flows. JWT tokens stored in httpOnly cookies (cookie name: `tf_token`, 24h expiry, secure in production, sameSite: lax). Client-side fully migrated — global fetch interceptor adds `credentials: "include"`, no more localStorage token storage. Bearer token header fallback still accepted server-side.
 - **Role-Based Access**: ADMIN (full access + approval authority), TRANSPORT_MANAGER (standard management), PLANNER (view-only: on-duty drivers, no clock in/out), OFFICE (read-only dashboard view), DRIVER, MECHANIC, AUDITOR.
 - **Timesheet Approval Workflow**: Time adjustments by transport managers require ADMIN approval. Pending/Approved/Rejected states with server-side role enforcement.
 - **Company Car Register**: Drivers log which company car they're using (number plate, date/time) for fine attribution. Located at /driver/car-register.
