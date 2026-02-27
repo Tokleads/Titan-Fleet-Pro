@@ -650,6 +650,9 @@ export async function registerRoutes(
       if (typeof body.completedAt === "string") {
         body.completedAt = new Date(body.completedAt);
       }
+      if (body.odometer != null) {
+        body.odometer = Math.min(Math.max(0, Math.round(Number(body.odometer) || 0)), 2147483647);
+      }
       let validated;
       try {
         validated = insertInspectionSchema.parse(body);
@@ -3549,9 +3552,9 @@ export async function registerRoutes(
         companyId: Number(companyId),
         latitude: String(latitude),
         longitude: String(longitude),
-        speed: speed || 0,
-        heading,
-        accuracy,
+        speed: Math.round(Number(speed) || 0),
+        heading: heading != null ? Math.round(Number(heading)) : undefined,
+        accuracy: accuracy != null ? Math.round(Number(accuracy)) : undefined,
         timestamp: new Date()
       });
       
@@ -3586,9 +3589,9 @@ export async function registerRoutes(
             companyId: Number(loc.companyId),
             latitude: String(loc.latitude),
             longitude: String(loc.longitude),
-            speed: loc.speed || 0,
-            heading: loc.heading,
-            accuracy: loc.accuracy,
+            speed: Math.round(Number(loc.speed) || 0),
+            heading: loc.heading != null ? Math.round(Number(loc.heading)) : undefined,
+            accuracy: loc.accuracy != null ? Math.round(Number(loc.accuracy)) : undefined,
             timestamp: new Date(loc.timestamp)
           });
           results.push({ success: true, location });
