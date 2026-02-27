@@ -8,14 +8,9 @@ const originalFetch = window.fetch;
 window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
   if (url.startsWith('/api/')) {
-    const token = localStorage.getItem('fleetcheck_token');
-    if (token) {
-      init = init || {};
-      const headers = new Headers(init.headers || {});
-      if (!headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      init.headers = headers;
+    init = init || {};
+    if (!init.credentials) {
+      init.credentials = "include";
     }
   }
   return originalFetch.call(window, input, init);

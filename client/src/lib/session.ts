@@ -40,16 +40,11 @@ export const session = {
     localStorage.setItem("fleetcheck_session_created_at", String(Date.now()));
   },
 
-  setToken(token: string) {
-    localStorage.setItem("fleetcheck_token", token);
+  setToken(_token: string) {
   },
 
   getToken(): string | null {
-    if (this.isExpired()) {
-      this.clear();
-      return null;
-    }
-    return localStorage.getItem("fleetcheck_token");
+    return null;
   },
 
   clear() {
@@ -57,6 +52,5 @@ export const session = {
     localStorage.removeItem("fleetcheck_company");
     localStorage.removeItem("titanfleet_last_role");
     localStorage.removeItem("fleetcheck_session_created_at");
-    localStorage.removeItem("fleetcheck_token");
   },
 };

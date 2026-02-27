@@ -103,7 +103,10 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     return userPermissions!.includes(item.permissionKey);
   });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+    } catch {}
     session.clear();
     setLocation("/manager/login");
   };

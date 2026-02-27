@@ -35,7 +35,10 @@ export default function DriverSettings() {
   const [confirmPin, setConfirmPin] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+    } catch {}
     session.clear();
     setLocation("/app");
   };

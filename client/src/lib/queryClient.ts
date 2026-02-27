@@ -4,6 +4,7 @@ import { session } from "./session";
 function handleUnauthorized() {
   const currentPath = window.location.pathname;
   const lastRole = localStorage.getItem("titanfleet_last_role");
+  fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => {});
   session.clear();
   if (!currentPath.includes('/login') && !currentPath.includes('/setup') && !currentPath.includes('/reset-password') && currentPath !== '/' && currentPath !== '/app') {
     const loginPath = lastRole === 'driver' || currentPath.startsWith('/driver') ? '/app' : '/manager/login';
@@ -30,10 +31,6 @@ export async function apiRequest(
   if (data) {
     headers["Content-Type"] = "application/json";
   }
-  const token = session.getToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
   const res = await fetch(url, {
     method,
     headers,
@@ -51,18 +48,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const queryHeaders: Record<string, string> = {};
-    const queryToken = session.getToken();
-    if (queryToken) {
-      queryHeaders["Authorization"] = `Bearer ${queryToken}`;
-    }
     const res = await fetch(queryKey.join("/") as string, {
-      headers: queryHeaders,
       credentials: "include",
     });
 
     if (res.status === 401) {
-      const hasExistingSession = localStorage.getItem("fleetcheck_user") || localStorage.getItem("fleetcheck_token");
+      const hasExistingSession = localStorage.getItem("fleetcheck_user");
       if (hasExistingSession) {
         handleUnauthorized();
       }
