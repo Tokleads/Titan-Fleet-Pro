@@ -338,15 +338,34 @@ export default function LiveTracking() {
                 Driver Locations
               </h2>
             </div>
-            <div 
-              ref={mapRef} 
-              className="w-full h-[600px]"
-            >
-              {isLoading && (
-                <div className="flex items-center justify-center h-full bg-slate-50">
-                  <div className="text-slate-400">Loading map...</div>
+            <div className="relative">
+              <div 
+                ref={mapRef} 
+                className="w-full h-[600px]"
+              >
+                {isLoading && (
+                  <div className="flex items-center justify-center h-full bg-slate-50">
+                    <div className="text-slate-400">Loading map...</div>
+                  </div>
+                )}
+              </div>
+              <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg px-4 py-3 z-[500]" data-testid="map-legend">
+                <p className="text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">Map Key</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-[#00a3ff] border-2 border-white shadow-sm flex-shrink-0"></div>
+                    <span className="text-xs text-slate-600">Active — GPS tracking</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-[#ef4444] border-2 border-white shadow-sm flex-shrink-0"></div>
+                    <span className="text-xs text-slate-600">Stagnant — not moving</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-[#8b5cf6] border-2 border-white shadow-sm flex-shrink-0"></div>
+                    <span className="text-xs text-slate-600">Clocked in — no GPS</span>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
