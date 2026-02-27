@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "./storage";
 
 export function registerSettingsRoutes(app: Express) {
@@ -41,11 +42,11 @@ export function registerSettingsRoutes(app: Express) {
   app.post("/api/manager/2fa/enable/:userId", async (req, res) => {
     try {
       const userId = Number(req.params.userId);
-      const { token } = req.body;
-      
-      if (!token) {
-        return res.status(400).json({ error: "Verification token required" });
+      const validation = z.object({ token: z.string().length(6) }).safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { token } = validation.data;
       
       const user = await storage.getUser(userId);
       if (!user || !user.totpSecret) {
@@ -85,7 +86,12 @@ export function registerSettingsRoutes(app: Express) {
   app.post("/api/manager/2fa/disable/:userId", async (req, res) => {
     try {
       const userId = Number(req.params.userId);
-      const { token } = req.body;
+      const disableSchema = z.object({ token: z.string().optional() });
+      const validation = disableSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { token } = validation.data;
       
       const user = await storage.getUser(userId);
       if (!user) {
@@ -154,10 +160,11 @@ export function registerSettingsRoutes(app: Express) {
       if (req.user && companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { settings } = req.body;
-      if (!settings || typeof settings !== "object") {
-        return res.status(400).json({ error: "Invalid settings" });
+      const validation = z.object({ settings: z.record(z.unknown()) }).safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { settings } = validation.data;
       const company = await storage.getCompanyById(companyId);
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
@@ -264,15 +271,15 @@ export function registerSettingsRoutes(app: Express) {
   // Save uploaded logo URL to company
   app.patch("/api/manager/company/:companyId/logo", async (req, res) => {
     try {
-      const { logoURL } = req.body;
       const companyId = Number(req.params.companyId);
       if (req.user && companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      
-      if (!logoURL) {
-        return res.status(400).json({ error: "Missing logoURL" });
+      const validation = z.object({ logoURL: z.string() }).safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { logoURL } = validation.data;
       
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorage = new ObjectStorageService();

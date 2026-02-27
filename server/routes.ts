@@ -178,13 +178,14 @@ export async function registerRoutes(
 
   app.post('/api/stripe/checkout', async (req, res) => {
     try {
+      const checkoutSchema = z.object({ priceId: z.string(), companyName: z.string().optional(), companyEmail: z.string().optional(), referralCode: z.string().optional() });
+      const validation = checkoutSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
       const { getUncachableStripeClient } = await import('./stripeClient');
       const stripe = await getUncachableStripeClient();
-      const { priceId, companyName, companyEmail, referralCode } = req.body;
-      
-      if (!priceId) {
-        return res.status(400).json({ error: 'Missing priceId' });
-      }
+      const { priceId, companyName, companyEmail, referralCode } = validation.data;
       
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       
@@ -235,13 +236,14 @@ export async function registerRoutes(
 
   app.post('/api/stripe/portal', async (req, res) => {
     try {
+      const portalSchema = z.object({ customerId: z.string() });
+      const validation = portalSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
       const { getUncachableStripeClient } = await import('./stripeClient');
       const stripe = await getUncachableStripeClient();
-      const { customerId } = req.body;
-      
-      if (!customerId) {
-        return res.status(400).json({ error: 'Missing customerId' });
-      }
+      const { customerId } = validation.data;
       
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const session = await stripe.billingPortal.sessions.create({
@@ -272,8 +274,13 @@ export async function registerRoutes(
   // Feedback endpoint
   app.post("/api/feedback", async (req, res) => {
     try {
-      const { type, page } = req.body;
-      const message = typeof req.body.message === 'string' ? sanitizeInput(req.body.message) : req.body.message;
+      const feedbackSchema = z.object({ type: z.string(), message: z.string(), page: z.string().optional(), userId: z.number().optional() });
+      const validation = feedbackSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { type, page } = validation.data;
+      const message = sanitizeInput(validation.data.message);
       console.log(`[FEEDBACK] ${type}: ${message} (from ${page})`);
       res.json({ success: true });
     } catch (error) {
@@ -392,10 +399,12 @@ export async function registerRoutes(
   // Defect photo upload - get presigned URL
   app.post("/api/defect-photos/request-url", async (req, res) => {
     try {
-      const { companyId, filename, contentType } = req.body;
-      if (!companyId || !filename) {
-        return res.status(400).json({ error: "Missing companyId or filename" });
+      const photoUrlSchema = z.object({ companyId: z.number(), filename: z.string(), contentType: z.string().optional() });
+      const validation = photoUrlSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, filename, contentType } = validation.data;
       
       const result = await objectStorageService.getDocumentUploadURL(
         Number(companyId),
@@ -885,11 +894,13 @@ export async function registerRoutes(
   // Create defect report (driver)
   app.post("/api/defects", async (req, res) => {
     try {
-      const { companyId, vehicleId, reportedBy, hasPhoto, severity } = req.body;
-      const description = typeof req.body.description === 'string' ? sanitizeInput(req.body.description) : req.body.description;
-      if (!companyId || !vehicleId || !reportedBy || !description) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const defectInputSchema = z.object({ companyId: z.number(), vehicleId: z.number(), reportedBy: z.number(), description: z.string().min(1), hasPhoto: z.boolean().optional(), severity: z.string().optional() });
+      const validation = defectInputSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, vehicleId, reportedBy, severity } = validation.data;
+      const description = sanitizeInput(validation.data.description);
       
       const defect = await storage.createDefect({
         companyId,
@@ -1464,8 +1475,11 @@ export async function registerRoutes(
 
   app.post("/api/manager/defects", async (req, res) => {
     try {
-      const validated = insertDefectSchema.parse(req.body);
-      const defect = await storage.createDefect(validated);
+      const validation = insertDefectSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const defect = await storage.createDefect(validation.data);
       
       // Trigger notification to managers (async, non-blocking)
       if (defect.vehicleId) {
@@ -1482,9 +1496,6 @@ export async function registerRoutes(
       
       res.status(201).json(defect);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
-      }
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -1590,7 +1601,11 @@ export async function registerRoutes(
       if (req.user && existingDefect.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const updated = await storage.updateDefect(defectId, req.body);
+      const patchValidation = insertDefectSchema.partial().safeParse(req.body);
+      if (!patchValidation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: patchValidation.error.issues });
+      }
+      const updated = await storage.updateDefect(defectId, patchValidation.data);
       if (!updated) {
         return res.status(404).json({ error: "Defect not found" });
       }
@@ -1780,7 +1795,12 @@ export async function registerRoutes(
       if (req.user && existingVehicle.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { reason, notes } = req.body;
+      const vorSchema = z.object({ reason: z.string().min(1), notes: z.string().optional(), managerId: z.number().optional() });
+      const validation = vorSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { reason, notes } = validation.data;
       
       const updated = await storage.setVehicleVOR(vehicleId, reason, notes);
       if (!updated) {
@@ -1895,11 +1915,12 @@ export async function registerRoutes(
       if (req.user && existingVehicle.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { serviceDate, serviceMileage, serviceType, serviceProvider, cost, workPerformed, performedBy } = req.body;
-      
-      if (!serviceDate || !serviceMileage || !serviceType) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const serviceSchema = z.object({ serviceDate: z.string(), serviceMileage: z.number(), serviceType: z.string(), serviceProvider: z.string().optional(), cost: z.number().optional(), workPerformed: z.string().optional(), performedBy: z.number().optional() });
+      const validation = serviceSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { serviceDate, serviceMileage, serviceType, serviceProvider, cost, workPerformed, performedBy } = validation.data;
       
       const service = await storage.logService({
         vehicleId,
@@ -2943,10 +2964,12 @@ export async function registerRoutes(
   // POST /api/referral/apply - Apply referral code when company signs up
   app.post("/api/referral/apply", async (req, res) => {
     try {
-      const { referralCode, referredCompanyId } = req.body;
-      if (!referralCode || !referredCompanyId) {
-        return res.status(400).json({ error: "Missing referralCode or referredCompanyId" });
+      const referralApplySchema = z.object({ referralCode: z.string(), referredCompanyId: z.number() });
+      const validation = referralApplySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { referralCode, referredCompanyId } = validation.data;
       
       const referral = await storage.getReferralByCode(referralCode.toUpperCase());
       

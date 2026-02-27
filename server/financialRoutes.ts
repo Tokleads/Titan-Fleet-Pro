@@ -1,8 +1,9 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc, isNull, sql, or } from "drizzle-orm";
-import { timesheets, users } from "@shared/schema";
+import { timesheets, users, insertPayRateSchema, insertBankHolidaySchema } from "@shared/schema";
 import { requirePermission } from "./permissionGuard";
 
 export function registerFinancialRoutes(app: Express) {
@@ -96,11 +97,12 @@ export function registerFinancialRoutes(app: Express) {
   // Export timesheets as CSV
   app.post("/api/timesheets/export", requirePermission('timesheets'), async (req, res) => {
     try {
-      const { companyId, startDate, endDate, driverId } = req.body;
-      
-      if (!companyId) {
-        return res.status(400).json({ error: "Missing companyId" });
+      const exportSchema = z.object({ companyId: z.number(), driverId: z.number().optional(), startDate: z.string(), endDate: z.string() });
+      const validation = exportSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, startDate, endDate, driverId } = validation.data;
       
       const timesheets = await storage.getTimesheets(
         Number(companyId),
@@ -126,12 +128,13 @@ export function registerFinancialRoutes(app: Express) {
   // Manual timesheet override (with adjustment approval workflow)
   app.patch("/api/timesheets/:id", requirePermission('timesheets'), async (req, res) => {
     try {
-      const { role: _clientRole, userId, requestedBy, adjustmentNote, arrivalTime, departureTime, ...otherUpdates } = req.body;
-      const timesheetId = Number(req.params.id);
-
-      if (!userId) {
-        return res.status(400).json({ error: "Missing userId" });
+      const patchTimesheetSchema = z.object({ arrivalTime: z.string().optional(), departureTime: z.string().optional(), note: z.string().optional(), role: z.string().optional(), userId: z.number(), requestedBy: z.number().optional(), adjustmentNote: z.string().optional() }).passthrough();
+      const validation = patchTimesheetSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { role: _clientRole, userId, requestedBy, adjustmentNote, arrivalTime, departureTime, ...otherUpdates } = validation.data;
+      const timesheetId = Number(req.params.id);
 
       const user = await storage.getUser(Number(userId));
       if (!user) {
@@ -276,11 +279,12 @@ export function registerFinancialRoutes(app: Express) {
   // Clock in
   app.post("/api/timesheets/clock-in", async (req, res) => {
     try {
-      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy } = req.body;
-      
-      if (!companyId || !driverId || !latitude || !longitude) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().optional(), depotId: z.number().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional() });
+      const validation = clockInSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy } = validation.data;
 
       const existingActive = await db.select().from(timesheets)
         .where(and(
@@ -317,11 +321,12 @@ export function registerFinancialRoutes(app: Express) {
   // Clock out
   app.post("/api/timesheets/clock-out", async (req, res) => {
     try {
-      const { timesheetId, latitude, longitude, accuracy } = req.body;
-      
-      if (!timesheetId) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const clockOutSchema = z.object({ timesheetId: z.number(), latitude: z.union([z.string(), z.number()]).optional(), longitude: z.union([z.string(), z.number()]).optional(), accuracy: z.number().optional() });
+      const validation = clockOutSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { timesheetId, latitude, longitude, accuracy } = validation.data;
       
       const timesheet = await storage.clockOut(
         Number(timesheetId),
@@ -337,14 +342,15 @@ export function registerFinancialRoutes(app: Express) {
     }
   });
   
-  // Manager clock-out driver
+  // Manager clock-in driver
   app.post("/api/manager/clock-in-driver", async (req, res) => {
     try {
-      const { driverId, companyId, depotId, depotName, managerId } = req.body;
-      
-      if (!driverId || !companyId || !managerId) {
-        return res.status(400).json({ error: "Missing required fields (driverId, companyId, managerId)" });
+      const managerClockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().optional(), depotId: z.number().optional(), depotName: z.string().optional(), managerId: z.number() });
+      const validation = managerClockInSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { driverId, companyId, depotId, depotName, managerId } = validation.data;
 
       const manager = await storage.getUser(Number(managerId));
       if (!manager || manager.companyId !== Number(companyId)) {
@@ -403,11 +409,12 @@ export function registerFinancialRoutes(app: Express) {
 
   app.post("/api/manager/clock-out-driver", async (req, res) => {
     try {
-      const { driverId, companyId, managerId } = req.body;
-
-      if (!driverId || !companyId) {
-        return res.status(400).json({ error: "Missing driverId or companyId" });
+      const managerClockOutSchema = z.object({ driverId: z.number(), companyId: z.number(), managerId: z.number().optional() });
+      const validation = managerClockOutSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { driverId, companyId, managerId } = validation.data;
 
       const activeTimesheet = await storage.getActiveTimesheet(Number(driverId));
       if (!activeTimesheet) {
@@ -487,10 +494,14 @@ export function registerFinancialRoutes(app: Express) {
   // Create or update pay rate
   app.post("/api/pay-rates", requirePermission('pay-rates'), async (req, res) => {
     try {
+      const validation = insertPayRateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
       const { db } = await import('./db');
       const { payRates } = await import('../shared/schema');
       
-      const [newRate] = await db.insert(payRates).values(req.body).returning();
+      const [newRate] = await db.insert(payRates).values(validation.data).returning();
       res.json(newRate);
     } catch (error) {
       console.error("Failed to create pay rate:", error);
@@ -501,12 +512,16 @@ export function registerFinancialRoutes(app: Express) {
   // Update pay rate
   app.patch("/api/pay-rates/:id", requirePermission('pay-rates'), async (req, res) => {
     try {
+      const validation = insertPayRateSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
       const { db } = await import('./db');
       const { payRates } = await import('../shared/schema');
       const { eq } = await import('drizzle-orm');
       
       const [updated] = await db.update(payRates)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set({ ...validation.data, updatedAt: new Date() })
         .where(eq(payRates.id, Number(req.params.id)))
         .returning();
       
@@ -538,10 +553,14 @@ export function registerFinancialRoutes(app: Express) {
   // Add bank holiday
   app.post("/api/bank-holidays", async (req, res) => {
     try {
+      const validation = insertBankHolidaySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
       const { db } = await import('./db');
       const { bankHolidays } = await import('../shared/schema');
       
-      const [newHoliday] = await db.insert(bankHolidays).values(req.body).returning();
+      const [newHoliday] = await db.insert(bankHolidays).values(validation.data).returning();
       res.json(newHoliday);
     } catch (error) {
       console.error("Failed to add bank holiday:", error);
@@ -730,11 +749,12 @@ export function registerFinancialRoutes(app: Express) {
   // Export wages as CSV
   app.post("/api/wages/export-csv", requirePermission('pay-rates'), async (req, res) => {
     try {
-      const { companyId, startDate, endDate } = req.body;
-
-      if (!companyId || !startDate || !endDate) {
-        return res.status(400).json({ error: "Missing companyId, startDate, or endDate" });
+      const wageExportSchema = z.object({ companyId: z.number(), startDate: z.string(), endDate: z.string() });
+      const validation = wageExportSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, startDate, endDate } = validation.data;
 
       const { calculateWages } = await import('./wageCalculationService');
       const { db } = await import('./db');

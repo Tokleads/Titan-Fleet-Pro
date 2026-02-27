@@ -2,7 +2,7 @@ import type { Express, Response } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
-import { shiftChecks, stagnationAlerts, insertDeliverySchema } from "@shared/schema";
+import { shiftChecks, stagnationAlerts, insertDeliverySchema, insertShiftCheckSchema, insertShiftCheckItemSchema, insertGeofenceSchema } from "@shared/schema";
 import { z } from "zod";
 import { ObjectStorageService } from "./objectStorage";
 
@@ -14,11 +14,11 @@ export function registerOperationsRoutes(app: Express) {
   // Create new shift check
   app.post("/api/shift-checks", async (req, res) => {
     try {
-      const { companyId, driverId, vehicleId, timesheetId } = req.body;
-      
-      if (!companyId || !driverId || !vehicleId) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const validation = insertShiftCheckSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, driverId, vehicleId, timesheetId } = validation.data;
       
       const shiftCheck = await storage.createShiftCheck(
         Number(companyId),
@@ -45,7 +45,11 @@ export function registerOperationsRoutes(app: Express) {
       if (req.user && existingCheck.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { itemId, label, itemType, status, value, notes } = req.body;
+      const itemValidation = insertShiftCheckItemSchema.safeParse({ ...req.body, shiftCheckId });
+      if (!itemValidation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: itemValidation.error.issues });
+      }
+      const { itemId, label, itemType, status, value, notes } = itemValidation.data;
       
       let photoUrl: string | undefined;
       
@@ -145,11 +149,12 @@ export function registerOperationsRoutes(app: Express) {
   // Submit driver location (5-minute ping from mobile app)
   app.post("/api/driver/location", async (req, res) => {
     try {
-      const { driverId, companyId, latitude, longitude, speed, heading, accuracy } = req.body;
-      
-      if (!driverId || !companyId || !latitude || !longitude) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const locationSchema = z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().optional(), heading: z.number().optional().nullable(), accuracy: z.number().optional().nullable() });
+      const validation = locationSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { driverId, companyId, latitude, longitude, speed, heading, accuracy } = validation.data;
       
       if (req.user) {
         if (Number(companyId) !== req.user.companyId) {
@@ -187,11 +192,12 @@ export function registerOperationsRoutes(app: Express) {
   // Batch submit driver locations (offline queue processing)
   app.post("/api/driver/location/batch", async (req, res) => {
     try {
-      const { locations } = req.body;
-      
-      if (!locations || !Array.isArray(locations)) {
-        return res.status(400).json({ error: "Invalid locations array" });
+      const batchLocationSchema = z.object({ locations: z.array(z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().optional(), heading: z.number().optional().nullable(), accuracy: z.number().optional().nullable(), timestamp: z.string() })) });
+      const validation = batchLocationSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { locations } = validation.data;
       
       const results = [];
       
@@ -245,18 +251,17 @@ export function registerOperationsRoutes(app: Express) {
   // Create geofence (depot location)
   app.post("/api/geofences", async (req, res) => {
     try {
-      const { companyId, name, latitude, longitude, radiusMeters } = req.body;
-      
-      if (!companyId || !name || !latitude || !longitude) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const validation = insertGeofenceSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
       
       const geofence = await storage.createGeofence({
-        companyId: Number(companyId),
-        name,
-        latitude: String(latitude),
-        longitude: String(longitude),
-        radiusMeters: radiusMeters || 250,
+        companyId: Number(validation.data.companyId),
+        name: validation.data.name,
+        latitude: String(validation.data.latitude),
+        longitude: String(validation.data.longitude),
+        radiusMeters: validation.data.radiusMeters || 250,
         isActive: true
       });
       
@@ -285,7 +290,11 @@ export function registerOperationsRoutes(app: Express) {
   // Update geofence
   app.patch("/api/geofences/:id", async (req, res) => {
     try {
-      const geofence = await storage.updateGeofence(Number(req.params.id), req.body);
+      const validation = insertGeofenceSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const geofence = await storage.updateGeofence(Number(req.params.id), validation.data);
       res.json(geofence);
     } catch (error) {
       console.error("Failed to update geofence:", error);
@@ -607,10 +616,11 @@ export function registerOperationsRoutes(app: Express) {
 
   app.patch("/api/manager/deliveries/:id/status", async (req, res) => {
     try {
-      const { status, invoicedAt } = req.body;
-      if (!status) {
-        return res.status(400).json({ error: "Missing status" });
+      const validation = z.object({ status: z.string(), invoicedAt: z.string().optional() }).safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { status, invoicedAt } = validation.data;
       const updated = await storage.updateDeliveryStatus(
         Number(req.params.id),
         status,
@@ -625,10 +635,11 @@ export function registerOperationsRoutes(app: Express) {
 
   app.post("/api/manager/deliveries/bulk-status", async (req, res) => {
     try {
-      const { ids, status } = req.body;
-      if (!ids || !Array.isArray(ids) || !status) {
-        return res.status(400).json({ error: "Missing ids array or status" });
+      const validation = z.object({ ids: z.array(z.number()), status: z.string() }).safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { ids, status } = validation.data;
       const count = await storage.bulkUpdateDeliveryStatus(ids, status);
       res.json({ updated: count });
     } catch (error) {

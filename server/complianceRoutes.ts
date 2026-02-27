@@ -1,8 +1,9 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { reminders, operatorLicences, operatorLicenceVehicles, vehicles } from "@shared/schema";
+import { reminders, operatorLicences, operatorLicenceVehicles, vehicles, insertReminderSchema, insertOperatorLicenceSchema, insertCompanyCarRegisterSchema } from "@shared/schema";
 import { requirePermission } from "./permissionGuard";
 
 export function registerComplianceRoutes(app: Express) {
@@ -35,7 +36,11 @@ export function registerComplianceRoutes(app: Express) {
   // Create new reminder
   app.post("/api/reminders", async (req, res) => {
     try {
-      const reminder = await storage.createReminder(req.body);
+      const validation = insertReminderSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const reminder = await storage.createReminder(validation.data);
       res.json(reminder);
     } catch (error) {
       console.error("Error creating reminder:", error);
@@ -54,7 +59,12 @@ export function registerComplianceRoutes(app: Express) {
       if (req.user && existingReminder.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { completedBy, notes } = req.body;
+      const completeSchema = z.object({ completedBy: z.number(), notes: z.string().optional() });
+      const validation = completeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { completedBy, notes } = validation.data;
       const reminder = await storage.completeReminder(id, completedBy, notes);
       res.json(reminder);
     } catch (error) {
@@ -74,7 +84,12 @@ export function registerComplianceRoutes(app: Express) {
       if (req.user && existingReminder.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { snoozedBy, snoozedUntil, reason } = req.body;
+      const snoozeSchema = z.object({ snoozedBy: z.number(), snoozedUntil: z.string(), reason: z.string().optional() });
+      const validation = snoozeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { snoozedBy, snoozedUntil, reason } = validation.data;
       const reminder = await storage.snoozeReminder(id, snoozedBy, new Date(snoozedUntil), reason);
       res.json(reminder);
     } catch (error) {
@@ -347,11 +362,11 @@ export function registerComplianceRoutes(app: Express) {
   // Create operator licence
   app.post("/api/operator-licences", requirePermission('o-licence'), async (req, res) => {
     try {
-      const { companyId, licenceNumber, trafficArea, licenceType } = req.body;
-      if (!companyId || !licenceNumber || !trafficArea || !licenceType) {
-        return res.status(400).json({ error: "Missing required fields: companyId, licenceNumber, trafficArea, licenceType" });
+      const validation = insertOperatorLicenceSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const values = { ...req.body };
+      const values = { ...validation.data } as any;
       if (values.inForceFrom) values.inForceFrom = new Date(values.inForceFrom);
       if (values.reviewDate) values.reviewDate = new Date(values.reviewDate);
       const [licence] = await db.insert(operatorLicences).values(values).returning();
@@ -365,7 +380,11 @@ export function registerComplianceRoutes(app: Express) {
   // Update operator licence
   app.put("/api/operator-licences/:id", async (req, res) => {
     try {
-      const { companyId, ...updateData } = req.body;
+      const validation = insertOperatorLicenceSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { companyId, ...updateData } = validation.data as any;
       if (!companyId) return res.status(400).json({ error: "Missing companyId" });
       const existing = await db.select().from(operatorLicences).where(eq(operatorLicences.id, Number(req.params.id)));
       if (!existing.length || existing[0].companyId !== companyId) {
@@ -428,7 +447,12 @@ export function registerComplianceRoutes(app: Express) {
   // Assign vehicle to licence
   app.post("/api/operator-licences/:id/vehicles", requirePermission('o-licence'), async (req, res) => {
     try {
-      const { vehicleId } = req.body;
+      const vehicleSchema = z.object({ vehicleId: z.number() });
+      const validation = vehicleSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { vehicleId } = validation.data;
       const [assignment] = await db.insert(operatorLicenceVehicles)
         .values({ licenceId: Number(req.params.id), vehicleId })
         .returning();
@@ -456,10 +480,11 @@ export function registerComplianceRoutes(app: Express) {
 
   app.post("/api/car-register", async (req, res) => {
     try {
-      const { driverId, companyId, numberPlate, startTime, notes } = req.body;
-      if (!driverId || !companyId || !numberPlate) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const validation = insertCompanyCarRegisterSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { driverId, companyId, numberPlate, startTime, notes } = validation.data as any;
       const entry = await storage.createCarRegisterEntry({
         driverId,
         companyId,

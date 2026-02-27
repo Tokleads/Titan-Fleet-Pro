@@ -120,13 +120,13 @@ export function registerCoreRoutes(app: Express) {
   // Create document (manager)
   app.post("/api/manager/documents", async (req, res) => {
     try {
-      const validated = insertDocumentSchema.parse(req.body);
-      const doc = await storage.createDocument(validated);
+      const validation = insertDocumentSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const doc = await storage.createDocument(validation.data);
       res.status(201).json(doc);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
-      }
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -142,7 +142,11 @@ export function registerCoreRoutes(app: Express) {
       if (req.user && existingDoc.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const updated = await storage.updateDocument(docId, req.body);
+      const validation = insertDocumentSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const updated = await storage.updateDocument(docId, validation.data);
       if (!updated) {
         return res.status(404).json({ error: "Document not found" });
       }
@@ -213,11 +217,12 @@ export function registerCoreRoutes(app: Express) {
       if (req.user && existingDoc.companyId !== req.user.companyId) {
         return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
       }
-      const { userId } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: "Missing userId" });
+      const ackSchema = z.object({ userId: z.number() });
+      const validation = ackSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const ack = await storage.acknowledgeDocument(docId, Number(userId));
+      const ack = await storage.acknowledgeDocument(docId, validation.data.userId);
       res.status(201).json(ack);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -499,15 +504,16 @@ export function registerCoreRoutes(app: Express) {
   // Send broadcast notification to all drivers
   app.post("/api/notifications/broadcast", async (req, res) => {
     try {
-      const { companyId, senderId, title, message, priority } = req.body;
-      
-      if (!companyId || !senderId || !title || !message) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const broadcastSchema = z.object({ companyId: z.number(), senderId: z.number(), title: z.string(), message: z.string(), priority: z.string().optional() });
+      const validation = broadcastSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, senderId, title, message, priority } = validation.data;
       
       const notification = await storage.createBroadcastNotification({
-        companyId: Number(companyId),
-        senderId: Number(senderId),
+        companyId,
+        senderId,
         title,
         message,
         priority: priority || "NORMAL",
@@ -524,16 +530,17 @@ export function registerCoreRoutes(app: Express) {
   // Send individual notification
   app.post("/api/notifications/individual", async (req, res) => {
     try {
-      const { companyId, senderId, recipientId, title, message, priority } = req.body;
-      
-      if (!companyId || !senderId || !recipientId || !title || !message) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const individualSchema = z.object({ companyId: z.number(), senderId: z.number(), recipientId: z.number(), title: z.string(), message: z.string(), priority: z.string().optional() });
+      const validation = individualSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
+      const { companyId, senderId, recipientId, title, message, priority } = validation.data;
       
       const notification = await storage.createNotification({
-        companyId: Number(companyId),
-        senderId: Number(senderId),
-        recipientId: Number(recipientId),
+        companyId,
+        senderId,
+        recipientId,
         title,
         message,
         priority: priority || "NORMAL",
