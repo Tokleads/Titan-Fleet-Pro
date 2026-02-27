@@ -56,7 +56,6 @@ export async function registerRoutes(
   const PUBLIC_PATHS = [
     '/api/driver/login',
     '/api/manager/login',
-    '/api/company/',
     '/api/health',
     '/api/health/live',
     '/api/health/ready',
@@ -64,21 +63,23 @@ export async function registerRoutes(
     '/api/stripe/products',
     '/api/stripe/webhook',
     '/api/stripe/checkout',
-    '/api/stripe/portal',
     '/api/feedback',
     '/api/referral/validate/',
-    '/api/test-sentry',
     '/api/admin/login',
     '/api/auth/',
-    '/api/clear-cache',
     '/health',
+  ];
+
+  const PUBLIC_EXACT_PATTERNS = [
+    /^\/api\/company\/[A-Za-z0-9_-]+$/,
   ];
 
   app.use((req, res, next) => {
     if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) return next();
 
     const isPublic = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p));
-    if (isPublic) return next();
+    const isPublicPattern = PUBLIC_EXACT_PATTERNS.some(p => p.test(req.path));
+    if (isPublic || isPublicPattern) return next();
 
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
