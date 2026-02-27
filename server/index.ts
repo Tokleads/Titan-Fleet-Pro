@@ -8,6 +8,7 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient';
 import { WebhookHandlers } from './webhookHandlers';
 import { populateUser } from './jwtAuth';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const httpServer = createServer(app);
@@ -57,6 +58,7 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 app.use(populateUser);
 
 app.use('/sw.js', (_req, res, next) => {

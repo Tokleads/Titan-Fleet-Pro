@@ -4,6 +4,8 @@ import type { UserRole } from '../shared/rbac';
 
 const JWT_SECRET = process.env.SESSION_SECRET;
 const JWT_EXPIRY = '24h';
+const COOKIE_NAME = 'tf_token';
+const COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 
 if (!JWT_SECRET) {
   throw new Error('SESSION_SECRET environment variable must be set for JWT authentication');
@@ -44,7 +46,29 @@ export function extractToken(req: Request): string | null {
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.slice(7);
   }
+  if (req.cookies?.[COOKIE_NAME]) {
+    return req.cookies[COOKIE_NAME];
+  }
   return null;
+}
+
+export function setAuthCookie(res: Response, token: string): void {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: COOKIE_MAX_AGE,
+    path: '/',
+  });
+}
+
+export function clearAuthCookie(res: Response): void {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
 }
 
 export function populateUser(req: Request, _res: Response, next: NextFunction) {

@@ -7,7 +7,7 @@ import bcrypt from 'bcrypt';
 import { sendPasswordResetEmail } from './emailService';
 import { storage } from './storage';
 import { generateUniquePin, generateUniqueCompanyCode } from './pinUtils';
-import { signToken } from './jwtAuth';
+import { signToken, setAuthCookie, clearAuthCookie } from './jwtAuth';
 
 const router = Router();
 
@@ -344,6 +344,8 @@ router.post('/login', async (req, res) => {
       email: user.email || '',
       name: user.name,
     });
+    
+    setAuthCookie(res, token);
     
     res.json({
       manager: {

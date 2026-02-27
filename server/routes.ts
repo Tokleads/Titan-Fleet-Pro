@@ -21,7 +21,7 @@ import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome
 import { triageDefect } from "./aiTriageService";
 import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
 import { maintenanceAlerts, stagnationAlerts } from "@shared/schema";
-import { signToken, requireAuth, requireCompany, requireRole } from "./jwtAuth";
+import { signToken, setAuthCookie, clearAuthCookie, requireAuth, requireCompany, requireRole } from "./jwtAuth";
 import { requirePermission } from './permissionGuard';
 import { authLimiter } from "./rateLimiter";
 
@@ -67,6 +67,7 @@ export async function registerRoutes(
     '/api/referral/validate/',
     '/api/admin/login',
     '/api/auth/',
+    '/api/logout',
     '/health',
   ];
 
@@ -1156,6 +1157,8 @@ export async function registerRoutes(
 
       const token = signToken({ userId: user.id, companyId: user.companyId, role: user.role as any, email: user.email || '', name: user.name });
 
+      setAuthCookie(res, token);
+
       res.json({
         user: {
           id: user.id,
@@ -1235,6 +1238,8 @@ export async function registerRoutes(
 
       const token = signToken({ userId: manager.id, companyId: manager.companyId, role: manager.role as any, email: manager.email || '', name: manager.name });
 
+      setAuthCookie(res, token);
+
       res.json({
         manager: {
           id: manager.id,
@@ -1258,6 +1263,11 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
     }
+  });
+
+  app.post("/api/logout", (_req, res) => {
+    clearAuthCookie(res);
+    res.json({ success: true });
   });
 
   // Compliance score endpoint
