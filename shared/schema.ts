@@ -1374,8 +1374,9 @@ export type InsertApiHealthFix = z.infer<typeof insertApiHealthFixSchema>;
 export const complianceKnowledge = pgTable("compliance_knowledge", {
   id: serial("id").primaryKey(),
   sectionTitle: text("section_title").notNull(),
-  complianceReference: varchar("compliance_reference", { length: 100 }),
+  complianceReference: text("compliance_reference").notNull(),
   content: text("content").notNull(),
+  keywords: text("keywords").array(),
   category: varchar("category", { length: 100 }),
   sourceFile: varchar("source_file", { length: 255 }),
   embedding: text("embedding"),

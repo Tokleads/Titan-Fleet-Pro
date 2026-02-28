@@ -15,13 +15,15 @@ interface ComplianceChunk {
   compliance_reference?: string;
   complianceReference?: string;
   content: string;
+  keywords?: string[];
   category?: string;
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
+    model: "text-embedding-3-large",
     input: text.slice(0, 8000),
+    dimensions: 2000,
   });
   return response.data[0].embedding;
 }
@@ -68,8 +70,9 @@ async function seedComplianceKnowledge() {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const sectionTitle = chunk.section_title || chunk.sectionTitle || `Section ${i + 1}`;
-      const complianceRef = chunk.compliance_reference || chunk.complianceReference || null;
+      const complianceRef = chunk.compliance_reference || chunk.complianceReference || '';
       const content = chunk.content;
+      const keywords = chunk.keywords || null;
       const category = chunk.category || null;
 
       if (!content || content.trim().length < 10) {
@@ -84,10 +87,10 @@ async function seedComplianceKnowledge() {
         const embedding = await generateEmbedding(embeddingText);
         const embeddingStr = `[${embedding.join(",")}]`;
 
+        const keywordsArr = keywords ? `{${keywords.join(",")}}` : null;
         await db.execute(sql`
-          INSERT INTO compliance_knowledge (section_title, compliance_reference, content, category, source_file, embedding)
-          VALUES (${sectionTitle}, ${complianceRef}, ${content}, ${category}, ${file}, ${embeddingStr}::vector)
-          ON CONFLICT DO NOTHING
+          INSERT INTO compliance_knowledge (section_title, compliance_reference, content, keywords, category, source_file, embedding)
+          VALUES (${sectionTitle}, ${complianceRef}, ${content}, ${keywordsArr}::text[], ${category}, ${file}, ${embeddingStr}::vector)
         `);
 
         totalEmbedded++;

@@ -1,0 +1,374 @@
+[
+  {
+    "section_title": "Best practice and operator responsibilities overview",
+    "compliance_reference": "Sections 1.1–1.3",
+    "content": "1.1 Best practice It is not enough to rely on a maintenance system alone, because this cannot ensure that vehicles are roadworthy. To ensure best practice, you will need to combine good quality maintenance practices and skills with supervision and effective management of the system. Where the guide says you must do something, it is a direct legal requirement. The operator is legally responsible for the roadworthiness of vehicles and trailers, even where maintenance is contracted out. You should ensure vehicles are maintained in a fit and serviceable condition and that systems are effective and continuously reviewed. 1.2 What this guide contains The procedures and systems described relate to responsibilities for roadworthiness, the different types of inspections, inspection intervals, records and data storage, inspection facilities, planner updates and essential reviews. The guide includes many references to written maintenance records; however, electronic vehicle maintenance systems can provide effective management of required information, including safety inspections, maintenance scheduling and driver defect reporting. Electronic records are acceptable provided they contain essential information and can be made available for examination. 1.3 Getting it right DVSA recognises operators may not get everything right all the time, but expects vigilance and responsibility. Consequences of non-compliance can include fines, prosecutions, prohibitions, and in the worst cases serious injury or fatalities caused by badly maintained vehicles.",
+    "keywords": [
+      "roadworthiness",
+      "best_practice",
+      "operator_responsibility",
+      "maintenance_system",
+      "records",
+      "electronic_records",
+      "DVSA"
+    ]
+  },
+  {
+    "section_title": "Inspection types: safety, first-use, intermediate, and drivers’ checks",
+    "compliance_reference": "Section 1.4",
+    "content": "1.4 Types of inspections and checks Safety inspection: a periodic inspection carried out at pre-set intervals in line with what an operator has declared on the vehicle operator licensing service (VOL). The scope should at least include all the items covered by the statutory annual test and employ the methods of assessment prescribed in the relevant inspection manual. Safety inspection forms can be any format as long as the mandatory items listed in Section 1 are included. First use inspection: prior to using a newly acquired vehicle on the public highway, operators must conduct a first use inspection to satisfy themselves that the equipment is roadworthy. The scope should at least include all items inspected at annual test, including a laden roller brake test when appropriate. In some instances, a first use inspection is not required where sufficient evidence indicates the equipment has been subject to a safety inspection (for example pre-delivery inspection documentation). Intermediate safety check: in some operations it may be necessary to check some components more often than at full safety inspections (for example brakes, steering and suspension for urban or hilly operations). Additional intermediate checks should be documented and retained on the maintenance file. Driver walkaround checks: a core control that must be documented and managed as part of the maintenance system.",
+    "keywords": [
+      "safety_inspection",
+      "first_use_inspection",
+      "intermediate_check",
+      "walkaround_check",
+      "inspection_manual",
+      "VOL"
+    ]
+  },
+  {
+    "section_title": "Key points of a good maintenance system and roadworthiness inspections",
+    "compliance_reference": "Sections 1.5 and 2.1",
+    "content": "1.5 Key points of a good maintenance system Operators must ensure safety inspections are carried out at the stated frequency recorded on VOL. Safety inspections must include items covered by the statutory annual test, and can include additional items for local regulations or non-testable components. Inspections should be pre-planned, preferably using a time-based programme, and the system should be regularly monitored and audited. Remedial work must be recorded. Safety inspection records should include: operator name, date, location, organisation who carried out the inspection, vehicle identity, make/model, mileage where appropriate, list of inspection manual items, defects found, inspector name, repair details and who did the work, and a signed declaration that defects have been repaired and the vehicle is roadworthy. Records must be kept for at least 15 months, including for vehicles removed from the licence or disposed of. There must be an internal system to ensure unroadworthy vehicles are removed from service, with authority assigned. 2.1 Roadworthiness inspections Roadworthiness inspections should be carried out using the appropriate DVSA inspection manual methods. Operators should understand that meeting ‘fit and serviceable’ may go beyond annual test minimums; maintenance must meet legal obligations under Construction and Use requirements, and systems must remain effective under the operator’s licence undertakings.",
+    "keywords": [
+      "maintenance_system",
+      "record_retention",
+      "inspection_frequency",
+      "audit",
+      "annual_test",
+      "roadworthiness_inspection",
+      "operator_licence"
+    ]
+  },
+  {
+    "section_title": "Daily walkaround checks: defect reporting systems and governance",
+    "compliance_reference": "Section 3.1",
+    "content": "3.1 A system of reporting and recording defects The driver is always legally responsible for the condition of the vehicle while in use, therefore conducting a daily walkaround check is a vital part of the driver’s role. Operators can delegate the check to a responsible person who may not be the driver; in that case the driver needs evidence the check has been completed and the vehicle is free from safety defects. A minimum of one walkaround check must be carried out every day or at least once in a 24-hour period that the vehicle is used. Vehicles engaged in arduous or off-road operations may require multiple checks in the 24-hour period, with focus on systems likely to be damaged before returning to the road. Where more than one driver uses the vehicle during the day, robust handover and defect reporting controls are needed; it may be unsafe to do a full walkaround at some locations (for example a bus stop), so acceptable systems rely on a robust driver defect reporting system showing the initial walkaround and any defects or ‘nil’ defects during the day for the various drivers. The check should cover the whole vehicle/combination and include interior and exterior items that can be safely assessed without workshop facilities. Where trailers are changed multiple times, each trailer should be checked. Assistance may be required (for example to confirm lights) or tools like a brake pedal application tool may be used.",
+    "keywords": [
+      "walkaround_check",
+      "defect_reporting",
+      "nil_defect",
+      "driver_changeover",
+      "handover",
+      "safety_controls"
+    ]
+  },
+  {
+    "section_title": "Drivers’ responsibilities, training, and traction-only/third-party trailer controls",
+    "compliance_reference": "Section 3.2",
+    "content": "3.2 Drivers’ responsibilities Drivers must be made aware of their legal responsibilities regarding vehicle condition and procedures for reporting defects. Operators must ensure drivers fully understand responsibilities and are adequately trained; this may be part of Driver CPC training. Where English is not the driver’s first language, additional translation or training must be provided. Driver responsibilities should be detailed in writing, describing defect reporting systems and other duties; the driver should sign to confirm receipt and understanding, and a copy retained. Drivers share responsibility for roadworthiness with the operator and may be fined or prosecuted for roadworthiness offences if considered partly or wholly responsible. Minor repairs by drivers: if drivers are expected to repair minor defects in service they need appropriate training, and repairs must be documented using the defect reporting system. Drivers using tachograph records must record the walkaround check and any associated repairs as ‘other work’. Traction only operators and third-party trailers: operators providing traction-only services still require trailer authorisation on the operator’s licence and must ensure trailers are safe to use and inspected at agreed frequency. They must have access to inspection interval, current safety inspection reports (including brake tests), current MOT certificate, and EBPMS report where applicable, supported by a contract or written agreement with the trailer owner (see annex 5 example contract reference).",
+    "keywords": [
+      "driver_responsibility",
+      "training",
+      "driver_CPC",
+      "tachograph_other_work",
+      "traction_only",
+      "third_party_trailers",
+      "EBPMS"
+    ]
+  },
+  {
+    "section_title": "Safety inspection scope, content, and methods of assessment",
+    "compliance_reference": "Section 4.1",
+    "content": "4.1 Inspection scope and content Safety inspections should at least cover all items included in the statutory annual test and use the methods of assessment prescribed in the relevant DVSA inspection manual for the vehicle type. The inspection should be systematic and consistent so that defects are identified, recorded, and rectified. The scope can include items that are not explicitly testable at annual test but are required for safe operation, local transport regulation compliance, or operational integrity, provided these do not reduce focus on core roadworthiness requirements. Operators should ensure inspection routines are suitable for the fleet, equipment type (HGV, PSV, LGV, trailers), and operating conditions. The inspection process should enable clear identification of defects, assessment of their significance, and confirmation that repairs have returned the vehicle to a safe roadworthy condition before it returns to service. The transport manager or responsible person must be able to review completed inspection records (or receive written confirmation of roadworthiness where exceptions apply) before the vehicle is used. Effective systems should ensure defects are not carried forward, that repeat defects are analysed, and that inspection quality remains high regardless of whether work is in-house or contracted.",
+    "keywords": [
+      "inspection_scope",
+      "inspection_manual",
+      "annual_test_scope",
+      "methods_of_assessment",
+      "defect_significance",
+      "transport_manager_review"
+    ]
+  },
+  {
+    "section_title": "Setting safety inspection intervals (time/mileage), ISO week planning, and evidence-based changes",
+    "compliance_reference": "Sections 4.2–4.3",
+    "content": "4.2 Safety inspection intervals Operators must decide the frequency of safety inspections based on vehicle type, usage, operating conditions, fleet reliability and risk, while ensuring declared intervals on VOL are followed. Inspection frequency should not be extended without updating VOL. Inspections should be completed within the specified weekly or mileage-based scale and not beyond. To allow flexibility, the guide recommends using ISO week numbering (weeks run Monday to Sunday). For example, if a 6-week interval is set, and first use inspection occurs in ISO week 10, subsequent inspections should be completed in weeks 16, 22, 28, etc. If an inspection occurs outside schedule (for example due to breakdown), operators must avoid creating extended gaps; they should either return to the planned schedule or reschedule future intervals consistently from the new inspection date. Vehicles out of service must be inspected before being returned to use, and equivalent annual mileage should be considered for seasonal operations. 4.3 Case studies The guide provides fictional examples showing how operators adjust schedules: increasing frequency for arduous work, using intermediate checks for high-wear systems, switching to mileage-based policies for variable usage, and using mixed frequencies for fleets with different reliability profiles, with monitoring and VOL updates supporting the changes.",
+    "keywords": [
+      "inspection_interval",
+      "ISO_week",
+      "time_based",
+      "mileage_based",
+      "schedule_control",
+      "monitoring",
+      "VOL_update"
+    ]
+  },
+  {
+    "section_title": "Safety inspection reporting: forms, mandatory fields, and ad hoc interval triggers",
+    "compliance_reference": "Sections 4.4–4.5",
+    "content": "4.4 Safety inspection report forms The safety inspection record can be any format provided mandatory items are included. Records should reflect inspection manual items and provide a clear audit trail. Typical mandatory fields include: operator name; date/time; inspection location; organisation carrying out inspection; vehicle identity (registration/trailer number); make/model; mileage where appropriate; a checklist of items inspected; defects found; inspector name; full details of repair work and who carried it out; and a signed declaration confirming defects are repaired satisfactorily and the vehicle is roadworthy before returning to service. Records must be complete and retained on the maintenance file for the required period. 4.5 Ad hoc safety inspection intervals The guide allows for additional checks outside the normal interval when risk triggers occur, such as after breakdowns, incidents, patterns of repeat defects, or where operating conditions change. Ad hoc checks should be documented and retained, and should not be used to justify extending routine inspection intervals without evidence and without updating VOL. Operators should use monitoring outcomes (defect rates, trends, test outcomes, roadside encounters) to determine whether the planned interval remains appropriate and to justify changes.",
+    "keywords": [
+      "inspection_form",
+      "mandatory_fields",
+      "audit_trail",
+      "repair_declaration",
+      "ad_hoc_inspection",
+      "risk_triggers"
+    ]
+  },
+  {
+    "section_title": "Electronic capture/storage of maintenance records and safety inspection data",
+    "compliance_reference": "Section 4.6",
+    "content": "4.6 Electronic capture and storage of safety inspection data The guide recognises electronic maintenance systems as an effective way to manage safety inspections, defect reporting, and scheduling. Where safety inspection records are stored digitally, the physical checklist used during the inspection does not need to be kept; an electronic device (for example a tablet) can be used in place of paper. Barcoding or scanning of defects found or work done is acceptable provided a means of interpreting each code is available. Digitally stored records must be tamper-proof and capable of producing hard copy information if required. Computer records must contain the same information as a comparable manual form, preserving the mandatory record items and supporting compliance examinations. Operators should ensure electronic systems support retrieval by vehicle and date, maintain a clear audit trail, and protect integrity of records. Digital systems should facilitate monitoring, trend analysis, and management control (for example identifying incomplete records, recurring defects, or unusual ‘no defect’ patterns). Any electronic approach adopted must still satisfy the Traffic Commissioners that the maintenance system is effective and provides sufficient control to ensure satisfactory roadworthiness outcomes.",
+    "keywords": [
+      "digital_records",
+      "tamper_proof",
+      "hard_copy",
+      "barcode_scanning",
+      "audit_trail",
+      "data_integrity"
+    ]
+  },
+  {
+    "section_title": "Competence and control: safety inspectors, assistants, authority, cleanliness, and staff duties",
+    "compliance_reference": "Sections 4.7–4.11",
+    "content": "4.7 Safety inspectors A person undertaking safety inspections must be technically competent and operationally aware of relevant safety standards, trained in examination/diagnosis/reporting, and possess sound working knowledge of DVSA inspection manuals. Time-served experience may demonstrate competence, but with modern systems it is strongly recommended inspectors obtain relevant technical qualifications and accreditation such as IRTEC (or similar) and meet recognised quality standards. Inspectors must have training on risks/hazards for alternative fuelled vehicles where applicable. A safety inspector should not be expected to carry out repair or servicing work during the examination. 4.8 Use of assistants During inspections, assistance may be needed to operate controls; the operator must ensure assistance is available (often the driver). 4.9 Authority to remove or reinstate a vehicle Operators must ensure someone has authority to decide whether a vehicle is fit for service at all times, including taking vehicles out of service and authorising return after repair; delegation should be in writing, but the transport manager retains legal responsibility. 4.10 Vehicle cleanliness Vehicles should be cleaned regularly to enable defect detection. 4.11 Duties of staff Staff involved directly or indirectly must understand legal/moral responsibilities and their specific duties in writing, with emphasis on maintaining an effective inspection programme and integrity.",
+    "keywords": [
+      "competence",
+      "IRTEC",
+      "inspection_manuals",
+      "assistants",
+      "authority",
+      "transport_manager",
+      "staff_duties"
+    ]
+  },
+  {
+    "section_title": "Workshop and inspection facilities: minimum equipment and environment",
+    "compliance_reference": "Section 5.1",
+    "content": "5.1 Safety inspection facilities Operators must decide whether to undertake safety inspections/maintenance in-house or contract out work, but must ensure facilities are adequate either way. Facilities must provide a safe working environment and should include: undercover accommodation for the largest vehicle in the fleet to allow satisfactory checks in all weathers; tools and equipment appropriate to fleet size and nature; an adequate under-vehicle inspection facility; adequate lighting; access to brake test equipment (for example roller brake tester or decelerometer); access to headlamp test equipment; brake temperature sensing device where relevant; tread depth gauge; tyre pressure gauge; access to on-board diagnostic equipment where relevant; access to emissions testing equipment; and access to steam or pressure under-vehicle washing facilities. The guide strongly recommends maintenance facilities demonstrate competence through recognised workshop accreditation (for example manufacturers’ franchised standards, IRTE National Workshop Accreditation) and highlights independent schemes such as the Maintenance Provision Rating Scheme (MPRS). If an operator fails to maintain vehicles in a safe condition with facilities provided, the Traffic Commissioner may take regulatory action. Technical guides (for example from the Society of Operations Engineers) can support best practice such as wheel security and safe working practices.",
+    "keywords": [
+      "facilities",
+      "workshop",
+      "inspection_equipment",
+      "brake_tester",
+      "headlamp_test",
+      "diagnostics",
+      "emissions_testing",
+      "MPRS"
+    ]
+  },
+  {
+    "section_title": "Tyre management system: policy, inspection, and control",
+    "compliance_reference": "Section 5.2",
+    "content": "5.2 Tyre management system Operators should have an effective tyre management system as tyres are safety-critical and subject to damage and wear. A tyre policy should define acceptable tread depths, tyre pressures, tyre type/specification (including matching requirements where relevant), and inspection routines. The system should ensure regular checks for: tread depth and uneven wear, cuts, bulges, exposed cords, sidewall damage, valve condition, wheel/tyre security, correct inflation, and suitability for load and service conditions. Operators should ensure tyre pressure and tread depth measuring devices are available and used, and that defects found during walkaround checks or safety inspections are recorded and rectified promptly. Tyre management should address fleet operating conditions (for example urban stop-start, off-road, corrosive environments), seasonal use, and damage risks. Where tyres are managed by contractors, operators remain responsible for roadworthiness and should ensure contractor competence, documentation, and controls meet their declared maintenance standards. Tyre-related defects and trends should be analysed as part of monitoring to determine whether inspection frequency or component checks need adjustment. The system should integrate with defect reporting and maintenance scheduling so that tyres are not run in an unsafe condition and so that vehicles are removed from service where necessary.",
+    "keywords": [
+      "tyres",
+      "tread_depth",
+      "pressure",
+      "tyre_policy",
+      "damage_detection",
+      "wheel_security",
+      "defect_reporting"
+    ]
+  },
+  {
+    "section_title": "Braking performance assessment and EBPMS monitoring",
+    "compliance_reference": "Sections 5.3–5.4",
+    "content": "5.3 Braking performance assessment Operators should have access to a means of measuring brake efficiency and investigating poor performance. Brake performance monitoring should reflect operating conditions and risk. Methods can include roller brake testers, decelerometers, and where appropriate laden brake tests. Operators should be aware that ‘fit and serviceable’ obligations can go beyond annual test minima; braking systems and the means of operation must be maintained in good and efficient working order and properly adjusted. Brake test results should be recorded and used to identify imbalance, deterioration, recurring issues, or poor maintenance outcomes. 5.4 Electronic braking performance monitoring system (EBPMS) Where EBPMS is used, operators should ensure the system is functioning correctly and supports roadworthiness control. EBPMS can provide continuous or periodic monitoring, alerts, and reports that help identify performance degradation or system faults between scheduled inspections. Operators should ensure EBPMS data is reviewed and acted upon, and that defects indicated by the system are recorded through the defect reporting process and rectified promptly. EBPMS outputs can support maintenance decision-making, monitoring, and evidence for compliance, but do not replace scheduled safety inspections; they should be integrated into the maintenance system alongside brake tests and inspection manual assessments.",
+    "keywords": [
+      "brakes",
+      "brake_efficiency",
+      "roller_brake_test",
+      "decelerometer",
+      "laden_test",
+      "EBPMS",
+      "alerts",
+      "maintenance_evidence"
+    ]
+  },
+  {
+    "section_title": "Vehicle emissions and fuel management (including alternative fuels)",
+    "compliance_reference": "Section 5.5",
+    "content": "5.5 Vehicle emissions and fuel management Operators should manage vehicle emissions as part of roadworthiness and legal compliance. Where vehicles show signs of excessive exhaust emissions, appropriate emissions testing equipment should be used to confirm the level of emission is within legal requirements. Emissions management should include controls for systems such as exhaust after-treatment (for example DPF), fluid dosing (for example AdBlue where applicable), and onboard diagnostics indicators/warning lights that may signal emission-related faults. Operators should ensure staff carrying out safety inspections understand risks and hazards associated with alternative fuelled vehicles, and that maintenance activities account for safe working practices around those systems. Fuel management processes should support reliable operation and reduce environmental impact, including monitoring fuel quality issues, contamination risks, and operational practices that may influence emissions. Defects identified through emissions testing, warning systems, or inspection findings should be recorded and rectified, and recurrence should be monitored. Operators should ensure any emissions-related repairs or adjustments restore the vehicle to manufacturer standards and do not compromise safety-critical systems. Emissions controls should integrate into overall maintenance planning and monitoring, with clear documentation on the maintenance file.",
+    "keywords": [
+      "emissions",
+      "opacity",
+      "DPF",
+      "AdBlue",
+      "OBD",
+      "alternative_fuels",
+      "safe_working_practices",
+      "environmental_compliance"
+    ]
+  },
+  {
+    "section_title": "ADAS and PSV automatic vehicle location systems: ‘means of operation’ and operational checks",
+    "compliance_reference": "Sections 5.6–5.7",
+    "content": "5.6 Advanced Driver Assistance Systems (ADAS) Operators should recognise that legal obligations for braking systems include the ‘means of operation’ and that this brings within scope advanced systems that affect braking and vehicle control. Regulation 18(1) of the Road Vehicles (Construction and Use) Regulations 1986 requires every part of every braking system and the means of operation thereof to be maintained in good and efficient working order and properly adjusted; ‘means of operation’ also brings ADAS within scope. Operators should ensure ADAS-related components (sensors, cameras, radars, control units and related warning systems) are maintained to manufacturer standards and are considered during inspections and after repairs, including calibration requirements where relevant. Poor repair quality can compromise safety-critical systems. 5.7 PSV automatic vehicle location systems Operators of public service vehicles should ensure automatic vehicle location (AVL) systems function correctly, and that real-time location data is being supplied before a vehicle is operated on a registered service. Any issues identified must be notified to the responsible person using the driver defect reporting system. Operators should ensure the system supports operational compliance expectations for registered services and that monitoring and defect reporting processes capture failures and corrective action. AVL checks should be incorporated into maintenance and inspection governance where relevant.",
+    "keywords": [
+      "ADAS",
+      "means_of_operation",
+      "Regulation_18",
+      "calibration",
+      "sensors",
+      "PSV",
+      "AVL",
+      "registered_service",
+      "defect_reporting"
+    ]
+  },
+  {
+    "section_title": "Vehicle body repairs and PSV accessibility requirements (PSVAR)",
+    "compliance_reference": "Sections 5.8–5.9",
+    "content": "5.8 Vehicle body repairs The potential for serious incidents from poorly repaired heavy vehicles is significantly greater than with passenger cars due to higher loads, forces and demanding environments. Structural integrity and safety-critical systems must be fully restored to manufacturer standards after any repair. Poor-quality repairs can lead to structural weaknesses, reduced crash performance, and failures in critical systems such as braking, suspension, and ADAS. The guide strongly recommends using repair facilities that demonstrate competence through recognised bodyshop accreditation. 5.9 Accessibility (PSV) The Public Service Vehicles Accessibility Regulations (PSVAR) apply to PSVs with capacity exceeding 22 passengers used to provide scheduled or local services (‘regulated public service vehicles’). Requirements cover features such as wheelchair spaces with safety provisions, boarding devices, priority seating, step size/height, handrails, colour-contrasting features, easy-to-use bell pushes, audible/visual signals to stop/request boarding devices, and route/destination display equipment. Operators must ensure drivers are familiar with accessibility features and that these features are included in safety inspections and driver walkaround checks to ensure they remain in good condition and function correctly. Training and guidance is available via sector resources referenced in the guide.",
+    "keywords": [
+      "body_repairs",
+      "structural_integrity",
+      "accreditation",
+      "crash_performance",
+      "PSVAR",
+      "accessibility",
+      "wheelchair_space",
+      "boarding_device",
+      "driver_familiarisation"
+    ]
+  },
+  {
+    "section_title": "Quality standards, contracted-out arrangements, contract drafting, and operator responsibility",
+    "compliance_reference": "Sections 5.10–5.13",
+    "content": "5.10 Quality standards recognition It is strongly recommended that providers of vehicle safety inspections and maintenance achieve recognised quality standards for facilities, working practices and staff competence. 5.11 Contracted out arrangements If you use a contractor, you remain responsible for the condition of vehicles inspected/maintained by agents or contractors, including any subcontractors. Operators should ensure contractor facilities are adequate and staff are competent, supported by evidence of training, qualifications and continuing professional development (CPD). Contractors should use appropriate technical data and inspection manuals, and have suitable systems to record inspections and repairs. 5.12 Drawing up a contract A written contract is essential, setting out precise details of vehicles covered, inspection frequency, type of check, repair policy, and any subcontractors. Contracts must be kept on the operator’s maintenance file and produced on request, and contractor details should be kept up to date on VOL. 5.13 Contract limitations Even where a maintenance contract exists, the operator remains legally responsible for vehicle condition, authorisation of repair work, and retention of records. Operators should ensure contracted maintenance matches vehicle demands and that standards achieved are high. Regular communication and active monitoring of contractor performance is expected; one method is obtaining annual test first-time pass data, supplemented by external audits or recognised accreditation.",
+    "keywords": [
+      "quality_standards",
+      "contracted_maintenance",
+      "written_contract",
+      "CPD",
+      "subcontractors",
+      "operator_responsibility",
+      "quality_monitoring",
+      "first_time_pass_rate"
+    ]
+  },
+  {
+    "section_title": "Visiting agents, roadside restrictions, and planning/VOR controls",
+    "compliance_reference": "Sections 5.14–5.16",
+    "content": "5.14 Visiting agents Operators may use visiting agents for safety inspections, repairs and routine maintenance, but must ensure the agent is qualified for the vehicle type and uses adequate facilities/tools. As with contracted maintenance, the operator remains responsible for vehicle condition and record keeping. 5.15 Roadside safety inspections Only emergency repairs may be done at the roadside. Routine maintenance, including safety inspections and repairs, may not be carried out on the public highway. 5.16 Planning a safety inspection programme Safety inspections should be planned in advance. Operators can plan around statutory annual test dates to reduce duplication (cleaning and major servicing). An electronic scheduling system can be used to plan maintenance activities, or a simple year planner/flow chart can be used; planning systems should set safety inspection dates at least 6 months in advance and include vehicle test dates, servicing, and calibration dates (for example tachographs or lifting equipment). The planning system should be updated regularly to show programme progress and extra work carried out. Vehicles taken off the operator’s licence or temporarily off-road should have non-use periods identified. When a vehicle is declared VOR, record the date and reason on the maintenance file and ensure a robust system prevents use, especially when unsafe. Safety inspection schedules can be suspended during extended VOR, but a safety inspection must confirm roadworthiness before returning to service.",
+    "keywords": [
+      "visiting_agent",
+      "roadside_repairs",
+      "emergency_only",
+      "maintenance_planner",
+      "scheduling",
+      "VOR",
+      "calibration_dates",
+      "annual_test_planning"
+    ]
+  },
+  {
+    "section_title": "Monitoring: drivers’ checks and annual test results as KPIs",
+    "compliance_reference": "Sections 6.1–6.2",
+    "content": "6.1 Monitoring of drivers’ checks Continuous reviewing and monitoring of maintenance systems is essential to ensure they are sufficiently comprehensive. One method is to invite a technically competent third party to periodically re-inspect or undertake a safety inspection, whether inspections are in-house or contracted. Inspection reports should be analysed for incomplete records and patterns of faults: frequent faults may indicate insufficient safety inspections, poor walkaround checks, or ineffective defect rectification; consistently few/no faults may indicate intervals are too short or inspection quality is poor. Monitoring enables operators to adjust inspection intervals to suit operations within the guide’s framework. Walkaround checks require continuous monitoring to ensure they are performed correctly. Electronic defect reporting systems can support this, and tachograph analysis can help monitor time taken for checks. Quality can be monitored by re-examining vehicles leaving/entering the operating centre and comparing results to driver defect reports. Safety inspectors can note defects that should have been detected during walkarounds, prompting review and corrective action. Trend analysis over time supports a risk-based approach. 6.2 Annual test results Monitoring annual test performance (including first-time pass rates) provides evidence of maintenance effectiveness and contractor/workshop performance; this can be used as a quality assurance measure and to drive improvements.",
+    "keywords": [
+      "monitoring",
+      "driver_checks",
+      "defect_trends",
+      "tachograph_analysis",
+      "third_party_audit",
+      "annual_test",
+      "first_time_pass_rate",
+      "KPI"
+    ]
+  },
+  {
+    "section_title": "Compliance signals: OCRS risk score and British Standards alignment",
+    "compliance_reference": "Sections 6.3–6.4",
+    "content": "6.3 Operator compliance risk score (OCRS) OCRS provides a risk-based indicator of an operator’s compliance, helping DVSA target enforcement. Operators should understand how OCRS is influenced by factors such as roadside encounters, prohibitions, and annual test outcomes, and should use this as a management signal to assess whether maintenance and compliance controls are performing. A strong maintenance system, effective defect management, appropriate inspection intervals, and timely rectification will support improved compliance outcomes and lower risk profiles. 6.4 British standards The guide references the value of recognised standards and structured systems as a means of demonstrating competence and control. Aligning maintenance and record-keeping with relevant British Standards (and other recognised quality management approaches) can support consistency, auditability, and continuous improvement. Operators should treat standards as supporting tools rather than replacements for legal duties; the ultimate test remains whether vehicles are roadworthy in practice. Standards-based approaches can also complement external audits, accreditation schemes, and internal monitoring to demonstrate that maintenance systems are robust and proactively managed.",
+    "keywords": [
+      "OCRS",
+      "risk_score",
+      "DVSA_targeting",
+      "british_standards",
+      "quality_management",
+      "continuous_improvement",
+      "compliance_signals"
+    ]
+  },
+  {
+    "section_title": "Corrective action: safety recalls and PSV reportable incidents (PSV112)",
+    "compliance_reference": "Sections 6.5–6.6",
+    "content": "6.5 Vehicle safety recalls Operators must manage manufacturer safety recalls as part of roadworthiness control. Recall notices should be identified, tracked, and acted upon promptly to ensure safety-critical issues are rectified in line with manufacturer instructions. Operators should have a process for checking recall status (including for newly acquired vehicles), arranging repairs, documenting completion, and ensuring vehicles are not used in an unsafe condition. Recalls should be integrated into maintenance planning and monitoring. 6.6 PSV reportable incidents (PSV112) PSV operators must report certain incidents to DVSA using the PSV112 process. Reportable incidents include fatalities, serious injuries (such as broken bones, damage to major organs or overnight hospitalisation), allegations of a safety defect, serious damage requiring specialist recovery and the vehicle being taken out of service for repair, safety critical component failures (or history of repeated failures), and vehicles catching fire. Operators should have internal processes to identify incidents promptly, preserve evidence and records, communicate within the organisation, and ensure that safety-critical defects are investigated and rectified. Incident reporting supports regulatory oversight and road safety.",
+    "keywords": [
+      "safety_recalls",
+      "manufacturer_notice",
+      "rectification",
+      "PSV112",
+      "reportable_incidents",
+      "fatalities",
+      "serious_injury",
+      "vehicle_fire"
+    ]
+  },
+  {
+    "section_title": "DVSA Earned Recognition scheme: audited systems and enforcement benefits",
+    "compliance_reference": "Section 6.7",
+    "content": "6.7 DVSA earned recognition scheme DVSA earned recognition is a voluntary scheme intended to reduce the burden of enforcement on operators with a strong track record of compliance and adherence to standards. Operators must be able to demonstrate robust systems and processes that promote effective and proactive transport management. By maintaining audited compliance systems, operators ‘earn recognition’. Key performance indicators provide a means of monitoring compliance and may reduce the likelihood of roadside inspection or operator visits by giving DVSA confidence that the operation is effectively managed and compliant. Benefits listed include: use of a DVSA marque on websites/publicity materials; recognition as a DVSA approved operator through a published list on GOV.UK; OCRS showing a ‘Blue’ earned recognition status (lowest risk score); reduced likelihood of vehicles being stopped roadside; fewer DVSA enforcement visits; and direct access to an earned recognition team. Earned recognition is positioned as recognition of ‘exemplar’ operators and investment in compliance systems. Operators should treat this as an outcome of strong maintenance governance rather than a substitute for day-to-day controls.",
+    "keywords": [
+      "earned_recognition",
+      "DVSA_marque",
+      "audited_systems",
+      "KPI",
+      "OCRS_blue",
+      "reduced_enforcement",
+      "compliance_exemplar"
+    ]
+  },
+  {
+    "section_title": "Operator licensing enforcement context, undertakings, and regulatory expectations",
+    "compliance_reference": "Annex 1",
+    "content": "Annex 1 - Enforcement of the operator licensing scheme The Goods Vehicles (Licensing of Operators) Act 1995 requires that any person who uses (‘operates’) goods vehicles over 3,500 kg maximum gross weight in the course of business must have an operator’s licence (‘O’ licence). PSV operators also require a PSV operator licence under the Public Passenger Vehicles Act 1981 (as amended). A separate O-licence is required for each Traffic Area where an operating centre exists, but one licence can cover multiple centres in the same Traffic Area. From May 2022, operators/users of vans or other light goods vehicles over 2.5 tonnes up to 3.5 tonnes used for hire or reward internationally must have a standard international goods vehicle operator licence. When considering an application, Traffic Commissioners must consider whether satisfactory facilities or arrangements exist for keeping authorised vehicles in a fit and serviceable condition, including regular safety checks at specified intervals and keeping records. These details are ‘undertakings’ made for obtaining a licence. Operators must ensure listed inspection provider details are up to date on VOL. Authorised examiners acting on behalf of Traffic Commissioners have enforcement powers; obstruction of an authorised examiner is an offence. The annex links enforcement outcomes (including prohibitions and endorsements) to whether maintenance systems are effective and whether defects should reasonably have been detected through declared controls.",
+    "keywords": [
+      "operator_licence",
+      "undertakings",
+      "traffic_commissioner",
+      "traffic_area",
+      "VOL",
+      "authorised_examiner",
+      "enforcement_context"
+    ]
+  },
+  {
+    "section_title": "Prohibition endorsements, maintenance-related defect attribution, and delayed defect concession",
+    "compliance_reference": "Annex 1",
+    "content": "Annex 1 enforcement also explains how prohibition notices may be endorsed and how defects are attributed to maintenance failings. Defects ‘S’ marked (significant failure) indicate a significant failure of roadworthiness compliance and are treated as maintenance-related where the operator/driver should have been aware, for example: long-standing defects that should have been detected and repaired at the last safety check; defects that should have been detected at first use/daily walkaround checks; defects obvious through performance/handling/warning systems; poor workmanship that should have been apparent to the repairer; or defects at annual test that should have been found before presentation. Where defects are not considered maintenance-related (‘X’), this applies to random failures such as bulb failure or new fracture in a road spring leaf where it would not have been noticed by the driver. If it is not possible to determine culpability, the defect is not endorsed. Delayed defect concession: under limited circumstances, a delayed prohibition may be deviated (downgraded) to an inspection notice where evidence shows the delayed defects occurred on the current day’s journey (24-hour period), the vehicle was clear of defects at journey start supported by a nil defect report, and an in-service defect report with recorded assessment states the vehicle is safe to drive for the remainder of the journey; or where the vehicle is on a direct route to a repair facility with evidence supporting that route. The concession does not apply if any other prohibition defect is detected; drivers must provide sufficient evidence at the time of inspection.",
+    "keywords": [
+      "prohibition_notice",
+      "S_marked",
+      "maintenance_related",
+      "X_defect",
+      "random_failure",
+      "delayed_prohibition",
+      "evidence_requirements",
+      "driver_defect_reports"
+    ]
+  },
+  {
+    "section_title": "Where to get help: technical support, trade associations, and training routes",
+    "compliance_reference": "Annex 2, Sections 2.1–2.2",
+    "content": "Annex 2 - Where to get additional help 2.1 Technical support The Traffic Commissioners and DVSA provide advice and assistance to operators to help improve professional standards. Examiners can advise on safety inspections and help operators set up acceptable record-keeping systems or maintenance facilities, and together with Traffic Commissioners this is viewed as an important means of improving road safety. Vehicle manufacturers are also key sources of advice on technical requirements, via handbooks and publications, local specialist dealers, or direct manufacturer support. Trade associations (examples referenced include Confederation of Passenger Transport, Guild of British Coach Operators, Logistics UK, Road Haulage Association, Vehicle Body Repairs Association, British Vehicle Rental and Leasing Association) provide advice and can offer national inspection services ranging from regular inspection checks to monitoring outside garages or operator inspections. They also provide operator compliance audits that support continuous and effective management of maintenance and licensing systems, and represent industry in discussions with the Department for Transport. 2.2 Training Trade associations, colleges, training organisations and manufacturers offer courses and seminars covering operator licensing and maintenance systems. Advice on training can be obtained from relevant sector skills councils and trade associations.",
+    "keywords": [
+      "technical_support",
+      "DVSA_advice",
+      "traffic_commissioner",
+      "trade_associations",
+      "operator_audits",
+      "training",
+      "skills_councils"
+    ]
+  },
+  {
+    "section_title": "Where to get help: fuel efficiency, environmental support, fault finding, and publications",
+    "compliance_reference": "Annex 2, Sections 2.3–2.5",
+    "content": "Annex 2 - Where to get additional help 2.3 Saving fuel and protecting the environment The guide notes government-recognised organisations that offer help on fuel consumption and environmental protection. The Energy Saving Trust works to cut greenhouse gases and air pollution from road transport, promoting cleaner/lower carbon vehicles and fuels, eco-friendly driving techniques, and low carbon transport alternatives. SAFED (Safe and Fuel Efficient Driving) is a Department for Transport approved programme reported to demonstrate average fuel savings and reductions in emissions and gear changes, and can qualify as a Driver CPC training module. 2.4 Fault finding The guide indicates further assistance is available for diagnosing vehicle issues, including through manufacturers, specialist dealers, and sector support routes. 2.5 Publications Operators can refer to DVSA/Traffic Commissioner publications and sector guidance to support maintenance governance, record keeping, and compliance understanding, complementing the systems described in the guide.",
+    "keywords": [
+      "fuel_efficiency",
+      "energy_saving_trust",
+      "SAFED",
+      "DfT",
+      "environment",
+      "fault_finding",
+      "publications",
+      "driver_CPC"
+    ]
+  }
+]

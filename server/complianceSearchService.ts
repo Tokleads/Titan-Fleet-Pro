@@ -27,8 +27,9 @@ export interface ComplianceSearchResult {
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
+    model: "text-embedding-3-large",
     input: text.slice(0, 8000),
+    dimensions: 2000,
   });
   return response.data[0].embedding;
 }
