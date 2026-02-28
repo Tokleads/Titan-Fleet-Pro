@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uniqueIndex, index, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1372,6 +1372,18 @@ export const insertApiHealthFixSchema = createInsertSchema(apiHealthFixes).omit(
 export type ApiHealthFix = typeof apiHealthFixes.$inferSelect;
 export type InsertApiHealthFix = z.infer<typeof insertApiHealthFixSchema>;
 
+const vector = customType<{ data: string; driverParam: string }>({
+  dataType() {
+    return "vector(2000)";
+  },
+  toDriver(value: string): string {
+    return value;
+  },
+  fromDriver(value: unknown): string {
+    return value as string;
+  },
+});
+
 export const complianceKnowledge = pgTable("compliance_knowledge", {
   id: serial("id").primaryKey(),
   sectionTitle: text("section_title").notNull(),
@@ -1380,10 +1392,13 @@ export const complianceKnowledge = pgTable("compliance_knowledge", {
   keywords: text("keywords").array(),
   category: varchar("category", { length: 100 }),
   sourceFile: varchar("source_file", { length: 255 }),
-  embedding: text("embedding"),
+  embedding: vector("embedding"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
-});
+}, (table) => [
+  index("idx_compliance_knowledge_embedding_hnsw")
+    .using("hnsw", table.embedding.op("vector_cosine_ops")),
+]);
 
 export const insertComplianceKnowledgeSchema = createInsertSchema(complianceKnowledge).omit({ id: true, createdAt: true, updatedAt: true });
 export type ComplianceKnowledge = typeof complianceKnowledge.$inferSelect;

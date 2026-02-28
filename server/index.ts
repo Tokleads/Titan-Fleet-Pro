@@ -445,37 +445,9 @@ app.use((req, res, next) => {
     const { db: dbVec } = await import('./db');
     const { sql: sqlVec } = await import('drizzle-orm');
     await dbVec.execute(sqlVec`CREATE EXTENSION IF NOT EXISTS vector`);
-    const tblCheck = await dbVec.execute(sqlVec`
-      SELECT 1 FROM information_schema.columns
-      WHERE table_name = 'compliance_knowledge' AND column_name = 'embedding'
-    `);
-    if (tblCheck.rows && tblCheck.rows.length > 0) {
-      const colType = await dbVec.execute(sqlVec`
-        SELECT data_type, udt_name FROM information_schema.columns
-        WHERE table_name = 'compliance_knowledge' AND column_name = 'embedding'
-      `);
-      const udt = (colType.rows[0] as any)?.udt_name;
-      if (udt === 'text' || udt === 'varchar') {
-        await dbVec.execute(sqlVec`
-          ALTER TABLE compliance_knowledge
-          ALTER COLUMN embedding TYPE vector(2000) USING embedding::vector(2000)
-        `);
-        console.log('[pgvector] Converted embedding column from text to vector(2000)');
-      }
-      const idxCheck = await dbVec.execute(sqlVec`
-        SELECT 1 FROM pg_indexes WHERE tablename = 'compliance_knowledge'
-        AND indexname LIKE '%embedding%' AND indexdef LIKE '%hnsw%'
-      `);
-      if (!idxCheck.rows || idxCheck.rows.length === 0) {
-        await dbVec.execute(sqlVec`
-          CREATE INDEX idx_compliance_knowledge_embedding_hnsw
-          ON compliance_knowledge USING hnsw (embedding vector_cosine_ops)
-        `);
-        console.log('[pgvector] Created HNSW index on compliance_knowledge.embedding');
-      }
-    }
+    console.log('[pgvector] Extension enabled');
   } catch (vecErr) {
-    console.error('[pgvector] Vector index setup (non-fatal):', vecErr);
+    console.error('[pgvector] Extension setup (non-fatal):', vecErr);
   }
 
   };
