@@ -107,6 +107,7 @@ export const DASHBOARD_PERMISSION_KEYS = [
   { key: "notifications", label: "Notifications", path: "/manager/notifications" },
   { key: "referrals", label: "Referrals", path: "/manager/referrals" },
   { key: "ai-insights", label: "AI Insights", path: "/manager/ai-insights" },
+  { key: "compliance-copilot", label: "Compliance Copilot", path: "/manager/compliance-copilot" },
   { key: "audit-log", label: "Audit Log", path: "/manager/audit-log" },
   { key: "settings", label: "Settings", path: "/manager/settings", adminOnly: true },
 ] as const;

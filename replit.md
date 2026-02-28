@@ -37,6 +37,7 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - `financialRoutes.ts`: Timesheets, pay rates, wage calculations, CSV exports
 - `settingsRoutes.ts`: 2FA/TOTP, company feature settings, Google Drive, logo upload
 - `coreRoutes.ts`: Audit logs, documents, driver messages, PDF report generation, Titan Command notifications, report endpoints
+- `complianceCopilotRoutes.ts`: POST /api/compliance/query — RAG-powered DVSA compliance Q&A (vector search + GPT-4o)
 - Plus existing: `vehicleManagementRoutes.ts`, `fuelIntelligenceRoutes.ts`, `apiHealthRoutes.ts`, `driverRoutes.ts`, `authRoutes.ts`, `adminRoutes.ts`, `dashboardRoutes.ts`, `fleetDocumentsRoutes.ts`, `notificationPreferencesRoutes.ts`, `userRolesRoutes.ts`
 
 **Design Principles:**

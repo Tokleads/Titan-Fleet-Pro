@@ -19,6 +19,7 @@ import { registerOperationsRoutes } from "./operationsRoutes";
 import { registerFinancialRoutes } from "./financialRoutes";
 import { registerSettingsRoutes } from "./settingsRoutes";
 import { registerCoreRoutes } from "./coreRoutes";
+import { registerComplianceCopilotRoutes } from "./complianceCopilotRoutes";
 import driverRoutes from "./driverRoutes";
 import authRoutes from "./authRoutes";
 import { ObjectStorageService } from "./objectStorage";
@@ -267,6 +268,7 @@ export async function registerRoutes(
   registerFinancialRoutes(app);
   registerSettingsRoutes(app);
   registerCoreRoutes(app);
+  registerComplianceCopilotRoutes(app);
   
   // Driver management routes
   app.use("/api/drivers", driverRoutes);

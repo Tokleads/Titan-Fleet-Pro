@@ -30,7 +30,8 @@ import {
   CarFront,
   ScrollText,
   Brain,
-  Smartphone
+  Smartphone,
+  ShieldCheck
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -51,6 +52,7 @@ const navItems = [
   { path: "/manager/deliveries", icon: Package, label: "Deliveries", permissionKey: "deliveries" },
   { path: "/manager/defects", icon: AlertTriangle, label: "Defects", permissionKey: "defects" },
   { path: "/manager/ai-insights", icon: Brain, label: "AI Insights", permissionKey: "ai-insights" },
+  { path: "/manager/compliance-copilot", icon: ShieldCheck, label: "Compliance Copilot", permissionKey: "compliance-copilot" },
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log", permissionKey: "fuel-log" },
   { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence", permissionKey: "o-licence" },
   { path: "/manager/fleet", icon: Truck, label: "Fleet", permissionKey: "fleet" },
