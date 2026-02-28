@@ -2,6 +2,7 @@ import { openai } from "./replit_integrations/image/client";
 import { db } from "./db";
 import { defects } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { getComplianceContext } from "./complianceSearchService";
 
 export interface AITriageResult {
   severity: string;
@@ -75,12 +76,17 @@ function parseAIResponse(content: string): AITriageResult {
   return { severity, category, confidence, analysis };
 }
 
-export async function analyzeDefectPhoto(imageUrl: string, description: string): Promise<AITriageResult> {
+export async function analyzeDefectPhoto(imageUrl: string, description: string, complianceContext?: string): Promise<AITriageResult> {
   try {
+    let systemPrompt = SYSTEM_PROMPT;
+    if (complianceContext) {
+      systemPrompt += `\n\nDVSA Guide to Roadworthiness — Relevant Sections:\n${complianceContext}\n\nYou MUST reference the above DVSA guidance in your analysis to ensure legal grounding. Cite specific section references where applicable.`;
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: [
@@ -116,12 +122,17 @@ export async function analyzeDefectPhoto(imageUrl: string, description: string):
   }
 }
 
-export async function triageDefectTextOnly(description: string): Promise<AITriageResult> {
+export async function triageDefectTextOnly(description: string, complianceContext?: string): Promise<AITriageResult> {
   try {
+    let systemPrompt = TEXT_ONLY_SYSTEM_PROMPT;
+    if (complianceContext) {
+      systemPrompt += `\n\nDVSA Guide to Roadworthiness — Relevant Sections:\n${complianceContext}\n\nYou MUST reference the above DVSA guidance in your analysis to ensure legal grounding. Cite specific section references where applicable.`;
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: TEXT_ONLY_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: `Categorise this vehicle defect based on the following description: "${description}". Provide your assessment as JSON.`
@@ -173,15 +184,25 @@ export async function triageDefect(defectId: number, baseUrl?: string): Promise<
       return;
     }
 
+    let complianceContext = "";
+    try {
+      complianceContext = await getComplianceContext(defect.description);
+      if (complianceContext) {
+        console.log(`[AI Triage] Retrieved DVSA compliance context for defect ${defectId}`);
+      }
+    } catch (ragError) {
+      console.warn(`[AI Triage] RAG lookup failed for defect ${defectId}, proceeding without context:`, ragError);
+    }
+
     let result: AITriageResult;
 
     const fullPhotoUrl = defect.photo ? getPublicPhotoUrl(defect.photo, baseUrl) : null;
     if (fullPhotoUrl) {
       console.log(`[AI Triage] Analyzing defect ${defectId} with photo: ${fullPhotoUrl}`);
-      result = await analyzeDefectPhoto(fullPhotoUrl, defect.description);
+      result = await analyzeDefectPhoto(fullPhotoUrl, defect.description, complianceContext || undefined);
     } else {
       console.log(`[AI Triage] Analyzing defect ${defectId} text-only: "${defect.description}"`);
-      result = await triageDefectTextOnly(defect.description);
+      result = await triageDefectTextOnly(defect.description, complianceContext || undefined);
     }
 
     await db.update(defects).set({

@@ -1370,3 +1370,19 @@ export const apiHealthFixes = pgTable("api_health_fixes", {
 export const insertApiHealthFixSchema = createInsertSchema(apiHealthFixes).omit({ id: true, createdAt: true });
 export type ApiHealthFix = typeof apiHealthFixes.$inferSelect;
 export type InsertApiHealthFix = z.infer<typeof insertApiHealthFixSchema>;
+
+export const complianceKnowledge = pgTable("compliance_knowledge", {
+  id: serial("id").primaryKey(),
+  sectionTitle: text("section_title").notNull(),
+  complianceReference: varchar("compliance_reference", { length: 100 }),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 100 }),
+  sourceFile: varchar("source_file", { length: 255 }),
+  embedding: text("embedding"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertComplianceKnowledgeSchema = createInsertSchema(complianceKnowledge).omit({ id: true, createdAt: true, updatedAt: true });
+export type ComplianceKnowledge = typeof complianceKnowledge.$inferSelect;
+export type InsertComplianceKnowledge = z.infer<typeof insertComplianceKnowledgeSchema>;

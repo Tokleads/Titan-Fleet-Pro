@@ -62,6 +62,7 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **VIN Auto-Populate**: DVSA lookup auto-fills VIN, make, and model when adding vehicles by registration.
 - **End-of-Shift Inspections**: Visible in manager Inspections tab via dedicated "End of Shift Checks" sub-tab.
 - **Titan Command Message History**: Sent message history with recipient, priority, and read status displayed below compose form.
+- **RAG Compliance Pipeline**: pgvector-powered Retrieval-Augmented Generation using DVSA Guide to Roadworthiness. `complianceSearchService.ts` generates embeddings via `text-embedding-3-small`, performs cosine similarity search on `compliance_knowledge` table (1536-dim vectors, HNSW index). AI triage in `aiTriageService.ts` retrieves top-3 relevant DVSA sections before GPT-4o analysis to ensure legally grounded defect classification. Seed script: `npx tsx scripts/seed-compliance-knowledge.ts ./data/dvsa`.
 - **Environmental Variables**: Secure management of API keys and database connections.
 
 **UI/UX Decisions:**
