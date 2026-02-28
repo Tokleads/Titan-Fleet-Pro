@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.TitanFleetOpenai,
 });
 
 interface ComplianceChunk {
@@ -111,8 +111,9 @@ async function seedComplianceKnowledge() {
   console.log(`Successfully embedded: ${totalEmbedded}`);
   console.log(`Failed: ${totalFailed}`);
 
-  const [countResult] = await db.execute(sql`SELECT COUNT(*) as count FROM compliance_knowledge`);
-  console.log(`Total rows in compliance_knowledge: ${(countResult as any).count}`);
+  const countResult = await db.execute(sql`SELECT COUNT(*) as count FROM compliance_knowledge`);
+  const rows = countResult.rows as any[];
+  console.log(`Total rows in compliance_knowledge: ${rows[0]?.count ?? 'unknown'}`);
 
   await pool.end();
 }
