@@ -253,7 +253,7 @@ export default function TitanFleetLandingPage() {
               <motion.p
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
-                className="text-sm font-medium text-[#5B6CFF] mb-4"
+                className="text-xs sm:text-sm font-medium text-[#5B6CFF] mb-3 sm:mb-4"
               >
                 Built by a Class 1 Driver. Live on 100+ UK trucks. DVSA-ready today.
               </motion.p>
@@ -261,7 +261,7 @@ export default function TitanFleetLandingPage() {
               <motion.h1
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: 0.05 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6"
+                className="text-2xl sm:text-4xl lg:text-6xl font-bold text-slate-900 leading-tight mb-4 sm:mb-6"
               >
                 UK Operators Save 14+ Hours/Week{" "}
                 <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">on Fleet Admin</span>
@@ -270,7 +270,7 @@ export default function TitanFleetLandingPage() {
               <motion.p
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-lg text-slate-600 mb-8 max-w-lg"
+                className="text-sm sm:text-base lg:text-lg text-slate-600 mb-6 sm:mb-8 max-w-lg"
               >
                 GPS tracking, DVSA-ready walkaround checks, driver timesheets, wage calculations, defect management, fuel logging, proof of delivery, geofencing, and AI-powered compliance — all in one platform. Live on 100+ UK trucks.
               </motion.p>
