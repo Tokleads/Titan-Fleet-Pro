@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc } from "drizzle-orm";
-import { documents, notifications, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
+import { documents, notifications, users, insertDocumentSchema, insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 
 function sanitizeInput(input: string): string {

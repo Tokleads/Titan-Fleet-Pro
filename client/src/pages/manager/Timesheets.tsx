@@ -108,7 +108,8 @@ export default function Timesheets() {
       });
       const res = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch timesheets");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -118,7 +119,8 @@ export default function Timesheets() {
     queryFn: async () => {
       const res = await fetch(`/api/timesheets/pending-adjustments/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch pending adjustments");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && isAdmin,
   });
@@ -128,8 +130,8 @@ export default function Timesheets() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch drivers");
-      const users = await res.json();
-      return users.filter((u: Driver) => u.role === "DRIVER");
+      const data = await res.json();
+      return Array.isArray(data) ? data.filter((u: Driver) => u.role === "DRIVER") : [];
     },
     enabled: !!companyId,
   });
@@ -139,7 +141,8 @@ export default function Timesheets() {
     queryFn: async () => {
       const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch depots");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -154,7 +157,8 @@ export default function Timesheets() {
       });
       const res = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch driver timesheets");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && !!selectedDriverId,
   });
