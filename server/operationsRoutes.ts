@@ -149,7 +149,7 @@ export function registerOperationsRoutes(app: Express) {
   // Submit driver location (5-minute ping from mobile app)
   app.post("/api/driver/location", async (req, res) => {
     try {
-      const locationSchema = z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().optional(), heading: z.number().optional().nullable(), accuracy: z.number().optional().nullable() });
+      const locationSchema = z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().nullable().optional(), heading: z.number().nullable().optional(), accuracy: z.number().nullable().optional() });
       const validation = locationSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
@@ -192,7 +192,7 @@ export function registerOperationsRoutes(app: Express) {
   // Batch submit driver locations (offline queue processing)
   app.post("/api/driver/location/batch", async (req, res) => {
     try {
-      const batchLocationSchema = z.object({ locations: z.array(z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().optional(), heading: z.number().optional().nullable(), accuracy: z.number().optional().nullable(), timestamp: z.string() })) });
+      const batchLocationSchema = z.object({ locations: z.array(z.object({ driverId: z.number(), companyId: z.number(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), speed: z.number().nullable().optional(), heading: z.number().nullable().optional(), accuracy: z.number().nullable().optional(), timestamp: z.union([z.string(), z.number()]) })) });
       const validation = batchLocationSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
@@ -211,7 +211,7 @@ export function registerOperationsRoutes(app: Express) {
             speed: Math.round(Number(loc.speed) || 0),
             heading: loc.heading != null ? Math.round(Number(loc.heading)) : undefined,
             accuracy: loc.accuracy != null ? Math.round(Number(loc.accuracy)) : undefined,
-            timestamp: new Date(loc.timestamp)
+            timestamp: new Date(typeof loc.timestamp === 'number' ? loc.timestamp : loc.timestamp)
           });
           results.push({ success: true, location });
         } catch (error) {
