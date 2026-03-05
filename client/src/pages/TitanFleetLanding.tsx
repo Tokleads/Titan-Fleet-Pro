@@ -134,10 +134,6 @@ export default function TitanFleetLandingPage() {
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-slate-900">Titan</span>
               <span className="text-xl text-slate-500">Fleet</span>
-              <span className="hidden sm:inline-flex items-center gap-1 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded ml-2 shadow-sm border border-slate-600/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Early Access
-              </span>
             </div>
 
             <nav className="hidden md:flex items-center gap-8">
@@ -259,7 +255,7 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5 }}
                 className="text-sm font-medium text-[#5B6CFF] mb-4"
               >
-                Built by a Class 1 Driver. Trusted by UK Operators.
+                Built by a Class 1 Driver. Live on 100+ UK trucks. DVSA-ready today.
               </motion.p>
 
               <motion.h1
@@ -281,20 +277,34 @@ export default function TitanFleetLandingPage() {
 
               <motion.div
                 variants={fadeUp}
+                transition={{ duration: 0.5, delay: 0.15 }}
+                className="mb-6 flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200"
+              >
+                <span className="text-amber-400 text-sm shrink-0">★★★★★</span>
+                <p className="text-sm text-slate-600 italic leading-snug">
+                  "TitanFleet saves us around 8 hours per week. Finally, software that works."
+                  <span className="not-italic font-medium text-slate-800"> — Thomas, Abtso Ltd (45 trucks)</span>
+                </p>
+              </motion.div>
+
+              <motion.div
+                variants={fadeUp}
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="flex flex-col sm:flex-row gap-4"
               >
-                <button
-                  onClick={scrollToPricing}
-                  className="inline-flex items-center justify-center h-14 px-8 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors text-center leading-tight"
-                  data-testid="button-view-pricing"
-                >
-                  <span className="flex flex-col">
-                    <span>Start 14-Day Free Trial</span>
-                    <span className="text-xs font-normal opacity-90">Founding Rate: £29.50/mo</span>
-                  </span>
-                </button>
-                <p className="text-sm text-slate-400 mt-1 text-center sm:text-left">No credit card required</p>
+                <div className="flex flex-col">
+                  <button
+                    onClick={scrollToPricing}
+                    className="inline-flex items-center justify-center h-14 px-8 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors text-center leading-tight"
+                    data-testid="button-view-pricing"
+                  >
+                    <span className="flex flex-col">
+                      <span>Start 14-Day Free Trial &rarr;</span>
+                      <span className="text-xs font-normal opacity-90">Founding Rate: £29.50/mo</span>
+                    </span>
+                  </button>
+                  <p className="text-xs text-amber-500 font-semibold mt-2 text-center">🔥 7/10 spots remaining</p>
+                </div>
                 <a
                   href="/demo"
                   className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
@@ -315,11 +325,11 @@ export default function TitanFleetLandingPage() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>Cancel anytime</span>
+                  <span>No card required</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>Beta-tested on 100+ trucks</span>
+                  <span>30-day money-back guarantee</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -337,6 +347,12 @@ export default function TitanFleetLandingPage() {
                   className="w-full h-auto drop-shadow-2xl"
                   data-testid="hero-phone-mockup"
                 />
+                <div className="absolute top-6 -left-2 sm:top-8 sm:-left-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-slate-200">
+                  <p className="text-xs font-bold text-slate-900">8 hrs/week saved</p>
+                </div>
+                <div className="absolute bottom-16 -right-2 sm:bottom-20 sm:-right-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-emerald-200">
+                  <p className="text-xs font-bold text-emerald-600">DVSA Compliant ✓</p>
+                </div>
               </div>
             </motion.div>
           </div>
