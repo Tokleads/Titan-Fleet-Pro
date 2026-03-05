@@ -294,10 +294,10 @@ export default function TitanFleetLandingPage() {
               <motion.div
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: 0.15 }}
-                className="mb-6 flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200"
+                className="mb-4 sm:mb-6 flex items-start gap-2 sm:gap-3 bg-slate-50 rounded-lg sm:rounded-xl px-3 py-2 sm:px-4 sm:py-3 border border-slate-200"
               >
-                <span className="text-amber-400 text-sm shrink-0">★★★★★</span>
-                <p className="text-sm text-slate-600 italic leading-snug">
+                <span className="text-[#00b67a] text-xs sm:text-sm shrink-0">★★★★★</span>
+                <p className="text-xs sm:text-sm text-slate-600 italic leading-snug">
                   "TitanFleet saves us around 14 hours per week. Finally, software that works."
                   <span className="not-italic font-medium text-slate-800"> — Thomas, Abtso Ltd (45 trucks)</span>
                 </p>
