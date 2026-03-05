@@ -105,8 +105,9 @@ export default function TitanFleetLandingPage() {
           data-testid="banner-founding-partner"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
-            <span className="text-xs sm:text-sm font-medium tracking-wide">
-              Founding Partner Offer — First 10 operators get <span className="text-emerald-400 font-bold">50% off</span> lifetime pricing
+            <span className="flex flex-col leading-tight">
+              <span className="text-xs sm:text-sm font-bold tracking-wide">Founding Partner Offer</span>
+              <span className="text-[10px] sm:text-xs font-normal text-slate-300">First 10 operators get <span className="text-emerald-400 font-bold">50% off</span> lifetime pricing</span>
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); setShowAnnouncementBar(false); }}
