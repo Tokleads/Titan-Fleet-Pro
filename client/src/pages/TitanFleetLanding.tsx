@@ -267,13 +267,29 @@ export default function TitanFleetLandingPage() {
                 <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">on Fleet Admin</span>
               </motion.h1>
 
-              <motion.p
+              <motion.div
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-sm sm:text-base lg:text-lg text-slate-600 mb-6 sm:mb-8 max-w-lg"
+                className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-6 sm:mb-8 max-w-lg"
               >
-                GPS tracking, DVSA-ready walkaround checks, driver timesheets, wage calculations, defect management, fuel logging, proof of delivery, geofencing, and AI-powered compliance — all in one platform. Live on 100+ UK trucks.
-              </motion.p>
+                {[
+                  "GPS Tracking",
+                  "DVSA Walkaround Checks",
+                  "Driver Timesheets",
+                  "Wage Calculations",
+                  "Defect Management",
+                  "Fuel Logging",
+                  "Proof of Delivery",
+                  "Geofencing",
+                  "AI Compliance",
+                  "Live on 100+ UK Trucks",
+                ].map((feature) => (
+                  <div key={feature} className="flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-xs sm:text-sm text-slate-600">{feature}</span>
+                  </div>
+                ))}
+              </motion.div>
 
               <motion.div
                 variants={fadeUp}
