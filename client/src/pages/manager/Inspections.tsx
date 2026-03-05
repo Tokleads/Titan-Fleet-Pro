@@ -84,7 +84,8 @@ export default function ManagerInspections() {
     queryFn: async () => {
       const res = await fetch(`/api/shift-checks/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch shift checks");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && inspectionTab === "endOfShift",
   });
@@ -128,7 +129,8 @@ export default function ManagerInspections() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
