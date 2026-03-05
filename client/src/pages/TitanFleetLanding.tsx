@@ -8,6 +8,9 @@ import {
   Facebook,
   Menu,
   X,
+  Truck,
+  Quote,
+  Mail,
 } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
 
@@ -30,6 +33,7 @@ export default function TitanFleetLandingPage() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAnnouncementBar, setShowAnnouncementBar] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -85,12 +89,36 @@ export default function TitanFleetLandingPage() {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const hasTopBanner = referrerName || showAnnouncementBar;
+  const topBannerHeight = referrerName ? "top-[72px]" : showAnnouncementBar ? "top-[44px]" : "top-0";
+
   if (redirecting) {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-white">
+      {showAnnouncementBar && !referrerName && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-slate-900 text-center py-2.5 px-4 cursor-pointer"
+          onClick={scrollToPricing}
+          data-testid="banner-founding-partner"
+        >
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
+            <span className="text-sm sm:text-base font-bold">
+              🚨 Founding Partner Offer: First 10 operators get 50% off lifetime pricing
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAnnouncementBar(false); }}
+              className="absolute right-0 p-1 hover:bg-amber-500/30 rounded transition-colors"
+              aria-label="Close announcement"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {referrerName && (
         <div
           className="fixed top-0 left-0 right-0 z-[60] bg-[#5B6CFF] text-white text-center py-2 text-sm font-medium"
@@ -99,8 +127,8 @@ export default function TitanFleetLandingPage() {
           Referred by {referrerName} — your free trial awaits!
         </div>
       )}
-      {/* Header */}
-      <header className={`fixed ${referrerName ? "top-9" : "top-0"} left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100`}>
+
+      <header className={`fixed ${hasTopBanner ? topBannerHeight : "top-0"} left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
@@ -218,7 +246,7 @@ export default function TitanFleetLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 lg:pb-28 bg-gradient-to-b from-white to-slate-50">
+      <section className={`${hasTopBanner ? "pt-36" : "pt-32"} pb-20 lg:pb-28 bg-gradient-to-b from-white to-slate-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div
@@ -239,8 +267,8 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5, delay: 0.05 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6"
               >
-                GPS. Compliance. Timesheets. POD.{" "}
-                <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">One Platform.</span>
+                UK Operators Save 8+ Hours/Week{" "}
+                <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">on Fleet Admin</span>
               </motion.h1>
 
               <motion.p
@@ -248,7 +276,7 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="text-lg text-slate-600 mb-8 max-w-lg"
               >
-                Stop juggling separate apps for tracking, walk-around checks, driver hours, and proof of delivery. Titan Fleet replaces them all — from £59/month.
+                GPS tracking, DVSA-ready compliance, and driver timesheets — all in one platform. Currently tested on 100+ trucks across the UK.
               </motion.p>
 
               <motion.div
@@ -258,17 +286,40 @@ export default function TitanFleetLandingPage() {
               >
                 <button
                   onClick={scrollToPricing}
-                  className="inline-flex items-center justify-center h-14 px-8 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors"
+                  className="inline-flex items-center justify-center h-14 px-8 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors text-center leading-tight"
                   data-testid="button-view-pricing"
                 >
-                  View Pricing Plans
+                  <span className="flex flex-col">
+                    <span>Start 14-Day Free Trial</span>
+                    <span className="text-xs font-normal opacity-90">Founding Rate: £29.50/mo</span>
+                  </span>
                 </button>
                 <a
-                  href="#features"
+                  href="/demo"
                   className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
+                  data-testid="button-watch-demo"
                 >
-                  See how it works
+                  Watch 90-Second Demo
                 </a>
+              </motion.div>
+
+              <motion.div
+                variants={fadeUp}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-3 sm:gap-6 mt-6"
+              >
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>No setup fee (save £300+)</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Cancel anytime</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Beta-tested on 100+ trucks</span>
+                </div>
               </motion.div>
             </motion.div>
 
@@ -291,31 +342,66 @@ export default function TitanFleetLandingPage() {
         </div>
       </section>
 
-      {/* Trust Bar */}
-      <section className="bg-white py-6 border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Social Proof — Trusted by UK Operators */}
+      <section className="py-12 lg:py-16 bg-white border-y border-slate-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true }}
-            className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-12 text-center"
+            variants={staggerContainer}
           >
-            <div className="flex items-center gap-2 text-slate-700">
-              <Check className="h-5 w-5 text-[#5B6CFF]" />
-              <span className="font-medium">Built by a Class 1 Driver</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-700">
-              <Check className="h-5 w-5 text-[#5B6CFF]" />
-              <span className="font-medium">DVSA-Aligned Framework</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-700">
-              <Check className="h-5 w-5 text-[#5B6CFF]" />
-              <span className="font-medium">From £59/month — No Setup Fee</span>
-            </div>
+            <motion.h2
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-10"
+            >
+              Trusted by UK Operators
+            </motion.h2>
+
+            <motion.div
+              variants={fadeUp}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="bg-slate-50 rounded-2xl p-8 sm:p-10 border border-slate-200 relative"
+              data-testid="testimonial-card"
+            >
+              <Quote className="h-10 w-10 text-[#5B6CFF]/20 absolute top-6 left-6" />
+              <div className="relative">
+                <p className="text-lg sm:text-xl text-slate-700 italic leading-relaxed mb-6 pl-6 sm:pl-8">
+                  "TitanFleet saves us around 8 hours per week on compliance tracking. It's the first software that actually makes sense for our drivers."
+                </p>
+                <div className="flex items-center gap-4 pl-6 sm:pl-8">
+                  <div className="h-14 w-14 rounded-full bg-[#5B6CFF]/10 flex items-center justify-center shrink-0">
+                    <Truck className="h-7 w-7 text-[#5B6CFF]" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900">Thomas</p>
+                    <p className="text-sm text-slate-600">Abtso Ltd</p>
+                    <p className="text-xs text-slate-500">Fleet Manager (45 Trucks)</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={fadeUp}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-12 text-center mt-10"
+            >
+              <div className="flex items-center gap-2 text-slate-700">
+                <Check className="h-5 w-5 text-[#5B6CFF]" />
+                <span className="font-medium">Built by a Class 1 Driver</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700">
+                <Check className="h-5 w-5 text-[#5B6CFF]" />
+                <span className="font-medium">DVSA-Aligned Framework</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700">
+                <Check className="h-5 w-5 text-[#5B6CFF]" />
+                <span className="font-medium">100+ Trucks in Beta</span>
+              </div>
+            </motion.div>
           </motion.div>
-          <p className="text-center text-sm text-slate-500 mt-4">
-            Designed on the road, not in a boardroom. Every feature tested in real cabs.
-          </p>
         </div>
       </section>
 
@@ -430,25 +516,25 @@ export default function TitanFleetLandingPage() {
                 title: "Live GPS Tracking",
                 subtitle: "Real-Time Fleet Visibility",
                 description: "Track every vehicle in real-time with 5-minute telemetry updates. 30-minute stagnation alerts flag stationary vehicles automatically. Full route history and live map view.",
-                icon: "📡",
+                icon: "\u{1F4E1}",
               },
               {
                 title: "Automated Timesheets",
                 subtitle: "Geofence Clock In/Out",
                 description: "Drivers clock in and out automatically when entering or leaving your depots. Generate payroll-ready CSV exports with hours, overtime, and mileage. No more paper timesheets.",
-                icon: "⏱️",
+                icon: "\u23F1\uFE0F",
               },
               {
                 title: "Proof of Delivery",
                 subtitle: "Digital Signatures & Photos",
                 description: "Capture customer signatures, photos, and GPS coordinates at every drop. Generate professional POD PDFs instantly. Bulk status updates and full delivery audit trail.",
-                icon: "📦",
+                icon: "\u{1F4E6}",
               },
               {
                 title: "DVSA-Ready Compliance",
                 subtitle: "Inspections, Defects & Automation",
                 description: "Digital walk-around checks with timed inspections, photo defect reporting, and auto-VOR. MOT, tax, and service alerts run automatically. Compliance scores grade your fleet A to F.",
-                icon: "✅",
+                icon: "\u2705",
               },
             ].map((feature, index) => (
               <motion.div
@@ -537,19 +623,19 @@ export default function TitanFleetLandingPage() {
           >
             {[
               {
-                icon: "🔍",
+                icon: "\u{1F50D}",
                 title: "Auto-Triage Defects",
                 description: "Instantly recognises safety-critical issues from driver photos. A cracked windscreen or bald tyre gets escalated before your morning coffee — not buried in a spreadsheet.",
                 tag: "Real-Time",
               },
               {
-                icon: "⚡",
+                icon: "\u26A1",
                 title: "Predictive Maintenance",
                 description: "Flags patterns that lead to breakdowns before the VOR light hits the dash. Recurring defects, overdue services, and mileage trends are surfaced automatically.",
                 tag: "Proactive",
               },
               {
-                icon: "🛡️",
+                icon: "\u{1F6E1}\uFE0F",
                 title: "Active Compliance",
                 description: "It doesn't just record data — it hunts for gaps in your audit trail so you don't have to. Missing inspections, expiring MOTs, and unsigned checks are caught before DVSA asks.",
                 tag: "Always-On",
@@ -714,8 +800,8 @@ export default function TitanFleetLandingPage() {
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl p-8 sm:p-10 shadow-lg border border-slate-200"
           >
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="shrink-0">
+            <div className="flex flex-col sm:flex-row items-start gap-6">
+              <div className="shrink-0 self-center sm:self-start">
                 <img 
                   src="/images/founder-headshot.png" 
                   alt="Jon - Founder" 
@@ -724,20 +810,30 @@ export default function TitanFleetLandingPage() {
                 />
               </div>
               <div className="text-center sm:text-left">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">
                   Questions? Talk to the Founder.
                 </h3>
-                <p className="text-slate-600 mb-4">
-                  Jon is a Class 1 Driver who built this. No bots, just direct help.
+                <p className="text-slate-600 mb-5 leading-relaxed">
+                  Hi, I'm Jon. I spent 6 months driving HGV Class 1 and got frustrated by fleet software that felt like it was built for offices, not cabs. So I built TitanFleet — simple, practical, and designed around how operators actually work. I'm still learning, still iterating, and I read every piece of feedback. If you have questions, you're talking to me.
                 </p>
-                <a
-                  href="tel:07496188541"
-                  className="inline-flex items-center gap-2 h-12 px-6 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors"
-                  data-testid="button-call-jon"
-                >
-                  <Phone className="h-5 w-5" />
-                  Call Jon
-                </a>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="tel:07496188541"
+                    className="inline-flex items-center justify-center gap-2 h-12 px-6 bg-[#5B6CFF] hover:bg-[#4A5AE8] text-white font-semibold rounded-xl transition-colors"
+                    data-testid="button-call-jon"
+                  >
+                    <Phone className="h-5 w-5" />
+                    Call Jon
+                  </a>
+                  <a
+                    href="mailto:jon@titanfleet.co.uk"
+                    className="inline-flex items-center justify-center gap-2 h-12 px-6 bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold rounded-xl transition-colors"
+                    data-testid="button-book-call"
+                  >
+                    <Mail className="h-5 w-5" />
+                    Book a 10-min Call with Jon
+                  </a>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -804,6 +900,7 @@ export default function TitanFleetLandingPage() {
                 <h4 className="text-sm font-semibold text-white mb-3">Contact</h4>
                 <ul className="space-y-2">
                   <li><a href="mailto:support@titanfleet.co.uk" className="text-xs sm:text-sm hover:text-white transition-colors break-all">support@<br className="sm:hidden" />titanfleet.co.uk</a></li>
+                  <li><a href="tel:07496188541" className="text-xs sm:text-sm hover:text-white transition-colors">07496 188 541</a></li>
                 </ul>
               </div>
             </div>

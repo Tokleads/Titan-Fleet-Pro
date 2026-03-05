@@ -1,0 +1,67 @@
+# Role: Senior Frontend Developer & Conversion Rate Optimization Specialist
+
+# Objective
+Update the TitanFleet website (www.titanfleet.co.uk) to improve conversions, add social proof, and implement a "Founding Partner" offer. The goal is to drive immediate sign-ups from UK fleet operators.
+
+# Context & Assets
+- Product: TitanFleet (UK Fleet Management SaaS: GPS, Compliance, Timesheets, POD).
+- Founder Background: 6 months recent HGV Class 1 driving experience (fresh perspective, not disconnected).
+- Social Proof: Currently in beta testing with 100+ trucks (via partner fleet).
+- Key Testimonial: Thomas from Abtso Ltd (45 trucks) saves 8 hours per week.
+- Offer: Founding Partner Rate = £29.50/month (50% off standard £59), first 10 operators only.
+
+# Task List
+Please analyze the current codebase (identify framework, styling, component structure) and implement the following changes:
+
+## 1. Hero Section Updates
+- **Headline:** Change to: "UK Operators Save 8+ Hours/Week on Fleet Admin"
+- **Subheadline:** Change to: "GPS tracking, DVSA-ready compliance, and driver timesheets — all in one platform. Currently tested on 100+ trucks across the UK."
+- **Primary CTA Button:** Change text to: "Start 14-Day Free Trial → Founding Rate: £29.50/mo"
+- **Secondary CTA:** Add a text link or secondary button: "Watch 90-Second Demo"
+- **Trust Badges:** Add a row of 3 badges below the CTA:
+  1. "✓ No setup fee (save £300+)"
+  2. "✓ Cancel anytime"
+  3. "✓ Beta-tested on 100+ trucks"
+
+## 2. Add Top Announcement Bar
+- Add a sticky banner at the very top of the page.
+- **Text:** "🚨 Founding Partner Offer: First 10 operators get 50% off lifetime pricing"
+- **Style:** High contrast (e.g., yellow background with black text or red background with white text) to grab attention.
+- **Link:** Anchor scroll to Pricing section.
+
+## 3. New Social Proof Section (Insert below Hero)
+- Create a new section titled "Trusted by UK Operators".
+- Add a testimonial card with the following content:
+  - **Quote:** "TitanFleet saves us around 8 hours per week on compliance tracking. It's the first software that actually makes sense for our drivers."
+  - **Name:** Thomas
+  - **Company:** Abtso Ltd
+  - **Detail:** "Fleet Manager (45 Trucks)"
+  - **Visual:** If possible, add a generic truck icon or placeholder avatar if no photo is available.
+
+## 4. Founder Section Update
+- Locate the "About Founder" or "Built by" section.
+- **Update Copy to:** 
+  "Hi, I'm [Insert Founder Name]. I spent 6 months driving HGV Class 1 and got frustrated by fleet software that felt like it was built for offices, not cabs. So I built TitanFleet — simple, practical, and designed around how operators actually work. I'm still learning, still iterating, and I read every piece of feedback. If you have questions, you're talking to me."
+- **Add Button:** "Book a 10-min Call with Jon" (Link to Calendly or mailto:jon@titanfleet.co.uk for now).
+
+## 5. Pricing Section Updates
+- **Highlight Founding Offer:** Visually distinguish the "Founding Partner" tier.
+- **Badge:** Add a "Most Popular" or "Limited Offer" badge to the £29.50 plan.
+- **Scarcity Text:** Add under the price: "🔥 First 10 operators only • [X]/10 spots remaining" (Hardcode "7/10" for now, I will update manually).
+- **Guarantee:** Add below pricing table: "🛡️ 30-Day 'Save Time or Refund' Guarantee. If TitanFleet doesn't simplify your workflow, I'll refund you personally. No questions."
+- **Annual Toggle:** Ensure there is a toggle for Monthly/Annual billing. If Annual is selected, show 20% discount.
+
+## 6. General UX/UI Improvements
+- **Mobile Responsiveness:** Ensure all new sections stack correctly on mobile devices (critical for operators on phones).
+- **Click-to-Call:** Ensure any phone numbers displayed are clickable links (<a href="tel:...">).
+- **Performance:** Ensure new images/icons are optimized for fast loading.
+- **Tone:** Use UK English spelling (e.g., "Centre", "Organise", "Colour").
+
+# Implementation Notes
+- Do not break existing functionality.
+- Keep the existing color scheme and branding consistent.
+- If using a component library (like Tailwind, Bootstrap, Material UI), adhere to its classes.
+- After making changes, please provide a summary checklist of what was updated so I can verify.
+
+# Begin
+Please start by analyzing the current homepage structure and then propose the file changes needed to implement the above.

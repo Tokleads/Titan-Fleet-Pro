@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Truck, MapPin } from "lucide-react";
+import { Check, Truck, MapPin, Shield, Flame } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 const fadeUp = {
@@ -22,10 +22,12 @@ interface PricingTier {
   annualPrice: number;
   maxVehicles: number;
   popular?: boolean;
+  foundingPrice?: number;
+  foundingAnnualPrice?: number;
 }
 
 const pricingTiers: PricingTier[] = [
-  { name: "Starter", price: 59, annualPrice: 47, maxVehicles: 10 },
+  { name: "Starter", price: 59, annualPrice: 47, maxVehicles: 10, foundingPrice: 29.50, foundingAnnualPrice: 23.50 },
   { name: "Growth", price: 129, annualPrice: 103, maxVehicles: 25, popular: true },
   { name: "Pro", price: 249, annualPrice: 199, maxVehicles: 50 },
   { name: "Scale", price: 399, annualPrice: 319, maxVehicles: 100 },
@@ -239,7 +241,7 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                   </div>
                   {overageVehicles > 0 && (
                     <p className="text-sm text-slate-400 mt-1">
-                      £59 base + £{(overageVehicles * 6).toFixed(2)} ({overageVehicles} extra vehicles × £6)
+                      £59 base + £{(overageVehicles * 6).toFixed(2)} ({overageVehicles} extra vehicles x £6)
                     </p>
                   )}
                 </div>
@@ -296,7 +298,12 @@ export default function PricingSection({ referralCode }: { referralCode?: string
           {pricingTiers.map((tier, index) => {
             const isHighlighted = tier.name === bestValueTier;
             const isPopular = tier.popular;
-            const displayPrice = isAnnual ? tier.annualPrice : tier.price;
+            const isStarter = tier.name === "Starter";
+            const hasFoundingPrice = tier.foundingPrice !== undefined;
+            const displayPrice = hasFoundingPrice
+              ? (isAnnual ? (tier.foundingAnnualPrice ?? tier.annualPrice) : tier.foundingPrice!)
+              : (isAnnual ? tier.annualPrice : tier.price);
+            const originalPrice = isAnnual ? tier.annualPrice : tier.price;
             const monthlySaving = tier.price - tier.annualPrice;
             return (
               <motion.div
@@ -304,42 +311,65 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className={`relative rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center transition-all duration-300 ${
-                  isPopular
-                    ? "bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-2xl shadow-[#22c55e]/30 scale-[1.05] ring-2 ring-[#22c55e]/50 z-10"
-                    : isHighlighted
-                      ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
-                      : "bg-slate-800 border border-slate-700"
+                  isStarter
+                    ? "bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500 shadow-2xl shadow-amber-500/30 scale-[1.05] ring-2 ring-amber-400/50 z-10"
+                    : isPopular
+                      ? "bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-2xl shadow-[#22c55e]/30 scale-[1.02] ring-2 ring-[#22c55e]/50"
+                      : isHighlighted
+                        ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
+                        : "bg-slate-800 border border-slate-700"
                 }`}
                 data-testid={`pricing-card-${tier.name.toLowerCase()}`}
               >
-                {isPopular && (
+                {isStarter && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-slate-900 text-amber-400 text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg border border-amber-400/30 whitespace-nowrap">
+                    Limited Offer
+                  </div>
+                )}
+                {isPopular && !isStarter && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-white text-[#0f172a] text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg">
                     Most Popular
                   </div>
                 )}
 
-                <h3 className={`text-lg font-bold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
+                <h3 className={`text-lg font-bold mb-1 ${isStarter ? "text-slate-900" : isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
                   {tier.name}
+                  {isStarter && <span className="block text-xs font-semibold text-slate-700 mt-0.5">Founding Partner</span>}
                 </h3>
-                <p className={`text-sm mb-4 ${isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}`}>
+                <p className={`text-sm mb-4 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}`}>
                   Up to {tier.maxVehicles} vehicles
                 </p>
 
                 <div className="mb-1">
-                  <span className={`text-4xl font-bold ${isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
-                    £{displayPrice}
+                  {hasFoundingPrice && (
+                    <span className={`text-lg line-through mr-2 ${isStarter ? "text-slate-600" : isHighlighted || isPopular ? "text-[#0f172a]/50" : "text-slate-500"}`}>
+                      £{originalPrice}
+                    </span>
+                  )}
+                  <span className={`text-4xl font-bold ${isStarter ? "text-slate-900" : isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
+                    £{displayPrice % 1 === 0 ? displayPrice : displayPrice.toFixed(2)}
                   </span>
-                  <span className={isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
+                  <span className={isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
                 </div>
-                <p className={`text-sm font-semibold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-slate-300"}`}>
+                <p className={`text-sm font-semibold mb-1 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-slate-300"}`}>
                   £{(displayPrice / tier.maxVehicles).toFixed(2)}/vehicle
                 </p>
                 {isAnnual && (
-                  <p className={`text-xs font-semibold mb-1 ${isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-[#22c55e]"}`}>
+                  <p className={`text-xs font-semibold mb-1 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-[#22c55e]"}`}>
                     Save £{monthlySaving}/mo (£{monthlySaving * 12}/yr)
                   </p>
                 )}
-                <p className={`text-xs mb-6 ${isHighlighted || isPopular ? "text-[#0f172a]/60" : "text-slate-500"}`}>
+
+                {isStarter && (
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Flame className="h-4 w-4 text-red-600" />
+                    <p className="text-xs font-bold text-slate-800">
+                      First 10 operators only · 7/10 spots remaining
+                    </p>
+                  </div>
+                )}
+
+                <p className={`text-xs mb-6 ${isStarter ? "text-slate-600" : isHighlighted || isPopular ? "text-[#0f172a]/60" : "text-slate-500"}`}>
                   {isAnnual ? "Billed annually" : "Billed monthly"} · Prices exclude VAT
                 </p>
 
@@ -348,15 +378,17 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                     onClick={() => handleCheckout(tier.name)}
                     disabled={checkoutLoading === tier.name}
                     className={`w-full h-12 font-semibold rounded-xl transition-all ${
-                      isPopular
-                        ? "bg-[#0f172a] text-white hover:bg-slate-800 shadow-lg"
-                        : isHighlighted
-                          ? "bg-[#0f172a] text-white hover:bg-slate-800"
-                          : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
+                      isStarter
+                        ? "bg-slate-900 text-amber-400 hover:bg-slate-800 shadow-lg"
+                        : isPopular
+                          ? "bg-[#0f172a] text-white hover:bg-slate-800 shadow-lg"
+                          : isHighlighted
+                            ? "bg-[#0f172a] text-white hover:bg-slate-800"
+                            : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                     data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
                   >
-                    {checkoutLoading === tier.name ? 'Loading...' : 'Start Free Trial'}
+                    {checkoutLoading === tier.name ? 'Loading...' : 'Start 14-Day Free Trial'}
                   </button>
                 </div>
               </motion.div>
@@ -375,10 +407,30 @@ export default function PricingSection({ referralCode }: { referralCode?: string
             data-testid="text-referral-applied"
           >
             <p className="text-[#22c55e] font-medium text-sm">
-              ✨ Referral code applied — you'll both earn rewards!
+              Referral code applied — you'll both earn rewards!
             </p>
           </motion.div>
         )}
+
+        {/* Guarantee */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          transition={{ duration: 0.5 }}
+          className="mt-10 mb-10"
+        >
+          <div className="bg-slate-800/60 rounded-2xl p-6 sm:p-8 border border-slate-700 text-center max-w-2xl mx-auto">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <Shield className="h-8 w-8 text-[#22c55e]" />
+              <h3 className="text-xl font-bold text-white">30-Day "Save Time or Refund" Guarantee</h3>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              If TitanFleet doesn't simplify your workflow, I'll refund you personally. No questions.
+            </p>
+          </div>
+        </motion.div>
 
         <motion.div
           initial="hidden"
@@ -386,7 +438,6 @@ export default function PricingSection({ referralCode }: { referralCode?: string
           viewport={{ once: true }}
           variants={fadeUp}
           transition={{ duration: 0.5 }}
-          className="mt-14"
         >
           <div className="bg-slate-800/50 rounded-2xl p-6 sm:p-10 border border-slate-700">
             <div className="text-center mb-8">
