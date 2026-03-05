@@ -263,7 +263,7 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5, delay: 0.05 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6"
               >
-                UK Operators Save 8+ Hours/Week{" "}
+                UK Operators Save 14+ Hours/Week{" "}
                 <span className="text-[#5B6CFF] underline decoration-[#5B6CFF] decoration-4 underline-offset-4">on Fleet Admin</span>
               </motion.h1>
 
@@ -282,7 +282,7 @@ export default function TitanFleetLandingPage() {
               >
                 <span className="text-amber-400 text-sm shrink-0">★★★★★</span>
                 <p className="text-sm text-slate-600 italic leading-snug">
-                  "TitanFleet saves us around 8 hours per week. Finally, software that works."
+                  "TitanFleet saves us around 14 hours per week. Finally, software that works."
                   <span className="not-italic font-medium text-slate-800"> — Thomas, Abtso Ltd (45 trucks)</span>
                 </p>
               </motion.div>
@@ -348,7 +348,7 @@ export default function TitanFleetLandingPage() {
                   data-testid="hero-phone-mockup"
                 />
                 <div className="absolute top-6 -left-2 sm:top-8 sm:-left-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-slate-200">
-                  <p className="text-xs font-bold text-slate-900">8 hrs/week saved</p>
+                  <p className="text-xs font-bold text-slate-900">14+ hrs/week saved</p>
                 </div>
                 <div className="absolute bottom-16 -right-2 sm:bottom-20 sm:-right-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-emerald-200">
                   <p className="text-xs font-bold text-emerald-600">DVSA Compliant ✓</p>
@@ -385,7 +385,7 @@ export default function TitanFleetLandingPage() {
               <Quote className="h-8 w-8 sm:h-10 sm:w-10 text-[#5B6CFF]/20 absolute top-4 left-4 sm:top-6 sm:left-6" />
               <div className="relative">
                 <p className="text-base sm:text-xl text-slate-700 italic leading-relaxed mb-4 sm:mb-6 pl-5 sm:pl-8">
-                  "As a business owner running a fleet, I needed something that worked for me and my drivers. TitanFleet saves us around 8 hours per week on compliance and my drivers actually use it without complaints — that's a first."
+                  "As a business owner running a fleet, I needed something that worked for me and my drivers. TitanFleet saves us around 14 hours per week on compliance and my drivers actually use it without complaints — that's a first."
                 </p>
                 <div className="flex items-center gap-3 sm:gap-4 pl-5 sm:pl-8">
                   <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-red-600 flex items-center justify-center shrink-0">
