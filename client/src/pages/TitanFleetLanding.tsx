@@ -376,7 +376,7 @@ export default function TitanFleetLandingPage() {
       </section>
 
       {/* Social Proof — Trusted by UK Operators */}
-      <section className="py-8 lg:py-16 bg-white border-y border-slate-100">
+      <section className="py-6 lg:py-16 bg-white border-y border-slate-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
@@ -387,7 +387,7 @@ export default function TitanFleetLandingPage() {
             <motion.h2
               variants={fadeUp}
               transition={{ duration: 0.5 }}
-              className="text-xl sm:text-3xl font-bold text-slate-900 text-center mb-6 sm:mb-10"
+              className="text-lg sm:text-3xl font-bold text-slate-900 text-center mb-4 sm:mb-10"
             >
               Trusted by UK Operators
             </motion.h2>
@@ -395,22 +395,22 @@ export default function TitanFleetLandingPage() {
             <motion.div
               variants={fadeUp}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-slate-50 rounded-2xl p-5 sm:p-10 border border-slate-200 relative"
+              className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-10 border border-slate-200 relative"
               data-testid="testimonial-card"
             >
-              <Quote className="h-8 w-8 sm:h-10 sm:w-10 text-[#5B6CFF]/20 absolute top-4 left-4 sm:top-6 sm:left-6" />
+              <Quote className="h-6 w-6 sm:h-10 sm:w-10 text-[#5B6CFF]/20 absolute top-3 left-3 sm:top-6 sm:left-6" />
               <div className="relative">
-                <p className="text-base sm:text-xl text-slate-700 italic leading-relaxed mb-4 sm:mb-6 pl-5 sm:pl-8">
+                <p className="text-sm sm:text-xl text-slate-700 italic leading-relaxed mb-3 sm:mb-6 pl-4 sm:pl-8">
                   "As a business owner running a fleet, I needed something that worked for me and my drivers. TitanFleet saves us around 14 hours per week on compliance and my drivers actually use it without complaints — that's a first."
                 </p>
-                <div className="flex items-center gap-3 sm:gap-4 pl-5 sm:pl-8">
-                  <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-red-600 flex items-center justify-center shrink-0">
-                    <span className="text-white font-bold text-lg sm:text-2xl">A</span>
+                <div className="flex items-center gap-2.5 sm:gap-4 pl-4 sm:pl-8">
+                  <div className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-red-600 flex items-center justify-center shrink-0">
+                    <span className="text-white font-bold text-sm sm:text-2xl">A</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm sm:text-base">Thomas</p>
-                    <p className="text-xs sm:text-sm text-slate-600">Abtso Ltd</p>
-                    <p className="text-xs text-slate-500">Owner-Operator (45 Trucks)</p>
+                    <p className="font-bold text-slate-900 text-xs sm:text-base">Thomas</p>
+                    <p className="text-[11px] sm:text-sm text-slate-600">Abtso Ltd</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500">Owner-Operator (45 Trucks)</p>
                   </div>
                 </div>
               </div>
