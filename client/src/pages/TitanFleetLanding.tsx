@@ -917,7 +917,7 @@ export default function TitanFleetLandingPage() {
                 <h4 className="text-sm font-semibold text-white mb-3">Contact</h4>
                 <ul className="space-y-2">
                   <li><a href="mailto:support@titanfleet.co.uk" className="text-xs sm:text-sm hover:text-white transition-colors break-all">support@<br className="sm:hidden" />titanfleet.co.uk</a></li>
-                  <li><a href="tel:07496188541" className="text-xs sm:text-sm hover:text-white transition-colors">07496 188 541</a></li>
+                  <li><a href="https://wa.me/447496188541" target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm hover:text-white transition-colors">WhatsApp Us</a></li>
                 </ul>
               </div>
             </div>
