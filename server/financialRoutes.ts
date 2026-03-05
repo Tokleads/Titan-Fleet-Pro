@@ -279,7 +279,7 @@ export function registerFinancialRoutes(app: Express) {
   // Clock in
   app.post("/api/timesheets/clock-in", async (req, res) => {
     try {
-      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().optional(), depotId: z.number().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional() });
+      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().nullable().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional() });
       const validation = clockInSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
@@ -345,7 +345,7 @@ export function registerFinancialRoutes(app: Express) {
   // Manager clock-in driver
   app.post("/api/manager/clock-in-driver", async (req, res) => {
     try {
-      const managerClockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().optional(), depotId: z.number().optional(), depotName: z.string().optional(), managerId: z.number() });
+      const managerClockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), depotName: z.string().nullable().optional(), managerId: z.number() });
       const validation = managerClockInSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
