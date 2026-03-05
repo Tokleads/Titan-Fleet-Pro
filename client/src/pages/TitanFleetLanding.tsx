@@ -272,7 +272,7 @@ export default function TitanFleetLandingPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="text-lg text-slate-600 mb-8 max-w-lg"
               >
-                GPS tracking, DVSA-ready compliance, and driver timesheets — all in one platform. Currently tested on 100+ trucks across the UK.
+                GPS tracking, DVSA-ready walkaround checks, driver timesheets, wage calculations, defect management, fuel logging, proof of delivery, geofencing, and AI-powered compliance — all in one platform. Live on 100+ UK trucks.
               </motion.p>
 
               <motion.div
