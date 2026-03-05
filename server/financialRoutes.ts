@@ -321,7 +321,7 @@ export function registerFinancialRoutes(app: Express) {
   // Clock out
   app.post("/api/timesheets/clock-out", async (req, res) => {
     try {
-      const clockOutSchema = z.object({ timesheetId: z.number(), latitude: z.union([z.string(), z.number()]).optional(), longitude: z.union([z.string(), z.number()]).optional(), accuracy: z.number().optional() });
+      const clockOutSchema = z.object({ timesheetId: z.number(), latitude: z.union([z.string(), z.number()]).nullable().optional(), longitude: z.union([z.string(), z.number()]).nullable().optional(), accuracy: z.number().nullable().optional() });
       const validation = clockOutSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
