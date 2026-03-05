@@ -369,7 +369,7 @@ export default function TitanFleetLandingPage() {
               <Quote className="h-10 w-10 text-[#5B6CFF]/20 absolute top-6 left-6" />
               <div className="relative">
                 <p className="text-lg sm:text-xl text-slate-700 italic leading-relaxed mb-6 pl-6 sm:pl-8">
-                  "TitanFleet saves us around 8 hours per week on compliance tracking. It's the first software that actually makes sense for our drivers."
+                  "As a business owner running a fleet, I needed something that worked for me and my drivers. TitanFleet saves us around 8 hours per week on compliance and my drivers actually use it without complaints — that's a first."
                 </p>
                 <div className="flex items-center gap-4 pl-6 sm:pl-8">
                   <div className="h-14 w-14 rounded-full bg-[#5B6CFF]/10 flex items-center justify-center shrink-0">
@@ -378,7 +378,7 @@ export default function TitanFleetLandingPage() {
                   <div>
                     <p className="font-bold text-slate-900">Thomas</p>
                     <p className="text-sm text-slate-600">Abtso Ltd</p>
-                    <p className="text-xs text-slate-500">Fleet Manager (45 Trucks)</p>
+                    <p className="text-xs text-slate-500">Owner-Operator (45 Trucks)</p>
                   </div>
                 </div>
               </div>
