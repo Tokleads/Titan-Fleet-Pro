@@ -100,20 +100,20 @@ export default function TitanFleetLandingPage() {
     <div className="min-h-screen bg-white">
       {showAnnouncementBar && !referrerName && (
         <div
-          className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-slate-900 text-center py-2.5 px-4 cursor-pointer"
+          className="fixed top-0 left-0 right-0 z-[60] bg-slate-900 text-white text-center py-2 px-4 cursor-pointer border-b border-slate-700"
           onClick={scrollToPricing}
           data-testid="banner-founding-partner"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
-            <span className="text-sm sm:text-base font-bold">
-              🚨 Founding Partner Offer: First 10 operators get 50% off lifetime pricing
+            <span className="text-xs sm:text-sm font-medium tracking-wide">
+              Founding Partner Offer — First 10 operators get <span className="text-emerald-400 font-bold">50% off</span> lifetime pricing
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); setShowAnnouncementBar(false); }}
-              className="absolute right-0 p-1 hover:bg-amber-500/30 rounded transition-colors"
+              className="absolute right-0 p-1 hover:bg-white/10 rounded transition-colors"
               aria-label="Close announcement"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
