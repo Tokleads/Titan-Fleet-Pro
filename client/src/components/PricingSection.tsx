@@ -390,7 +390,7 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                   >
                     {checkoutLoading === tier.name ? 'Loading...' : 'Start 14-Day Free Trial'}
                   </button>
-                  <p className="text-xs text-slate-400 mt-2 text-center">No credit card required</p>
+                  <p className="text-xs text-white/70 mt-2 text-center">No credit card required</p>
                 </div>
               </motion.div>
             );
