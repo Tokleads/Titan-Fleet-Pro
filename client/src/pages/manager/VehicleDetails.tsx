@@ -68,7 +68,8 @@ export default function VehicleDetails() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/vehicles/${id}/service-history`, { headers: authHeaders() });
       if (!res.ok) return [];
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!id,
   });

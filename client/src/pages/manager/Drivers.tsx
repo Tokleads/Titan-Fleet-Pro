@@ -268,7 +268,8 @@ function DriverProfileModal({
     queryFn: async () => {
       const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) return [];
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -545,7 +546,8 @@ export default function Drivers() {
     queryFn: async () => {
       const res = await fetch(`/api/drivers?companyId=${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch drivers");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });

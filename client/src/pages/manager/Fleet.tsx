@@ -206,7 +206,8 @@ export default function ManagerFleet() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/trailers/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch trailers");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });

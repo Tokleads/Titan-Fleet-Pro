@@ -172,7 +172,8 @@ function MapTab({
         { headers: authHeaders() }
       );
       if (!res.ok) throw new Error("Failed to fetch locations");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && active,
     refetchInterval: 30000,
@@ -185,7 +186,8 @@ function MapTab({
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && active,
     refetchInterval: 30000,
@@ -334,7 +336,8 @@ function OnDutyTab({ companyId }: { companyId: number }) {
       });
       if (!res.ok) throw new Error("Failed");
       const users = await res.json();
-      return users.filter((u: Driver) => u.role === "DRIVER" || u.role === "driver");
+      const usersList = Array.isArray(users) ? users : [];
+      return usersList.filter((u: Driver) => u.role === "DRIVER" || u.role === "driver");
     },
     enabled: !!companyId,
   });
@@ -346,7 +349,8 @@ function OnDutyTab({ companyId }: { companyId: number }) {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -655,7 +659,8 @@ function ChecksTab({ companyId }: { companyId: number }) {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });

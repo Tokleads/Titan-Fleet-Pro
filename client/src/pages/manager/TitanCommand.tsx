@@ -68,7 +68,8 @@ export default function TitanCommand() {
       const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
       const users = await res.json();
-      return users.filter((u: UserInfo) => u.role === "DRIVER" && u.active);
+      const usersList = Array.isArray(users) ? users : [];
+      return usersList.filter((u: UserInfo) => u.role === "DRIVER" && u.active);
     },
     enabled: !!companyId,
   });
@@ -78,7 +79,8 @@ export default function TitanCommand() {
     queryFn: async () => {
       const res = await fetch(`/api/notifications/sent?companyId=${companyId}&senderId=${manager?.id}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch sent notifications");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId && !!manager?.id,
   });

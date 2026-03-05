@@ -31,7 +31,8 @@ export default function ManagerFuelLog() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/fuel/${companyId}?days=30`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch fuel entries");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -53,7 +54,8 @@ export default function ManagerFuelLog() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });

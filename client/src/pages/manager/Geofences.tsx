@@ -56,7 +56,8 @@ export default function Geofences() {
     queryFn: async () => {
       const res = await fetch(`/api/geofences/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch geofences");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });

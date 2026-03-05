@@ -219,7 +219,8 @@ function VehicleAssignmentPanel({
     queryFn: async () => {
       const res = await fetch(`/api/operator-licences/${licenceId}/vehicles`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 

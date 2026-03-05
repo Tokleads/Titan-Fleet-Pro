@@ -205,7 +205,9 @@ export default function Settings() {
     queryKey: ['users', company?.id],
     queryFn: async () => {
       const res = await fetch(`/api/manager/users/${company?.id}`, { headers: authHeaders() });
-      return res.json();
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!company?.id
   });

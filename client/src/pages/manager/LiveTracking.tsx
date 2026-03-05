@@ -67,7 +67,8 @@ export default function LiveTracking() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/driver-locations/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch locations");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -78,19 +79,20 @@ export default function LiveTracking() {
     queryFn: async () => {
       const res = await fetch(`/api/manager/on-shift/${companyId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch on-shift drivers");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
     refetchInterval: 30000,
   });
 
-  // Fetch active stagnation alerts
   const { data: alerts } = useQuery<StagnationAlert[]>({
     queryKey: ["stagnation-alerts", companyId],
     queryFn: async () => {
       const res = await fetch(`/api/stagnation-alerts/${companyId}?status=ACTIVE`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch alerts");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
     refetchInterval: 30000,

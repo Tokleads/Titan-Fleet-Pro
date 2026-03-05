@@ -313,20 +313,18 @@ export async function registerRoutes(
   });
   
   // Sentry test endpoint
-  app.get("/api/test-sentry", (req, res) => {
+  app.get("/api/test-sentry", async (req, res) => {
     try {
-      // Trigger a test error
       throw new Error("Sentry test error - Backend is working! Check your Sentry dashboard.");
     } catch (error) {
-      // Import captureException if Sentry is configured
       try {
-        const { captureException } = require('./sentry');
+        const { captureException } = await import('./sentry');
         captureException(error as Error, {
           tags: { test: true },
           extra: { endpoint: '/api/test-sentry' }
         });
       } catch (e) {
-        // Sentry not configured, that's okay
+        // Sentry not configured
       }
       res.status(500).json({ 
         error: "Test error triggered",

@@ -131,7 +131,8 @@ export default function FuelIntelligence() {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch driver performance");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -144,7 +145,8 @@ export default function FuelIntelligence() {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch vehicle performance");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -157,7 +159,8 @@ export default function FuelIntelligence() {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch anomalies");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
@@ -170,7 +173,8 @@ export default function FuelIntelligence() {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch opportunities");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
   });
