@@ -294,6 +294,7 @@ export default function TitanFleetLandingPage() {
                     <span className="text-xs font-normal opacity-90">Founding Rate: £29.50/mo</span>
                   </span>
                 </button>
+                <p className="text-sm text-slate-400 mt-1 text-center sm:text-left">No credit card required</p>
                 <a
                   href="/demo"
                   className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
