@@ -46,7 +46,8 @@ import {
   Zap,
   Crown,
   Loader2,
-  Star
+  Star,
+  LogIn
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -302,6 +303,55 @@ export default function Companies() {
     }
   };
 
+  const [impersonatingId, setImpersonatingId] = useState<number | null>(null);
+
+  const handleImpersonate = async (company: Company) => {
+    const token = localStorage.getItem("titan_admin_token");
+    if (!token) return;
+
+    setImpersonatingId(company.id);
+    try {
+      const response = await fetch(`/api/admin/impersonate/${company.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": token,
+          ...authHeaders(),
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to impersonate");
+      }
+
+      const data = await response.json();
+
+      localStorage.setItem("titan_admin_impersonating", "true");
+      localStorage.setItem("titan_admin_return_token", token);
+
+      session.setUser(data.manager);
+      session.setCompany(data.company);
+      localStorage.setItem("titanfleet_last_role", "manager");
+
+      toast({
+        title: "Impersonation Active",
+        description: `Logged in as ${data.manager.name} at ${data.company.name}`,
+      });
+
+      setLocation("/manager");
+    } catch (err) {
+      toast({
+        title: "Impersonation Failed",
+        description: err instanceof Error ? err.message : "Could not log in as this company",
+        variant: "destructive",
+      });
+    } finally {
+      setImpersonatingId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "numeric",
@@ -413,6 +463,19 @@ export default function Companies() {
                           <TableCell className="text-slate-400">{formatDate(company.createdAt)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleImpersonate(company)}
+                                disabled={impersonatingId === company.id || company.isActive === false}
+                                className="h-8 w-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 flex items-center justify-center text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={`Login as ${company.name}`}
+                                data-testid={`button-impersonate-company-${company.id}`}
+                              >
+                                {impersonatingId === company.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <LogIn className="h-4 w-4" />
+                                )}
+                              </button>
                               <button
                                 onClick={() => openEditDialog(company)}
                                 className="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors"

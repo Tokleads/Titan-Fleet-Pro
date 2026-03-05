@@ -1394,12 +1394,43 @@ export default function TransportManagerApp() {
     }
   }, [user, company, setLocation]);
 
+  const isImpersonating = typeof window !== 'undefined' && localStorage.getItem("titan_admin_impersonating") === "true";
+
+  const handleExitImpersonation = async () => {
+    const adminToken = localStorage.getItem("titan_admin_return_token");
+    if (adminToken) {
+      try {
+        await fetch("/api/admin/exit-impersonation", {
+          method: "POST",
+          headers: { "x-admin-token": adminToken },
+          credentials: "include",
+        });
+      } catch {}
+    }
+    session.clear();
+    localStorage.removeItem("titan_admin_impersonating");
+    localStorage.removeItem("titan_admin_return_token");
+    setLocation("/admin/companies");
+  };
+
   if (!user || !company) return null;
 
   const companyId = company.id;
 
   return (
     <div className="h-screen flex flex-col bg-slate-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      {isImpersonating && (
+        <div className="bg-amber-500 text-black px-4 py-2 flex items-center justify-between text-xs font-medium z-[1001] flex-shrink-0">
+          <span>Viewing <strong>{company.name}</strong> as <strong>{user.name}</strong></span>
+          <button
+            onClick={handleExitImpersonation}
+            className="bg-black/20 hover:bg-black/30 text-black px-2 py-1 rounded text-xs font-semibold transition-colors"
+            data-testid="button-exit-impersonation-mobile"
+          >
+            Exit
+          </button>
+        </div>
+      )}
       <header className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between z-[1000] relative safe-area-top" data-testid="app-header">
         <div className="flex items-center gap-3 min-w-0">
           <Link

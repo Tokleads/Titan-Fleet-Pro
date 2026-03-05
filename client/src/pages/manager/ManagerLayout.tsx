@@ -164,12 +164,44 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isImpersonating = localStorage.getItem("titan_admin_impersonating") === "true";
+
+  const handleExitImpersonation = async () => {
+    const adminToken = localStorage.getItem("titan_admin_return_token");
+    if (adminToken) {
+      try {
+        await fetch("/api/admin/exit-impersonation", {
+          method: "POST",
+          headers: { "x-admin-token": adminToken },
+          credentials: "include",
+        });
+      } catch {}
+    }
+    session.clear();
+    localStorage.removeItem("titan_admin_impersonating");
+    localStorage.removeItem("titan_admin_return_token");
+    setLocation("/admin/companies");
+  };
+
   if (!user || !company) {
     return null;
   }
 
   return (
-    <div className="h-screen bg-slate-100/50 flex relative overflow-hidden">
+    <div className="h-screen bg-slate-100/50 flex flex-col relative overflow-hidden">
+      {isImpersonating && (
+        <div className="bg-amber-500 text-black px-4 py-2 flex items-center justify-between text-sm font-medium z-50 flex-shrink-0">
+          <span>You are viewing <strong>{company.name}</strong> as <strong>{user.name}</strong> (Admin Impersonation)</span>
+          <button
+            onClick={handleExitImpersonation}
+            className="bg-black/20 hover:bg-black/30 text-black px-3 py-1 rounded-lg text-sm font-semibold transition-colors"
+            data-testid="button-exit-impersonation"
+          >
+            Return to Admin
+          </button>
+        </div>
+      )}
+      <div className="flex-1 flex overflow-hidden">
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-[72px]'} bg-white border-r border-slate-200/80 flex flex-col transition-all duration-300 ease-out relative h-screen overflow-hidden`}>
         {/* Logo */}
@@ -358,6 +390,7 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
 
       {/* Titan Intelligence Sidebar */}
       <TitanIntelligenceSidebar />
+      </div>
     </div>
   );
 }

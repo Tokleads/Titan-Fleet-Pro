@@ -2,7 +2,8 @@ import { Router, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { db } from "./db";
 import { companies, users, vehicles, accountSetupTokens, referrals } from "@shared/schema";
-import { eq, sql, like, or, desc } from "drizzle-orm";
+import { eq, sql, like, or, desc, and } from "drizzle-orm";
+import { signToken, setAuthCookie, clearAuthCookie } from "./jwtAuth";
 
 const router = Router();
 
@@ -515,6 +516,83 @@ router.post("/companies/:id/bulk-import", verifyAdminToken, async (req: Request,
   } catch (error) {
     console.error("Bulk import error:", error);
     res.status(500).json({ error: "Bulk import failed" });
+  }
+});
+
+router.post("/impersonate/:companyId", verifyAdminToken, async (req: Request, res: Response) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    if (isNaN(companyId)) {
+      return res.status(400).json({ error: "Invalid company ID" });
+    }
+
+    const company = await storage.getCompanyById(companyId);
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    const companyUsers = await storage.getUsersByCompany(companyId);
+    const manager = companyUsers.find(u =>
+      (u.role === "TRANSPORT_MANAGER" || u.role === "ADMIN") && u.active !== false
+    );
+
+    if (!manager) {
+      return res.status(404).json({ error: "No active manager found for this company" });
+    }
+
+    const token = signToken({
+      userId: manager.id,
+      companyId: manager.companyId,
+      role: manager.role as any,
+      email: manager.email || "",
+      name: manager.name,
+    });
+
+    setAuthCookie(res, token);
+
+    const { logAudit } = await import("./auditService");
+    await logAudit({
+      companyId: company.id,
+      userId: manager.id,
+      action: "LOGIN",
+      entity: "SESSION",
+      details: { impersonation: true, adminAction: "Platform admin impersonation" },
+      req,
+    });
+
+    res.json({
+      manager: {
+        id: manager.id,
+        companyId: manager.companyId,
+        name: manager.name,
+        email: manager.email,
+        role: manager.role,
+        active: manager.active,
+        totpEnabled: manager.totpEnabled,
+      },
+      company: {
+        id: company.id,
+        name: company.name,
+        companyCode: company.companyCode,
+        primaryColor: company.primaryColor,
+        settings: company.settings,
+        licenseTier: company.licenseTier,
+      },
+      impersonating: true,
+    });
+  } catch (error) {
+    console.error("Admin impersonate error:", error);
+    res.status(500).json({ error: "Failed to impersonate company" });
+  }
+});
+
+router.post("/exit-impersonation", verifyAdminToken, async (_req: Request, res: Response) => {
+  try {
+    clearAuthCookie(res);
+    res.json({ success: true, message: "Impersonation ended" });
+  } catch (error) {
+    console.error("Exit impersonation error:", error);
+    res.status(500).json({ error: "Failed to exit impersonation" });
   }
 });
 
