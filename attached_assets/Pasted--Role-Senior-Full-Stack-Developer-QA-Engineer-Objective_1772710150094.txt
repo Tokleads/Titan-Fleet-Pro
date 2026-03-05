@@ -1,0 +1,190 @@
+# Role: Senior Full-Stack Developer & QA Engineer
+
+# Objective
+Perform a comprehensive audit and functionality check of the TitanFleet SaaS platform. The system has two main interfaces: (1) Driver Mobile App and (2) Manager Web Dashboard. Many features were working previously but are now reporting issues. We need to identify, document, and fix all bugs before launching sales.
+
+# System Context
+- **Product:** TitanFleet (UK Fleet Management SaaS)
+- **Tech Stack:** [AI: Detect from codebase - e.g., Flutter/React Native for Driver App, React/Next.js for Dashboard, Node/Python/Go for Backend, Firebase/PostgreSQL/MongoDB for Database]
+- **Users:** Fleet Managers (Web) and HGV Drivers (Mobile)
+- **Critical Status:** Pre-launch. Stability is the #1 priority.
+
+# Task List
+Please analyze the entire codebase and perform the following audits:
+
+## 1. AUTHENTICATION & USER MANAGEMENT
+- [ ] Test registration flow (Manager & Driver)
+- [ ] Test login/logout (both interfaces)
+- [ ] Test password reset functionality
+- [ ] Verify role-based permissions (Driver cannot access Manager features)
+- [ ] Check session persistence (stay logged in)
+- [ ] Test multi-device login handling
+- [ ] Verify secure token storage (no tokens in plain text)
+- [ ] Check for any authentication bypass vulnerabilities
+
+## 2. DRIVER MOBILE APP (All Features)
+### GPS & Tracking
+- [ ] Verify GPS location is being captured accurately
+- [ ] Test location updates frequency (real-time vs. delayed)
+- [ ] Check background location tracking (when app is minimized)
+- [ ] Verify battery usage is reasonable
+- [ ] Test geofence entry/exit triggers
+
+### Timesheets & Clock In/Out
+- [ ] Test clock-in functionality (with GPS verification)
+- [ ] Test clock-out functionality
+- [ ] Verify break time logging
+- [ ] Check timesheet data syncs to Manager Dashboard
+- [ ] Test offline mode (data caches and syncs when back online)
+- [ ] Verify timesheet editing/correction flow
+
+### DVSA Compliance & Walkaround Checks
+- [ ] Test defect reporting form (all fields validate)
+- [ ] Verify photo upload for defects (compression, storage)
+- [ ] Check defect severity levels (Red/Amber/Green)
+- [ ] Test submission confirmation & receipt
+- [ ] Verify data appears correctly in Manager Dashboard
+- [ ] Test digital signature capture
+
+### Proof of Delivery (POD)
+- [ ] Test photo capture for delivery proof
+- [ ] Verify signature capture on delivery
+- [ ] Check notes/comments field
+- [ ] Test upload success/failure handling
+- [ ] Verify POD links to correct job/trip
+
+### Notifications & Alerts
+- [ ] Test push notifications for new assignments
+- [ ] Verify compliance reminder alerts
+- [ ] Check notification permissions handling
+- [ ] Test in-app notification center
+
+### Offline Functionality
+- [ ] Test app behavior with no internet connection
+- [ ] Verify data queues locally and syncs when reconnected
+- [ ] Check for data loss during sync conflicts
+
+## 3. MANAGER WEB DASHBOARD (All Features)
+### Dashboard Overview
+- [ ] Verify all KPI widgets load correctly
+- [ ] Test real-time vehicle map display
+- [ ] Check alert/notification panel
+- [ ] Verify data refresh rates (auto-refresh working?)
+
+### Vehicle Management
+- [ ] Test add/edit/delete vehicle
+- [ ] Verify vehicle status updates (active/inactive/maintenance)
+- [ ] Check vehicle assignment to drivers
+- [ ] Test vehicle search/filter functionality
+
+### Driver Management
+- [ ] Test add/edit/delete driver
+- [ ] Verify driver license/certification upload
+- [ ] Check driver status (on-duty/off-duty)
+- [ ] Test driver performance reports
+
+### Compliance & DVSA Reports
+- [ ] Test defect report viewing & filtering
+- [ ] Verify compliance dashboard accuracy
+- [ ] Test report export (PDF/CSV)
+- [ ] Check audit trail logging
+- [ ] Verify DVSA-ready report formatting
+
+### Timesheet & Payroll Reports
+- [ ] Test timesheet viewing by driver/date/range
+- [ ] Verify hour calculations (regular vs. overtime)
+- [ ] Test approval/rejection workflow
+- [ ] Check export functionality for payroll
+
+### GPS & Tracking Map
+- [ ] Test live vehicle tracking on map
+- [ ] Verify map markers update in real-time
+- [ ] Test historical route playback
+- [ ] Check geofence visualization
+- [ ] Verify map provider API keys are valid
+
+### POD Management
+- [ ] Test POD gallery view
+- [ ] Verify POD search by date/driver/customer
+- [ ] Check POD download/share functionality
+
+### Settings & Configuration
+- [ ] Test company profile settings
+- [ ] Verify notification preferences
+- [ ] Test API key management (if applicable)
+- [ ] Check billing/subscription settings
+
+## 4. BACKEND & API AUDIT
+- [ ] List all API endpoints and verify they respond correctly
+- [ ] Check for any 500 errors in server logs
+- [ ] Verify database connection stability
+- [ ] Test API rate limiting (prevent abuse)
+- [ ] Check data validation on all input endpoints
+- [ ] Verify error handling (graceful failures, not crashes)
+- [ ] Test webhook integrations (if any)
+- [ ] Check scheduled jobs/cron tasks (e.g., daily reports)
+
+## 5. DATABASE & DATA INTEGRITY
+- [ ] Verify all tables/collections are properly indexed
+- [ ] Check for orphaned records (drivers without vehicles, etc.)
+- [ ] Test data backup functionality
+- [ ] Verify data encryption at rest (sensitive fields)
+- [ ] Check GDPR compliance (data deletion requests)
+- [ ] Test data migration scripts (if any)
+
+## 6. SECURITY AUDIT
+- [ ] Check for SQL injection vulnerabilities
+- [ ] Verify XSS protection on all forms
+- [ ] Test CSRF token implementation
+- [ ] Check HTTPS enforcement
+- [ ] Verify password hashing (bcrypt/argon2)
+- [ ] Test API authentication (JWT/API keys)
+- [ ] Check for exposed sensitive data in responses
+
+## 7. PERFORMANCE & SCALABILITY
+- [ ] Test page load times (target: <3 seconds)
+- [ ] Check API response times (target: <500ms)
+- [ ] Verify database query optimization
+- [ ] Test concurrent user handling
+- [ ] Check memory leaks in long-running processes
+- [ ] Verify image/file upload optimization
+
+## 8. INTEGRATION & THIRD-PARTY SERVICES
+- [ ] Test map provider API (Google Maps/Mapbox)
+- [ ] Verify email service (transactional emails send)
+- [ ] Check SMS service (if used for alerts)
+- [ ] Test payment processor (Stripe) integration
+- [ ] Verify cloud storage (S3/Firebase Storage) for files
+
+## 9. MOBILE RESPONSIVENESS & COMPATIBILITY
+- [ ] Test Driver App on iOS (if applicable)
+- [ ] Test Driver App on Android
+- [ ] Verify Dashboard on Chrome, Firefox, Safari, Edge
+- [ ] Test Dashboard on mobile browsers (managers on phones)
+- [ ] Check different screen sizes/resolutions
+
+## 10. ERROR HANDLING & LOGGING
+- [ ] Verify error messages are user-friendly (not stack traces)
+- [ ] Check logging is capturing errors (for debugging)
+- [ ] Test 404 page handling
+- [ ] Verify graceful degradation when services fail
+- [ ] Check alert system for critical errors (email admin on crash)
+
+# Deliverables
+After completing the audit, please provide:
+
+1. **Bug Report:** A prioritized list of all issues found (Critical, High, Medium, Low)
+2. **Fix Recommendations:** Specific code changes or fixes for each issue
+3. **Test Scripts:** Automated test scripts where possible (unit tests, integration tests)
+4. **Stability Checklist:** A go/no-go checklist for launch readiness
+5. **Monitoring Setup:** Recommendations for ongoing error tracking (e.g., Sentry, LogRocket)
+
+# Implementation Notes
+- Prioritize CRITICAL bugs that block core functionality (login, GPS, compliance forms)
+- Document all findings in a markdown file for tracking
+- Do not make breaking changes without confirmation
+- Keep UK compliance requirements in mind (DVSA, GDPR)
+- Use UK English in all user-facing text
+
+# Begin
+Please start by analyzing the project structure, identifying the tech stack, and then systematically work through each section above. Report findings as you go.
