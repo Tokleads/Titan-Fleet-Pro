@@ -106,7 +106,7 @@ export default function TitanFleetLandingPage() {
         >
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
             <span className="flex flex-col leading-tight">
-              <span className="text-xs sm:text-sm font-bold tracking-wide">Founding Partner Offer</span>
+              <span className="text-xs sm:text-sm font-bold tracking-wide uppercase">Founding Partner Offer</span>
               <span className="text-[10px] sm:text-xs font-normal text-slate-300">First 10 operators get <span className="text-emerald-400 font-bold">50% off</span> lifetime pricing</span>
             </span>
             <button
