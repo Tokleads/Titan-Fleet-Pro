@@ -28,8 +28,8 @@ export const standardLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: 'Too many authentication attempts, please try again later.',
+  max: 10,
+  message: { error: 'Too many login attempts, please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
