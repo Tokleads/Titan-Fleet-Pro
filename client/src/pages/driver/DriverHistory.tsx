@@ -8,7 +8,7 @@ function authHeaders(): Record<string, string> {
   const token = session.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut, Calendar } from "lucide-react";
+import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut, Calendar, ClipboardCheck } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
@@ -27,6 +27,7 @@ export default function DriverHistory() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
   const [timesheetEntries, setTimesheetEntries] = useState<any[]>([]);
+  const [shiftChecks, setShiftChecks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "inspections" | "fuel" | "shifts">("all");
   const [expandedShiftId, setExpandedShiftId] = useState<number | null>(null);
@@ -88,13 +89,17 @@ export default function DriverHistory() {
     let mounted = true;
     const loadHistory = async () => {
       try {
-        const [inspectionData, fuelData] = await Promise.all([
+        const [inspectionData, fuelData, shiftCheckData] = await Promise.all([
           api.getInspections(company.id, user.id, 30),
-          api.getFuelEntries(company.id, user.id, 30)
+          api.getFuelEntries(company.id, user.id, 30),
+          fetch(`/api/shift-checks/driver/${user.id}`, { headers: authHeaders() })
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => [])
         ]);
         if (mounted) {
           setInspections(Array.isArray(inspectionData) ? inspectionData : []);
           setFuelEntries(Array.isArray(fuelData) ? fuelData : []);
+          setShiftChecks(Array.isArray(shiftCheckData) ? shiftCheckData : []);
         }
       } catch (error) {
         console.error("Failed to load history:", error);
@@ -123,17 +128,18 @@ export default function DriverHistory() {
   }, [shiftDateRange]);
 
   const timeline = useMemo(() => {
-    const items: Array<{ type: "inspection" | "fuel" | "shift"; date: Date; data: any }> = [];
+    const items: Array<{ type: "inspection" | "fuel" | "shift" | "shiftCheck"; date: Date; data: any }> = [];
     inspections.forEach(i => items.push({ type: "inspection", date: new Date(i.createdAt!), data: i }));
     fuelEntries.forEach(f => items.push({ type: "fuel", date: new Date(f.createdAt!), data: f }));
     timesheetEntries.forEach(t => items.push({ type: "shift", date: new Date(t.arrivalTime), data: t }));
+    shiftChecks.forEach(sc => items.push({ type: "shiftCheck", date: new Date(sc.createdAt), data: sc }));
     items.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    if (activeTab === "inspections") return items.filter(i => i.type === "inspection");
+    if (activeTab === "inspections") return items.filter(i => i.type === "inspection" || i.type === "shiftCheck");
     if (activeTab === "fuel") return items.filter(i => i.type === "fuel");
     if (activeTab === "shifts") return items.filter(i => i.type === "shift");
     return items;
-  }, [inspections, fuelEntries, timesheetEntries, activeTab]);
+  }, [inspections, fuelEntries, timesheetEntries, shiftChecks, activeTab]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleString("en-GB", {
@@ -405,6 +411,32 @@ export default function DriverHistory() {
                           </div>
                         </motion.div>
                       )}
+                    </div>
+                  ) : item.type === "shiftCheck" ? (
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                        item.data.status === "completed" ? "bg-emerald-100" : "bg-amber-100"
+                      }`}>
+                        <ClipboardCheck className={`h-5 w-5 ${
+                          item.data.status === "completed" ? "text-emerald-600" : "text-amber-600"
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm">
+                          End of Shift Check
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {formatDate(item.date)}
+                          {item.data.vehicle && ` · ${item.data.vehicle.registrationNumber}`}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        item.data.status === "completed"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {item.data.status === "completed" ? "DONE" : "DRAFT"}
+                      </span>
                     </div>
                   ) : null}
                 </motion.div>

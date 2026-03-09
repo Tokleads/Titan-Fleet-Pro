@@ -101,7 +101,11 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
         setLocationError(null);
       },
       (error) => {
-        setLocationError(error.message);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError('permission_denied');
+        } else {
+          setLocationError(error.message);
+        }
       },
       {
         enableHighAccuracy: true,
@@ -167,10 +171,9 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   // Clock in mutation
   const clockInMutation = useMutation({
     mutationFn: async () => {
-      if (!currentLocation) throw new Error('Location not available');
-      
       const depot = getSelectedDepot() || (nearestDepot ? nearestDepot.geofence : null);
       const isManualSelection = !isInsideGeofence;
+      const noLocation = !currentLocation;
 
       const response = await fetch('/api/timesheets/clock-in', {
         method: 'POST',
@@ -179,11 +182,12 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           companyId,
           driverId,
           depotId: depot?.id || null,
-          latitude: currentLocation.lat.toString(),
-          longitude: currentLocation.lng.toString(),
+          latitude: currentLocation ? currentLocation.lat.toString() : "0",
+          longitude: currentLocation ? currentLocation.lng.toString() : "0",
           accuracy: gpsAccuracy,
-          manualSelection: isManualSelection,
-          lowAccuracy: isLowAccuracy
+          manualSelection: isManualSelection || noLocation,
+          lowAccuracy: isLowAccuracy || noLocation,
+          locationOverride: noLocation
         })
       });
 
@@ -246,8 +250,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   };
 
   const hasNoDepots = geofences.filter(g => g.isActive).length === 0;
-  // Can clock in if: location available (always allow, flags for review if outside geofence)
-  const canClockIn = currentLocation && isAccuracyValid;
+  const locationDenied = locationError === 'permission_denied' || locationError === 'Geolocation is not supported by your browser';
+  const canClockIn = locationDenied || (currentLocation && isAccuracyValid);
 
   // Handle policy acceptance
   const handleAcceptPolicy = () => {
@@ -352,6 +356,11 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                     Clocking In...
                   </>
+                ) : locationDenied ? (
+                  <>
+                    <CheckCircle className="mr-2 h-6 w-6" />
+                    Clock In (No GPS)
+                  </>
                 ) : !currentLocation ? (
                   <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -365,12 +374,17 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                 )}
               </Button>
 
-              {currentLocation && !isInsideGeofence && !hasNoDepots && (
+              {locationDenied && (
+                <p className="text-xs text-amber-600">
+                  Location unavailable — clock-in will be flagged for manager review
+                </p>
+              )}
+              {currentLocation && !isInsideGeofence && !hasNoDepots && !locationDenied && (
                 <p className="text-xs text-amber-600">
                   You're outside depot range — clock-in will be flagged for manager review
                 </p>
               )}
-              {isLowAccuracy && (
+              {isLowAccuracy && !locationDenied && (
                 <p className="text-xs text-amber-600">
                   Low GPS accuracy — clock-in will be flagged for manager review
                 </p>
@@ -389,7 +403,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
               <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
               <span className="flex-1 text-sm truncate">
                 {locationError ? (
-                  <span className="text-destructive">{locationError}</span>
+                  <span className="text-destructive">{locationError === 'permission_denied' ? 'Location permission denied' : locationError}</span>
                 ) : !currentLocation ? (
                   <span className="text-muted-foreground">Getting location...</span>
                 ) : isInsideGeofence && nearestDepot ? (
@@ -427,7 +441,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                     {locationError ? (
                       <div className="flex items-center gap-2 text-destructive mt-1">
                         <AlertCircle className="h-4 w-4" />
-                        <span className="text-xs">{locationError}</span>
+                        <span className="text-xs">{locationError === 'permission_denied' ? 'Location permission denied' : locationError}</span>
                       </div>
                     ) : currentLocation ? (
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -495,20 +509,24 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                 {!isInsideGeofence && geofences.length > 0 && (
                   <div className="pt-2 border-t border-slate-200">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-slate-700">Manual Depot Selection</span>
-                      <button
-                        onClick={() => setShowManualSelection(!showManualSelection)}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                      >
-                        {showManualSelection ? 'Hide' : 'Select depot'}
-                        <ChevronDown className={`h-3 w-3 transition-transform ${showManualSelection ? 'rotate-180' : ''}`} />
-                      </button>
+                      <span className="text-xs font-medium text-slate-700">
+                        {locationDenied ? 'Select Your Depot' : 'Manual Depot Selection'}
+                      </span>
+                      {!locationDenied && (
+                        <button
+                          onClick={() => setShowManualSelection(!showManualSelection)}
+                          className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          {showManualSelection ? 'Hide' : 'Select depot'}
+                          <ChevronDown className={`h-3 w-3 transition-transform ${showManualSelection ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
                     </div>
                     
-                    {showManualSelection && (
+                    {(showManualSelection || locationDenied) && (
                       <div className="space-y-2">
                         <p className="text-[11px] text-amber-600">
-                          Manual selection will be flagged for review.
+                          {locationDenied ? 'GPS unavailable — please select your depot manually.' : 'Manual selection will be flagged for review.'}
                         </p>
                         <select
                           value={selectedDepotId || ''}
@@ -518,15 +536,16 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                           <option value="">Select a depot...</option>
                           {geofences.filter(g => g.isActive).map(depot => (
                             <option key={depot.id} value={depot.id}>
-                              {depot.name} ({nearestDepot && depot.id === nearestDepot.geofence.id 
+                              {depot.name}
+                              {currentLocation ? ` (${nearestDepot && depot.id === nearestDepot.geofence.id 
                                 ? `${nearestDepot.distance.toFixed(0)}m away` 
                                 : calculateDistance(
-                                    currentLocation?.lat || 0,
-                                    currentLocation?.lng || 0,
+                                    currentLocation.lat,
+                                    currentLocation.lng,
                                     parseFloat(depot.latitude),
                                     parseFloat(depot.longitude)
                                   ).toFixed(0) + 'm away'
-                              })
+                              })` : ''}
                             </option>
                           ))}
                         </select>

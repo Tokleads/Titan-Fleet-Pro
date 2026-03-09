@@ -279,12 +279,12 @@ export function registerFinancialRoutes(app: Express) {
   // Clock in
   app.post("/api/timesheets/clock-in", async (req, res) => {
     try {
-      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().nullable().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional() });
+      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().nullable().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional(), locationOverride: z.boolean().optional() });
       const validation = clockInSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy } = validation.data;
+      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy, locationOverride } = validation.data;
 
       const existingActive = await db.select().from(timesheets)
         .where(and(
@@ -308,7 +308,7 @@ export function registerFinancialRoutes(app: Express) {
         latitude,
         longitude,
         accuracy ? Math.round(Number(accuracy)) : null,
-        manualSelection === true || lowAccuracy === true
+        manualSelection === true || lowAccuracy === true || locationOverride === true
       );
       
       res.json(timesheet);
