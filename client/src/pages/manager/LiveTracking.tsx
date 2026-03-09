@@ -15,7 +15,10 @@ import {
   Activity,
   TrendingUp,
   Zap,
-  X
+  X,
+  Route,
+  Square,
+  ChevronDown
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as L from "leaflet";
@@ -60,6 +63,10 @@ export default function LiveTracking() {
   const markersRef = useRef<Map<number, L.Marker>>(new Map());
   const [dismissingIds, setDismissingIds] = useState<Set<number>>(new Set());
   const [acknowledgingIds, setAcknowledgingIds] = useState<Set<number>>(new Set());
+  const [selectedTrailDriver, setSelectedTrailDriver] = useState<number | null>(null);
+  const [selectedTrailTimesheet, setSelectedTrailTimesheet] = useState<number | null>(null);
+  const trailMapRef = useRef<HTMLDivElement>(null);
+  const trailLeafletRef = useRef<L.Map | null>(null);
 
   // Fetch driver locations every 30 seconds
   const { data: locations, isLoading } = useQuery<DriverLocation[]>({
@@ -311,6 +318,173 @@ export default function LiveTracking() {
     }
   }, [locations, onShiftDrivers]);
 
+  // Fetch timesheets for selected driver (for shift trail)
+  const { data: driverTimesheets } = useQuery<Array<{ id: number; arrivalTime: string; departureTime: string | null; depotName: string; status: string; totalMinutes: number | null }>>({
+    queryKey: ["driver-timesheets-trail", selectedTrailDriver],
+    queryFn: async () => {
+      const params = new URLSearchParams({ startDate: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] });
+      const res = await fetch(`/api/driver/timesheets/${companyId}/${selectedTrailDriver}?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch timesheets");
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!selectedTrailDriver && !!companyId,
+  });
+
+  // Fetch shift trail data
+  const { data: shiftTrail, isLoading: trailLoading } = useQuery<{ locations: any[]; stops: any[] }>({
+    queryKey: ["shift-trail", selectedTrailDriver, selectedTrailTimesheet],
+    queryFn: async () => {
+      const res = await fetch(`/api/shift-trail/${selectedTrailDriver}/${selectedTrailTimesheet}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch trail");
+      return res.json();
+    },
+    enabled: !!selectedTrailDriver && !!selectedTrailTimesheet,
+  });
+
+  // Initialize trail map
+  useEffect(() => {
+    if (!trailMapRef.current || !shiftTrail || trailLeafletRef.current) return;
+
+    const map = L.map(trailMapRef.current).setView([51.5074, -0.1278], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+    trailLeafletRef.current = map;
+
+    return () => {
+      if (trailLeafletRef.current) {
+        trailLeafletRef.current.remove();
+        trailLeafletRef.current = null;
+      }
+    };
+  }, [shiftTrail]);
+
+  // Draw trail on map
+  useEffect(() => {
+    if (!trailLeafletRef.current || !shiftTrail) return;
+    const map = trailLeafletRef.current;
+
+    map.eachLayer((layer) => {
+      if (!(layer instanceof L.TileLayer)) map.removeLayer(layer);
+    });
+
+    const routePoints: [number, number][] = [];
+    const allBounds: [number, number][] = [];
+
+    if (shiftTrail.locations.length > 0) {
+      shiftTrail.locations.forEach((loc: any) => {
+        const lat = parseFloat(loc.latitude);
+        const lng = parseFloat(loc.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+          routePoints.push([lat, lng]);
+          allBounds.push([lat, lng]);
+        }
+      });
+
+      if (routePoints.length > 1) {
+        L.polyline(routePoints, {
+          color: '#3b82f6',
+          weight: 4,
+          opacity: 0.8,
+          smoothFactor: 1,
+        }).addTo(map);
+      }
+
+      // Start marker
+      if (routePoints.length > 0) {
+        const startIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width: 16px; height: 16px; background: #22c55e; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16], iconAnchor: [8, 8],
+        });
+        L.marker(routePoints[0], { icon: startIcon }).addTo(map)
+          .bindPopup(`<strong>Shift Start</strong><br/>${new Date(shiftTrail.locations[0].timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+      }
+
+      // End marker
+      if (routePoints.length > 1) {
+        const endIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width: 16px; height: 16px; background: #ef4444; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [16, 16], iconAnchor: [8, 8],
+        });
+        const lastLoc = shiftTrail.locations[shiftTrail.locations.length - 1];
+        L.marker(routePoints[routePoints.length - 1], { icon: endIcon }).addTo(map)
+          .bindPopup(`<strong>Latest Position</strong><br/>${new Date(lastLoc.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+      }
+    }
+
+    // Stop markers
+    if (shiftTrail.stops.length > 0) {
+      shiftTrail.stops.forEach((stop: any, idx: number) => {
+        const lat = parseFloat(stop.latitude);
+        const lng = parseFloat(stop.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+        allBounds.push([lat, lng]);
+
+        const stopIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `
+            <div style="position: relative;">
+              <div style="width: 24px; height: 24px; background: #f59e0b; border: 3px solid white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                <span style="color: white; font-size: 11px; font-weight: 800;">${idx + 1}</span>
+              </div>
+            </div>
+          `,
+          iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+
+        const startTime = new Date(stop.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const endTime = stop.endTime ? new Date(stop.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Ongoing';
+
+        L.marker([lat, lng], { icon: stopIcon }).addTo(map)
+          .bindPopup(`
+            <div style="font-family: system-ui, sans-serif; min-width: 180px;">
+              <h3 style="font-weight: 700; margin: 0 0 6px 0; font-size: 14px;">Stop ${idx + 1}</h3>
+              <div style="display: flex; gap: 10px; margin-bottom: 4px;">
+                <div style="flex: 1; background: #fffbeb; border-radius: 6px; padding: 4px 8px; text-align: center;">
+                  <div style="font-size: 9px; color: #92400e; text-transform: uppercase;">Duration</div>
+                  <div style="font-size: 15px; font-weight: 700; color: #92400e;">${stop.durationMinutes}m</div>
+                </div>
+                <div style="flex: 1; background: #f1f5f9; border-radius: 6px; padding: 4px 8px; text-align: center;">
+                  <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">Time</div>
+                  <div style="font-size: 12px; font-weight: 600; color: #0f172a;">${startTime} – ${endTime}</div>
+                </div>
+              </div>
+            </div>
+          `, { maxWidth: 250 });
+      });
+    }
+
+    if (allBounds.length > 0) {
+      try {
+        map.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40] });
+      } catch {}
+    }
+  }, [shiftTrail]);
+
+  // Cleanup trail map when driver/timesheet changes
+  useEffect(() => {
+    if (trailLeafletRef.current) {
+      trailLeafletRef.current.remove();
+      trailLeafletRef.current = null;
+    }
+  }, [selectedTrailDriver, selectedTrailTimesheet]);
+
+  // Fetch all users for driver selection
+  const { data: allUsers } = useQuery<Array<{ id: number; name: string; role: string; active: boolean }>>({
+    queryKey: ["users-for-trail", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/users/${companyId}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+      return (Array.isArray(data) ? data : []).filter((u: any) => u.role === 'DRIVER' && u.active);
+    },
+    enabled: !!companyId,
+  });
+
   const onShiftCount = onShiftDrivers?.length || 0;
   const gpsActiveCount = locations?.filter(l => !l.isStagnant).length || 0;
   const activeDrivers = onShiftCount;
@@ -538,6 +712,150 @@ export default function LiveTracking() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+        {/* Shift Trail - Route & Stops */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <Route className="h-5 w-5 text-blue-600" />
+              Shift Trail
+              <span className="text-xs font-normal text-slate-400 ml-1">Route & stops for a driver's shift</span>
+            </h2>
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1.5 block">Select Driver</label>
+                <select
+                  value={selectedTrailDriver || ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    setSelectedTrailDriver(val);
+                    setSelectedTrailTimesheet(null);
+                  }}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="select-trail-driver"
+                >
+                  <option value="">Choose a driver...</option>
+                  {allUsers?.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1.5 block">Select Shift</label>
+                <select
+                  value={selectedTrailTimesheet || ''}
+                  onChange={(e) => setSelectedTrailTimesheet(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!selectedTrailDriver || !driverTimesheets}
+                  data-testid="select-trail-shift"
+                >
+                  <option value="">Choose a shift...</option>
+                  {driverTimesheets?.map(ts => {
+                    const date = new Date(ts.arrivalTime);
+                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                    const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    const dur = ts.totalMinutes ? `${Math.floor(ts.totalMinutes / 60)}h ${ts.totalMinutes % 60}m` : (ts.status === 'ACTIVE' ? 'Active' : '—');
+                    return (
+                      <option key={ts.id} value={ts.id}>
+                        {dateStr} at {timeStr} — {ts.depotName || 'Unknown'} ({dur})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {selectedTrailTimesheet && (
+              <>
+                {trailLoading ? (
+                  <div className="h-[450px] flex items-center justify-center bg-slate-50 rounded-xl">
+                    <div className="text-slate-400 text-sm">Loading shift trail...</div>
+                  </div>
+                ) : shiftTrail && (shiftTrail.locations.length > 0 || shiftTrail.stops.length > 0) ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-blue-50 rounded-lg p-3 text-center">
+                        <p className="text-[10px] uppercase tracking-wider text-blue-600 font-medium">GPS Points</p>
+                        <p className="text-xl font-bold text-blue-900">{shiftTrail.locations.length}</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-3 text-center">
+                        <p className="text-[10px] uppercase tracking-wider text-amber-600 font-medium">Stops (10m+)</p>
+                        <p className="text-xl font-bold text-amber-900">{shiftTrail.stops.length}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 text-center">
+                        <p className="text-[10px] uppercase tracking-wider text-purple-600 font-medium">Total Stop Time</p>
+                        <p className="text-xl font-bold text-purple-900">
+                          {shiftTrail.stops.reduce((sum: number, s: any) => sum + (s.durationMinutes || 0), 0)}m
+                        </p>
+                      </div>
+                    </div>
+                    <div ref={trailMapRef} className="w-full h-[450px] rounded-xl overflow-hidden border border-slate-200" />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-6">
+                      <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Trail Key</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#22c55e] border-2 border-white shadow-sm"></div>
+                        <span className="text-xs text-slate-600">Start</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#ef4444] border-2 border-white shadow-sm"></div>
+                        <span className="text-xs text-slate-600">Latest</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-0.5 bg-[#3b82f6]" style={{ width: '14px' }}></div>
+                        <span className="text-xs text-slate-600">Route</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-[#f59e0b] rounded border-2 border-white shadow-sm flex items-center justify-center">
+                          <span className="text-white text-[8px] font-bold">#</span>
+                        </div>
+                        <span className="text-xs text-slate-600">Stop (10m+)</span>
+                      </div>
+                    </div>
+                    {shiftTrail.stops.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Stop Log</p>
+                        {shiftTrail.stops.map((stop: any, idx: number) => (
+                          <div key={stop.id} className="flex items-center gap-3 p-3 bg-amber-50/60 rounded-lg border border-amber-200/40">
+                            <div className="w-7 h-7 bg-amber-500 rounded-md flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-bold">{idx + 1}</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {new Date(stop.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                {' – '}
+                                {stop.endTime ? new Date(stop.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Ongoing'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {parseFloat(stop.latitude).toFixed(5)}, {parseFloat(stop.longitude).toFixed(5)}
+                              </p>
+                            </div>
+                            <div className="bg-amber-100 px-2.5 py-1 rounded-full">
+                              <span className="text-xs font-bold text-amber-800">{stop.durationMinutes}m</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="h-[200px] flex flex-col items-center justify-center bg-slate-50 rounded-xl text-slate-400">
+                    <Route className="h-10 w-10 mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No GPS data for this shift</p>
+                    <p className="text-xs mt-1">GPS tracking data will appear here once collected</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {!selectedTrailTimesheet && !selectedTrailDriver && (
+              <div className="h-[150px] flex flex-col items-center justify-center bg-slate-50 rounded-xl text-slate-400">
+                <Route className="h-10 w-10 mb-2 opacity-30" />
+                <p className="text-sm">Select a driver and shift to view their route and stops</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -480,6 +480,25 @@ export const insertStagnationAlertSchema = createInsertSchema(stagnationAlerts).
 export type StagnationAlert = typeof stagnationAlerts.$inferSelect;
 export type InsertStagnationAlert = z.infer<typeof insertStagnationAlertSchema>;
 
+// Driver Stops - Automatic detection of 10+ minute stationary periods
+export const driverStops = pgTable("driver_stops", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id).notNull(),
+  timesheetId: integer("timesheet_id").references(() => timesheets.id),
+  latitude: text("latitude").notNull(),
+  longitude: text("longitude").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  durationMinutes: integer("duration_minutes").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDriverStopSchema = createInsertSchema(driverStops).omit({ id: true, createdAt: true });
+export type DriverStop = typeof driverStops.$inferSelect;
+export type InsertDriverStop = z.infer<typeof insertDriverStopSchema>;
+
 // Notifications - Titan Command broadcast system
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),

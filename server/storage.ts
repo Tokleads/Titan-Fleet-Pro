@@ -174,6 +174,12 @@ export interface IStorage {
   getShiftChecksByCompany(companyId: number): Promise<any[]>;
   getShiftChecksByDriver(driverId: number): Promise<any[]>;
   
+  // Driver stop detection
+  checkDriverStops(driverId: number, companyId: number): Promise<void>;
+  getDriverStopsByTimesheet(timesheetId: number): Promise<any[]>;
+  getDriverStopsByDriver(driverId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getShiftTrail(driverId: number, timesheetId: number): Promise<{ locations: any[]; stops: any[] }>;
+
   // Reminder operations (Compliance tracking)
   createReminder(reminder: any): Promise<any>;
   getActiveReminders(companyId?: number): Promise<any[]>;
@@ -1034,6 +1040,152 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // ==================== DRIVER STOP DETECTION ====================
+
+  async checkDriverStops(driverId: number, companyId: number): Promise<void> {
+    const { driverStops } = await import('@shared/schema');
+
+    const recentLocations = await db
+      .select()
+      .from(driverLocations)
+      .where(and(
+        eq(driverLocations.driverId, driverId),
+        eq(driverLocations.companyId, companyId)
+      ))
+      .orderBy(desc(driverLocations.timestamp))
+      .limit(3);
+
+    if (recentLocations.length < 2) return;
+
+    const latest = recentLocations[0];
+    const latLat = parseFloat(latest.latitude);
+    const latLng = parseFloat(latest.longitude);
+
+    const activeStop = await db.select().from(driverStops)
+      .where(and(
+        eq(driverStops.driverId, driverId),
+        eq(driverStops.companyId, companyId),
+        eq(driverStops.isActive, true)
+      ))
+      .limit(1);
+
+    const STOP_RADIUS_M = 50;
+
+    function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    if (activeStop.length > 0) {
+      const stop = activeStop[0];
+      const stopLat = parseFloat(stop.latitude);
+      const stopLng = parseFloat(stop.longitude);
+      const dist = haversineDistance(latLat, latLng, stopLat, stopLng);
+
+      if (dist > STOP_RADIUS_M && latest.speed > 0) {
+        const now = new Date(latest.timestamp);
+        const duration = Math.floor((now.getTime() - new Date(stop.startTime).getTime()) / 60000);
+        if (duration >= 10) {
+          await db.update(driverStops)
+            .set({ isActive: false, endTime: now, durationMinutes: duration })
+            .where(eq(driverStops.id, stop.id));
+        } else {
+          await db.delete(driverStops).where(eq(driverStops.id, stop.id));
+        }
+      } else {
+        const now = new Date(latest.timestamp);
+        const duration = Math.floor((now.getTime() - new Date(stop.startTime).getTime()) / 60000);
+        await db.update(driverStops)
+          .set({ durationMinutes: duration })
+          .where(eq(driverStops.id, stop.id));
+      }
+    } else {
+      const isStationary = latest.speed === 0 || (recentLocations.length >= 2 && (() => {
+        const prev = recentLocations[1];
+        const dist = haversineDistance(latLat, latLng, parseFloat(prev.latitude), parseFloat(prev.longitude));
+        return dist < STOP_RADIUS_M;
+      })());
+
+      if (isStationary) {
+        const activeTimesheetResult = await db.select().from(timesheets)
+          .where(and(
+            eq(timesheets.driverId, driverId),
+            eq(timesheets.companyId, companyId),
+            eq(timesheets.status, 'ACTIVE')
+          ))
+          .limit(1);
+
+        await db.insert(driverStops).values({
+          companyId,
+          driverId,
+          timesheetId: activeTimesheetResult.length > 0 ? activeTimesheetResult[0].id : null,
+          latitude: latest.latitude,
+          longitude: latest.longitude,
+          startTime: new Date(latest.timestamp),
+          durationMinutes: 0,
+          isActive: true,
+        });
+      }
+    }
+  }
+
+  async getDriverStopsByTimesheet(timesheetId: number): Promise<any[]> {
+    const { driverStops } = await import('@shared/schema');
+    return db.select().from(driverStops)
+      .where(and(
+        eq(driverStops.timesheetId, timesheetId),
+        sql`${driverStops.durationMinutes} >= 10`
+      ))
+      .orderBy(driverStops.startTime);
+  }
+
+  async getDriverStopsByDriver(driverId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    const { driverStops } = await import('@shared/schema');
+    const conditions = [
+      eq(driverStops.driverId, driverId),
+      sql`${driverStops.durationMinutes} >= 10`,
+    ];
+    if (startDate) conditions.push(sql`${driverStops.startTime} >= ${startDate}`);
+    if (endDate) conditions.push(sql`${driverStops.startTime} <= ${endDate}`);
+
+    return db.select().from(driverStops)
+      .where(and(...conditions))
+      .orderBy(desc(driverStops.startTime));
+  }
+
+  async getShiftTrail(driverId: number, timesheetId: number): Promise<{ locations: any[]; stops: any[] }> {
+    const { driverStops } = await import('@shared/schema');
+
+    const timesheet = await db.select().from(timesheets)
+      .where(eq(timesheets.id, timesheetId))
+      .limit(1);
+
+    if (timesheet.length === 0) return { locations: [], stops: [] };
+
+    const shiftStart = new Date(timesheet[0].arrivalTime);
+    const shiftEnd = timesheet[0].departureTime ? new Date(timesheet[0].departureTime) : new Date();
+
+    const locations = await db.select().from(driverLocations)
+      .where(and(
+        eq(driverLocations.driverId, driverId),
+        sql`${driverLocations.timestamp} >= ${shiftStart}`,
+        sql`${driverLocations.timestamp} <= ${shiftEnd}`
+      ))
+      .orderBy(driverLocations.timestamp);
+
+    const stops = await db.select().from(driverStops)
+      .where(and(
+        eq(driverStops.timesheetId, timesheetId),
+        sql`${driverStops.durationMinutes} >= 10`
+      ))
+      .orderBy(driverStops.startTime);
+
+    return { locations, stops };
+  }
+
   // ==================== GEOFENCING ====================
   
   async createGeofence(geofence: InsertGeofence): Promise<Geofence> {

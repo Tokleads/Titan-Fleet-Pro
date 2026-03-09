@@ -179,8 +179,11 @@ export function registerOperationsRoutes(app: Express) {
       // Check for stagnation (30 minutes threshold)
       await storage.checkStagnation(Number(driverId), Number(companyId));
       
-      // Check geofence entry/exit for timesheet management
+      // Check geofence entry/exit for timesheet management (must run before stop detection so timesheetId is set)
       await storage.checkGeofences(Number(driverId), Number(companyId), String(latitude), String(longitude));
+      
+      // Check for driver stops (10+ minutes stationary)
+      await storage.checkDriverStops(Number(driverId), Number(companyId));
       
       res.json(location);
     } catch (error) {
@@ -219,6 +222,16 @@ export function registerOperationsRoutes(app: Express) {
         }
       }
       
+      const uniqueDrivers = [...new Set(locations.map(l => `${l.driverId}:${l.companyId}`))];
+      for (const key of uniqueDrivers) {
+        const [dId, cId] = key.split(':').map(Number);
+        try {
+          await storage.checkDriverStops(dId, cId);
+        } catch (e) {
+          console.error(`Stop detection failed for driver ${dId}:`, e);
+        }
+      }
+      
       res.json({ 
         processed: results.length,
         successful: results.filter(r => r.success).length,
@@ -246,6 +259,58 @@ export function registerOperationsRoutes(app: Express) {
     }
   });
   
+  // ==================== DRIVER STOPS & SHIFT TRAIL ====================
+
+  app.get("/api/driver-stops/timesheet/:timesheetId", async (req, res) => {
+    try {
+      if (!(req as any).user?.companyId) return res.status(401).json({ error: "Unauthorized" });
+      const timesheetId = Number(req.params.timesheetId);
+      const stops = await storage.getDriverStopsByTimesheet(timesheetId);
+      if (stops.length > 0 && stops[0].companyId !== (req as any).user.companyId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      res.json(stops);
+    } catch (error) {
+      console.error("Failed to fetch driver stops:", error);
+      res.status(500).json({ error: "Failed to fetch stops" });
+    }
+  });
+
+  app.get("/api/driver-stops/driver/:driverId", async (req, res) => {
+    try {
+      if (!(req as any).user?.companyId) return res.status(401).json({ error: "Unauthorized" });
+      const driverId = Number(req.params.driverId);
+      const driver = await storage.getUser(driverId);
+      if (!driver || driver.companyId !== (req as any).user.companyId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const stops = await storage.getDriverStopsByDriver(driverId, startDate, endDate);
+      res.json(stops);
+    } catch (error) {
+      console.error("Failed to fetch driver stops:", error);
+      res.status(500).json({ error: "Failed to fetch stops" });
+    }
+  });
+
+  app.get("/api/shift-trail/:driverId/:timesheetId", async (req, res) => {
+    try {
+      if (!(req as any).user?.companyId) return res.status(401).json({ error: "Unauthorized" });
+      const driverId = Number(req.params.driverId);
+      const timesheetId = Number(req.params.timesheetId);
+      const driver = await storage.getUser(driverId);
+      if (!driver || driver.companyId !== (req as any).user.companyId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const trail = await storage.getShiftTrail(driverId, timesheetId);
+      res.json(trail);
+    } catch (error) {
+      console.error("Failed to fetch shift trail:", error);
+      res.status(500).json({ error: "Failed to fetch shift trail" });
+    }
+  });
+
   // ==================== GEOFENCING ====================
   
   // Create geofence (depot location)
