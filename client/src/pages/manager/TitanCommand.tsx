@@ -19,7 +19,8 @@ import {
   Clock,
   Eye,
   EyeOff,
-  MessageSquare
+  MessageSquare,
+  Mail
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,18 @@ interface UserInfo {
   email: string;
   role: string;
   active: boolean;
+}
+
+interface DriverMessage {
+  id: number;
+  companyId: number;
+  senderId: number;
+  subject: string | null;
+  content: string;
+  priority: string | null;
+  readAt: string | null;
+  createdAt: string;
+  sender?: { id: number; name: string; role: string };
 }
 
 interface SentNotification {
@@ -60,6 +73,7 @@ export default function TitanCommand() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [priority, setPriority] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
+  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
 
   // Fetch all drivers
   const { data: drivers } = useQuery<UserInfo[]>({
@@ -84,6 +98,49 @@ export default function TitanCommand() {
     },
     enabled: !!companyId && !!manager?.id,
   });
+
+  const { data: driverMessages, isLoading: inboxLoading } = useQuery<DriverMessage[]>({
+    queryKey: ["manager-messages", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/messages/${companyId}?limit=50`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
+    enabled: !!companyId,
+    refetchInterval: 30000,
+  });
+
+  const unreadCount = driverMessages?.filter((m) => !m.readAt).length || 0;
+
+  async function handleInboxClick(msg: DriverMessage) {
+    if (expandedMessageId === msg.id) {
+      setExpandedMessageId(null);
+      return;
+    }
+    setExpandedMessageId(msg.id);
+    if (!msg.readAt) {
+      try {
+        await fetch(`/api/manager/messages/${msg.id}/read`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ companyId }),
+        });
+        queryClient.invalidateQueries({ queryKey: ["manager-messages", companyId] });
+        queryClient.invalidateQueries({ queryKey: ["manager-messages-unread", companyId] });
+      } catch (e) {}
+    }
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
 
   // Send broadcast mutation
   const broadcastMutation = useMutation({
@@ -384,11 +441,69 @@ export default function TitanCommand() {
             </div>
           </div>
         </div>
-        {/* Message History */}
+        {/* Driver Inbox */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <Mail className="h-5 w-5 text-blue-600" />
+              Driver Inbox
+              {unreadCount > 0 && (
+                <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">{unreadCount}</span>
+              )}
+            </h2>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+            {inboxLoading ? (
+              <div className="p-8 text-center text-slate-400">Loading messages...</div>
+            ) : driverMessages && driverMessages.length > 0 ? (
+              driverMessages.map((msg) => (
+                <div key={msg.id} data-testid={`inbox-message-${msg.id}`}>
+                  <button
+                    onClick={() => handleInboxClick(msg)}
+                    className={`w-full text-left p-4 hover:bg-slate-50 transition-colors ${!msg.readAt ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm ${!msg.readAt ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                            {msg.sender?.name || 'Driver'}
+                          </span>
+                          {msg.priority === 'urgent' && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">URGENT</span>
+                          )}
+                        </div>
+                        <p className={`text-sm mt-0.5 truncate ${!msg.readAt ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
+                          {msg.subject && <span className="font-bold">{msg.subject}: </span>}
+                          {msg.content.length > 80 ? msg.content.slice(0, 80) + '...' : msg.content}
+                        </p>
+                      </div>
+                      <span className="text-xs text-slate-400 whitespace-nowrap flex-shrink-0">{timeAgo(msg.createdAt)}</span>
+                    </div>
+                  </button>
+                  {expandedMessageId === msg.id && (
+                    <div className="px-4 pb-4 bg-slate-50 border-l-4 border-l-blue-200">
+                      {msg.subject && <p className="text-sm font-bold text-slate-900 mb-1">{msg.subject}</p>}
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-xs text-slate-400 mt-2">From {msg.sender?.name || 'Driver'} • {new Date(msg.createdAt).toLocaleString('en-GB')}</p>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="p-12 text-center">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                <p className="text-slate-500 font-medium">No messages yet</p>
+                <p className="text-sm text-slate-400 mt-1">Messages from drivers will appear here</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sent Message History */}
         <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-blue-600" />
-            Message History
+            Sent Message History
           </h2>
           
           {sentLoading ? (
