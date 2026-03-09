@@ -24,7 +24,9 @@ import {
   Plus,
   Brain,
   Sparkles,
-  Bot
+  Bot,
+  Camera,
+  ZoomIn
 } from "lucide-react";
 import { VehicleDetailModal } from "@/components/VehicleDetailModal";
 
@@ -157,6 +159,30 @@ function DefectDetailModal({ defect, vehicles, allDefects, onClose, onUpdate, on
               <p className="text-sm text-slate-700">{defect.description}</p>
             </div>
           </div>
+
+          {defect.photo && (
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                <Camera className="h-4 w-4 text-slate-500" />
+                Photo Evidence
+              </h3>
+              <div className="bg-slate-50 rounded-xl p-3">
+                <a href={defect.photo} target="_blank" rel="noopener noreferrer" className="block relative group cursor-pointer">
+                  <img
+                    src={defect.photo}
+                    alt={`Defect #${defect.id} photo`}
+                    className="w-full max-h-[300px] object-contain rounded-lg border border-slate-200"
+                    data-testid="img-defect-photo"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2 shadow-lg">
+                      <ZoomIn className="h-5 w-5 text-slate-700" />
+                    </div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          )}
 
           {defect.aiTriaged && (
             <div className="bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl p-4 border border-violet-200/50">

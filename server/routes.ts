@@ -894,12 +894,12 @@ export async function registerRoutes(
   // Create defect report (driver)
   app.post("/api/defects", async (req, res) => {
     try {
-      const defectInputSchema = z.object({ companyId: z.number(), vehicleId: z.number(), reportedBy: z.number(), description: z.string().min(1), hasPhoto: z.boolean().optional(), severity: z.string().optional() });
+      const defectInputSchema = z.object({ companyId: z.number(), vehicleId: z.number(), reportedBy: z.number(), description: z.string().min(1), hasPhoto: z.boolean().optional(), severity: z.string().optional(), category: z.string().optional(), status: z.string().optional(), photo: z.string().nullable().optional() });
       const validation = defectInputSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const { companyId, vehicleId, reportedBy, severity } = validation.data;
+      const { companyId, vehicleId, reportedBy, severity, photo } = validation.data;
       const description = sanitizeInput(validation.data.description);
       
       const defect = await storage.createDefect({
@@ -907,9 +907,10 @@ export async function registerRoutes(
         vehicleId,
         reportedBy,
         description,
-        category: "VEHICLE",
+        category: validation.data.category || "VEHICLE",
         status: "OPEN",
         severity: severity || "MEDIUM",
+        photo: photo || null,
       });
       
       // Trigger notification to managers (async, non-blocking)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DriverLayout } from "@/components/layout/AppShell";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanCard } from "@/components/titan-ui/Card";
@@ -6,9 +6,14 @@ import { useLocation, useRoute } from "wouter";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle } from "@shared/schema";
-import { ChevronLeft, Camera, Loader2, AlertTriangle, Check, X } from "lucide-react";
+import { ChevronLeft, Camera, Loader2, AlertTriangle, X, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+
+function authHeaders(): Record<string, string> {
+  const token = session.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export default function DefectReport() {
   const [, params] = useRoute("/driver/defect/:id");
@@ -19,8 +24,9 @@ export default function DefectReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [defectNote, setDefectNote] = useState("");
-  const [photo1, setPhoto1] = useState<string | null>(null);
-  const [photo2, setPhoto2] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<{ objectPath: string; preview: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const company = session.getCompany();
   const user = session.getUser();
@@ -30,6 +36,12 @@ export default function DefectReport() {
       loadVehicle(Number(params.id));
     }
   }, [params?.id]);
+
+  useEffect(() => {
+    return () => {
+      photos.forEach(p => URL.revokeObjectURL(p.preview));
+    };
+  }, []);
 
   const loadVehicle = async (id: number) => {
     setIsLoading(true);
@@ -42,6 +54,56 @@ export default function DefectReport() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !company) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setIsUploading(true);
+
+    try {
+      const response = await fetch("/api/defect-photos/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          companyId: company.id,
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get upload URL");
+
+      const { uploadURL, objectPath } = await response.json();
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      setPhotos(prev => [...prev, { objectPath, preview: previewUrl }]);
+      toast({ title: "Photo uploaded", description: "Photo evidence captured successfully" });
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      URL.revokeObjectURL(previewUrl);
+      toast({ variant: "destructive", title: "Upload failed", description: "Could not upload photo. Please try again." });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async () => {
@@ -57,13 +119,26 @@ export default function DefectReport() {
 
     setIsSubmitting(true);
     try {
-      await api.createDefect({
-        companyId: company.id,
-        vehicleId: vehicle.id,
-        reportedBy: user.id,
-        description: defectNote,
-        hasPhoto: !!(photo1 || photo2),
+      const res = await fetch("/api/defects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          companyId: company.id,
+          vehicleId: vehicle.id,
+          reportedBy: user.id,
+          description: defectNote,
+          category: "VEHICLE",
+          severity: "MEDIUM",
+          status: "OPEN",
+          photo: photos.length > 0 ? photos[0].objectPath : null,
+        }),
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to submit defect");
+      }
 
       toast({
         title: "Fault Reported",
@@ -133,52 +208,59 @@ export default function DefectReport() {
 
           <TitanCard className="p-4">
             <label className="titan-section-label block mb-3">Photo Evidence</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoCapture}
+              data-testid="input-defect-photo-file"
+            />
+
             <div className="grid grid-cols-2 gap-3">
-              {photo1 ? (
-                <div className="aspect-square rounded-xl bg-emerald-50 border-2 border-emerald-200 flex flex-col items-center justify-center relative">
-                  <Check className="h-8 w-8 text-emerald-600 mb-1" />
-                  <span className="text-xs text-emerald-700 font-medium">Photo 1</span>
-                  <button 
-                    onClick={() => setPhoto1(null)}
-                    className="absolute top-2 right-2 h-6 w-6 rounded-full bg-white shadow flex items-center justify-center"
+              {photos.map((photo, idx) => (
+                <div key={idx} className="aspect-square rounded-xl border-2 border-emerald-200 relative overflow-hidden">
+                  <img
+                    src={photo.preview}
+                    alt={`Photo ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    data-testid={`img-defect-photo-${idx}`}
+                  />
+                  <button
+                    onClick={() => removePhoto(idx)}
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 shadow flex items-center justify-center"
+                    data-testid={`button-remove-photo-${idx}`}
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-slate-600" />
                   </button>
                 </div>
-              ) : (
+              ))}
+
+              {photos.length < 2 && (
                 <button
-                  onClick={() => setPhoto1(`captured_${Date.now()}`)}
-                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors"
-                  data-testid="button-photo-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                  data-testid="button-add-photo"
                 >
-                  <Camera className="h-8 w-8 text-slate-400 mb-1" />
-                  <span className="text-xs text-slate-500 font-medium">Photo 1</span>
-                </button>
-              )}
-              
-              {photo2 ? (
-                <div className="aspect-square rounded-xl bg-emerald-50 border-2 border-emerald-200 flex flex-col items-center justify-center relative">
-                  <Check className="h-8 w-8 text-emerald-600 mb-1" />
-                  <span className="text-xs text-emerald-700 font-medium">Photo 2</span>
-                  <button 
-                    onClick={() => setPhoto2(null)}
-                    className="absolute top-2 right-2 h-6 w-6 rounded-full bg-white shadow flex items-center justify-center"
-                  >
-                    <X className="h-4 w-4 text-slate-500" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setPhoto2(`captured_${Date.now()}`)}
-                  className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors"
-                  data-testid="button-photo-2"
-                >
-                  <Camera className="h-8 w-8 text-slate-400 mb-1" />
-                  <span className="text-xs text-slate-500 font-medium">Photo 2</span>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-8 w-8 text-slate-400 mb-1 animate-spin" />
+                      <span className="text-xs text-slate-500 font-medium">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-8 w-8 text-slate-400 mb-1" />
+                      <span className="text-xs text-slate-500 font-medium">
+                        {photos.length === 0 ? "Add Photo" : "Add Photo 2"}
+                      </span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
-            <p className="titan-micro mt-3 text-center">Tap to capture photo evidence</p>
+            <p className="text-[11px] text-slate-400 mt-3 text-center">Tap to capture photo evidence (up to 2 photos)</p>
           </TitanCard>
         </div>
 
@@ -196,7 +278,7 @@ export default function DefectReport() {
               className="flex-1"
               onClick={handleSubmit}
               isLoading={isSubmitting}
-              disabled={!defectNote.trim()}
+              disabled={!defectNote.trim() || isUploading}
               data-testid="button-submit-defect"
             >
               Submit Fault

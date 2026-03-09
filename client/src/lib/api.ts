@@ -107,7 +107,10 @@ class ApiClient {
     vehicleId: number;
     reportedBy: number;
     description: string;
-    hasPhoto?: boolean;
+    photo?: string | null;
+    category?: string;
+    severity?: string;
+    status?: string;
   }): Promise<any> {
     return this.request(`/api/defects`, {
       method: "POST",
