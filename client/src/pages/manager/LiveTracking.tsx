@@ -151,40 +151,69 @@ export default function LiveTracking() {
           const isStagnant = location.isStagnant;
           const markerColor = isStagnant ? '#ef4444' : '#00a3ff';
 
+          const driverName = location.driver?.name || 'Unknown Driver';
           const customIcon = L.divIcon({
             className: 'custom-marker',
             html: `
-              <div style="
-                width: 20px;
-                height: 20px;
-                background-color: ${markerColor};
-                border: 3px solid white;
-                border-radius: 50%;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-              "></div>
+              <div style="position: relative; cursor: pointer;">
+                <div style="
+                  width: 28px;
+                  height: 28px;
+                  background-color: ${markerColor};
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+                "></div>
+                <div style="
+                  position: absolute;
+                  top: -24px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  background: white;
+                  padding: 2px 8px;
+                  border-radius: 10px;
+                  font-size: 11px;
+                  font-weight: 600;
+                  color: #0f172a;
+                  white-space: nowrap;
+                  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+                  border: 1px solid #e2e8f0;
+                  font-family: system-ui, -apple-system, sans-serif;
+                ">${driverName}</div>
+              </div>
             `,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
           });
 
           const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
+          const timeAgo = Math.floor((Date.now() - new Date(location.timestamp).getTime()) / 60000);
+          const timeAgoStr = timeAgo < 1 ? 'Just now' : timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo / 60)}h ago`;
+
           const popupContent = `
-            <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
-              <h3 style="font-weight: bold; margin: 0 0 8px 0; font-size: 14px; color: #0f172a;">
-                ${location.driver?.name || 'Unknown Driver'}
+            <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; padding: 4px;">
+              <h3 style="font-weight: 700; margin: 0 0 10px 0; font-size: 15px; color: #0f172a;">
+                ${driverName}
               </h3>
-              <p style="margin: 4px 0; font-size: 13px; color: #475569;">
-                <strong>Speed:</strong> ${location.speed} km/h
+              <div style="display: flex; gap: 12px; margin-bottom: 6px;">
+                <div style="flex: 1; background: #f1f5f9; border-radius: 8px; padding: 6px 10px; text-align: center;">
+                  <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Speed</div>
+                  <div style="font-size: 16px; font-weight: 700; color: #0f172a;">${location.speed || 0} <span style="font-size: 11px; font-weight: 500;">km/h</span></div>
+                </div>
+                <div style="flex: 1; background: #f1f5f9; border-radius: 8px; padding: 6px 10px; text-align: center;">
+                  <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
+                  <div style="font-size: 13px; font-weight: 600; color: #0f172a;">${timeAgoStr}</div>
+                </div>
+              </div>
+              <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">
+                ${new Date(location.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </p>
-              <p style="margin: 4px 0; font-size: 13px; color: #475569;">
-                <strong>Last Update:</strong> ${new Date(location.timestamp).toLocaleTimeString()}
-              </p>
-              ${isStagnant ? '<p style="color: #ef4444; font-weight: bold; margin: 8px 0 0 0; font-size: 13px;">⚠️ STAGNANT</p>' : ''}
+              ${isStagnant ? '<p style="color: #ef4444; font-weight: bold; margin: 8px 0 0 0; font-size: 13px; background: #fef2f2; padding: 4px 8px; border-radius: 6px;">⚠️ STAGNANT</p>' : ''}
             </div>
           `;
 
-          marker.bindPopup(popupContent);
+          marker.bindPopup(popupContent, { maxWidth: 280 });
           markers.set(location.driverId, marker);
           allBounds.push([lat, lng]);
         } catch (error) {
@@ -204,39 +233,69 @@ export default function LiveTracking() {
         const customIcon = L.divIcon({
           className: 'custom-marker',
           html: `
-            <div style="
-              width: 20px;
-              height: 20px;
-              background-color: #8b5cf6;
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            "></div>
+            <div style="position: relative; cursor: pointer;">
+              <div style="
+                width: 28px;
+                height: 28px;
+                background-color: #8b5cf6;
+                border: 3px solid white;
+                border-radius: 50%;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+              "></div>
+              <div style="
+                position: absolute;
+                top: -24px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                padding: 2px 8px;
+                border-radius: 10px;
+                font-size: 11px;
+                font-weight: 600;
+                color: #0f172a;
+                white-space: nowrap;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+                border: 1px solid #e2e8f0;
+                font-family: system-ui, -apple-system, sans-serif;
+              ">${driver.driverName}</div>
+            </div>
           `,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
         });
 
         const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
+        const clockedInAt = new Date(driver.arrivalTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const shiftDuration = Math.floor((Date.now() - new Date(driver.arrivalTime).getTime()) / 60000);
+        const shiftH = Math.floor(shiftDuration / 60);
+        const shiftM = shiftDuration % 60;
+
         const popupContent = `
-          <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
-            <h3 style="font-weight: bold; margin: 0 0 8px 0; font-size: 14px; color: #0f172a;">
+          <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; padding: 4px;">
+            <h3 style="font-weight: 700; margin: 0 0 10px 0; font-size: 15px; color: #0f172a;">
               ${driver.driverName}
             </h3>
-            <p style="margin: 4px 0; font-size: 13px; color: #475569;">
-              <strong>Status:</strong> Clocked In
-            </p>
-            <p style="margin: 4px 0; font-size: 13px; color: #475569;">
+            <div style="display: flex; gap: 12px; margin-bottom: 6px;">
+              <div style="flex: 1; background: #f5f3ff; border-radius: 8px; padding: 6px 10px; text-align: center;">
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Clocked In</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a;">${clockedInAt}</div>
+              </div>
+              <div style="flex: 1; background: #f5f3ff; border-radius: 8px; padding: 6px 10px; text-align: center;">
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">On Shift</div>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a;">${shiftH}h ${shiftM}m</div>
+              </div>
+            </div>
+            <p style="margin: 4px 0; font-size: 12px; color: #475569;">
               <strong>Depot:</strong> ${driver.depotName || 'N/A'}
             </p>
-            <p style="margin: 4px 0; font-size: 11px; color: #8b5cf6;">
-              📍 Timesheet location (no GPS data)
+            <p style="margin: 6px 0 0 0; font-size: 11px; color: #8b5cf6;">
+              📍 Clock-in location (no live GPS)
             </p>
           </div>
         `;
 
-        marker.bindPopup(popupContent);
+        marker.bindPopup(popupContent, { maxWidth: 280 });
         markers.set(driver.driverId, marker);
         allBounds.push([lat, lng]);
       });
