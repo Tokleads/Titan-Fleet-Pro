@@ -494,7 +494,10 @@ export function registerFinancialRoutes(app: Express) {
   // Create or update pay rate
   app.post("/api/pay-rates", requirePermission('pay-rates'), async (req, res) => {
     try {
-      const validation = insertPayRateSchema.safeParse(req.body);
+      const body = { ...req.body };
+      if (body.effectiveFrom && typeof body.effectiveFrom === 'string') body.effectiveFrom = new Date(body.effectiveFrom);
+      if (body.effectiveTo && typeof body.effectiveTo === 'string') body.effectiveTo = new Date(body.effectiveTo);
+      const validation = insertPayRateSchema.safeParse(body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
@@ -512,7 +515,10 @@ export function registerFinancialRoutes(app: Express) {
   // Update pay rate
   app.patch("/api/pay-rates/:id", requirePermission('pay-rates'), async (req, res) => {
     try {
-      const validation = insertPayRateSchema.partial().safeParse(req.body);
+      const body = { ...req.body };
+      if (body.effectiveFrom && typeof body.effectiveFrom === 'string') body.effectiveFrom = new Date(body.effectiveFrom);
+      if (body.effectiveTo && typeof body.effectiveTo === 'string') body.effectiveTo = new Date(body.effectiveTo);
+      const validation = insertPayRateSchema.partial().safeParse(body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
