@@ -49,15 +49,15 @@ router.get("/", async (req, res) => {
       timesheetMap.set(ts.driverId, ts);
     }
 
-    const recentInspections = await db.execute(sql`
-      SELECT DISTINCT ON (i.driver_id) i.driver_id, i.vehicle_id, v.vrm, v.make, v.model, v.fleet_number
-      FROM inspections i
-      LEFT JOIN vehicles v ON v.id = i.vehicle_id
-      WHERE i.company_id = ${companyIdNum} AND i.driver_id = ANY(ARRAY[${sql.join(driverIds.map(id => sql`${id}`), sql`, `)}]::int[])
-      ORDER BY i.driver_id, i.created_at DESC
+    const recentUsage = await db.execute(sql`
+      SELECT DISTINCT ON (vu.driver_id) vu.driver_id, vu.vehicle_id, v.vrm, v.make, v.model, v.fleet_number
+      FROM vehicle_usage vu
+      LEFT JOIN vehicles v ON v.id = vu.vehicle_id
+      WHERE vu.company_id = ${companyIdNum} AND vu.driver_id = ANY(ARRAY[${sql.join(driverIds.map(id => sql`${id}`), sql`, `)}]::int[])
+      ORDER BY vu.driver_id, vu.last_used_at DESC
     `);
     const vehicleMap = new Map();
-    for (const row of recentInspections.rows) {
+    for (const row of recentUsage.rows) {
       vehicleMap.set(row.driver_id, {
         id: row.vehicle_id,
         vrm: row.vrm,
@@ -65,6 +65,25 @@ router.get("/", async (req, res) => {
         model: row.model,
         fleetNumber: row.fleet_number,
       });
+    }
+
+    const recentInspections = await db.execute(sql`
+      SELECT DISTINCT ON (i.driver_id) i.driver_id, i.vehicle_id, v.vrm, v.make, v.model, v.fleet_number
+      FROM inspections i
+      LEFT JOIN vehicles v ON v.id = i.vehicle_id
+      WHERE i.company_id = ${companyIdNum} AND i.driver_id = ANY(ARRAY[${sql.join(driverIds.map(id => sql`${id}`), sql`, `)}]::int[])
+      ORDER BY i.driver_id, i.created_at DESC
+    `);
+    for (const row of recentInspections.rows) {
+      if (!vehicleMap.has(row.driver_id)) {
+        vehicleMap.set(row.driver_id, {
+          id: row.vehicle_id,
+          vrm: row.vrm,
+          make: row.make,
+          model: row.model,
+          fleetNumber: row.fleet_number,
+        });
+      }
     }
 
     const driversWithDetails = drivers.map((driver) => {

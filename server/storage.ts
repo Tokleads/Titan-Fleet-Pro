@@ -322,7 +322,7 @@ export class DatabaseStorage implements IStorage {
   async trackVehicleUsage(companyId: number, driverId: number, vehicleId: number): Promise<void> {
     await db.execute(sql`
       DELETE FROM vehicle_usage
-      WHERE company_id = ${companyId} AND driver_id = ${driverId} AND vehicle_id = ${vehicleId}
+      WHERE company_id = ${companyId} AND driver_id = ${driverId}
     `);
     await db.execute(sql`
       INSERT INTO vehicle_usage (company_id, driver_id, vehicle_id, last_used_at)
