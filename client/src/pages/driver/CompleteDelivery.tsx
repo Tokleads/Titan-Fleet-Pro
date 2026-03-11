@@ -256,8 +256,6 @@ export default function CompleteDelivery() {
 
   const canSubmit =
     customerName.trim().length > 0 &&
-    photos.length >= 1 &&
-    !!signatureObjectPath &&
     !!vehicle &&
     !isUploadingPhoto &&
     !isUploadingSignature;
@@ -272,14 +270,14 @@ export default function CompleteDelivery() {
         driverId: user.id,
         vehicleId: vehicle.id,
         customerName: customerName.trim(),
-        deliveryAddress: deliveryAddress.trim(),
-        referenceNumber: referenceNumber.trim(),
-        signatureUrl: signatureObjectPath,
+        deliveryAddress: deliveryAddress.trim() || null,
+        referenceNumber: referenceNumber.trim() || null,
+        signatureUrl: signatureObjectPath || "none",
         photoUrls: photos.map((p) => p.objectPath),
-        deliveryNotes: deliveryNotes.trim(),
+        deliveryNotes: deliveryNotes.trim() || null,
         gpsLatitude: gpsLocation ? String(gpsLocation.lat) : null,
         gpsLongitude: gpsLocation ? String(gpsLocation.lng) : null,
-        gpsAccuracy: gpsAccuracy,
+        gpsAccuracy: gpsAccuracy ? Math.round(gpsAccuracy) : null,
         arrivedAt: arrivedAt ? arrivedAt.toISOString() : null,
         departedAt: departedAt ? departedAt.toISOString() : null,
         completedAt: new Date().toISOString(),
@@ -504,7 +502,7 @@ export default function CompleteDelivery() {
               <span className="text-[12px] text-slate-400 font-medium">{photos.length}/5</span>
             </div>
             <p className="text-[13px] text-slate-500 mb-3">
-              Photograph goods at delivery point (min 1, max 5)
+              Photograph goods at delivery point (optional, max 5)
             </p>
 
             <input
@@ -575,7 +573,7 @@ export default function CompleteDelivery() {
               )}
             </div>
             <p className="text-[13px] text-slate-500 mb-3">
-              Customer must sign to confirm receipt
+              Customer signature to confirm receipt (optional)
             </p>
             <SignaturePad onSignatureChange={handleSignatureChange} />
             {isUploadingSignature && (
@@ -630,10 +628,10 @@ export default function CompleteDelivery() {
                 ? "Select a vehicle first"
                 : !customerName.trim()
                   ? "Enter customer name"
-                  : photos.length === 0
-                    ? "Add at least 1 photo"
-                    : !signatureObjectPath
-                      ? "Capture signature"
+                  : isUploadingPhoto
+                    ? "Uploading photo..."
+                    : isUploadingSignature
+                      ? "Uploading signature..."
                       : "Submit to Manager"}
             </TitanButton>
             {canSubmit && (
