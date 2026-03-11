@@ -450,6 +450,21 @@ app.use((req, res, next) => {
     console.error('[pgvector] Extension setup (non-fatal):', vecErr);
   }
 
+  try {
+    const { db: dbDoc } = await import('./db');
+    const { sql: sqlDoc } = await import('drizzle-orm');
+    const docMigName = 'documents_published_to_drivers_v1';
+    const docMigExisting = await dbDoc.execute(sqlDoc`SELECT name FROM _migrations WHERE name = ${docMigName}`);
+    if (!docMigExisting.rows || docMigExisting.rows.length === 0) {
+      await dbDoc.execute(sqlDoc`ALTER TABLE documents ADD COLUMN IF NOT EXISTS published_to_drivers BOOLEAN DEFAULT false`);
+      await dbDoc.execute(sqlDoc`UPDATE documents SET published_to_drivers = true WHERE active = true`);
+      await dbDoc.execute(sqlDoc`INSERT INTO _migrations (name) VALUES (${docMigName})`);
+      console.log('[Migration] Added published_to_drivers column to documents, existing active docs set to published');
+    }
+  } catch (docMigErr) {
+    console.error('Documents migration (non-fatal):', docMigErr);
+  }
+
   };
 
   // Register admin routes

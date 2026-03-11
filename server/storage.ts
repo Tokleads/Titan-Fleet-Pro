@@ -789,12 +789,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUnreadDocuments(companyId: number, userId: number): Promise<Document[]> {
-    // Get all active documents that require acknowledgment and haven't been acknowledged by this user
     const allDocs = await db.select().from(documents)
       .where(and(
         eq(documents.companyId, companyId),
         eq(documents.active, true),
-        eq(documents.requiresAcknowledgment, true)
+        eq(documents.requiresAcknowledgment, true),
+        eq(documents.publishedToDrivers, true)
       ));
     
     // Get user's acknowledgments

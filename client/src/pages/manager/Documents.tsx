@@ -16,13 +16,16 @@ import {
   Clock,
   Users,
   Eye,
+  EyeOff,
   Trash2,
-  AlertCircle,
-  CheckCircle2,
   X,
   Upload,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  ToggleLeft,
+  ToggleRight,
+  Send,
+  FileIcon
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -48,6 +51,7 @@ export default function ManagerDocuments() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [viewingDocId, setViewingDocId] = useState<number | null>(null);
   const [newDoc, setNewDoc] = useState({
     title: "",
     description: "",
@@ -137,6 +141,7 @@ export default function ManagerDocuments() {
           companyId,
           createdBy: manager?.id,
           requiresAcknowledgment: true,
+          publishedToDrivers: false,
         }),
       });
       if (!res.ok) throw new Error("Failed to create document");
@@ -150,6 +155,21 @@ export default function ManagerDocuments() {
     },
   });
 
+  const togglePublishMutation = useMutation({
+    mutationFn: async ({ id, published }: { id: number; published: boolean }) => {
+      const res = await fetch(`/api/manager/documents/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ publishedToDrivers: published }),
+      });
+      if (!res.ok) throw new Error("Failed to update document");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manager-documents"] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/manager/documents/${id}`, { method: "DELETE", headers: authHeaders() });
@@ -160,20 +180,73 @@ export default function ManagerDocuments() {
     },
   });
 
+  const handleViewDocument = async (docId: number) => {
+    try {
+      setViewingDocId(docId);
+      const res = await fetch(`/api/manager/documents/${docId}/view-url`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to get view URL");
+      const { viewUrl } = await res.json();
+      window.open(viewUrl, '_blank');
+    } catch (error) {
+      console.error("Error viewing document:", error);
+    } finally {
+      setViewingDocId(null);
+    }
+  };
+
   const driverCount = users?.filter((u: any) => u.role === "DRIVER" && u.active).length || 0;
+  const activeDocuments = documents?.filter((d: any) => d.active) || [];
+  const publishedCount = activeDocuments.filter((d: any) => d.publishedToDrivers).length;
+  const draftCount = activeDocuments.filter((d: any) => !d.publishedToDrivers).length;
 
   return (
     <ManagerLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Driver Documents</h1>
+            <h1 className="text-2xl font-bold text-slate-900" data-testid="text-page-title">Driver Documents</h1>
             <p className="text-slate-500 mt-1">Manage documents that drivers must read and acknowledge</p>
           </div>
-          <TitanButton size="sm" onClick={() => setShowCreateModal(true)}>
+          <TitanButton size="sm" onClick={() => setShowCreateModal(true)} data-testid="button-new-document">
             <Plus className="h-4 w-4 mr-2" />
             New Document
           </TitanButton>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <TitanCard className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <FileText className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Total Documents</p>
+                <p className="text-xl font-bold text-slate-900" data-testid="text-total-docs">{activeDocuments.length}</p>
+              </div>
+            </div>
+          </TitanCard>
+          <TitanCard className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Eye className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Published to Drivers</p>
+                <p className="text-xl font-bold text-green-600" data-testid="text-published-count">{publishedCount}</p>
+              </div>
+            </div>
+          </TitanCard>
+          <TitanCard className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <EyeOff className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Drafts (Not Visible)</p>
+                <p className="text-xl font-bold text-amber-600" data-testid="text-draft-count">{draftCount}</p>
+              </div>
+            </div>
+          </TitanCard>
         </div>
 
         {isLoading ? (
@@ -182,7 +255,7 @@ export default function ManagerDocuments() {
               <Skeleton key={i} className="h-48" />
             ))}
           </div>
-        ) : documents?.length === 0 ? (
+        ) : activeDocuments.length === 0 ? (
           <TitanCard className="p-12 text-center">
             <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-slate-900">No documents yet</h3>
@@ -194,35 +267,51 @@ export default function ManagerDocuments() {
           </TitanCard>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {documents?.filter((d: any) => d.active).map((doc: any) => (
-              <TitanCard key={doc.id} className="p-4 hover:shadow-md transition-shadow">
+            {activeDocuments.map((doc: any) => (
+              <TitanCard key={doc.id} className="p-4 hover:shadow-md transition-shadow" data-testid={`card-document-${doc.id}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
                       <FileText className="h-5 w-5 text-blue-600" />
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priorityColors[doc.priority] || priorityColors.NORMAL}`}>
                         {doc.priority}
                       </span>
+                      {doc.publishedToDrivers ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700 flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          Live
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex items-center gap-1">
+                          <EyeOff className="h-3 w-3" />
+                          Draft
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button 
-                    onClick={() => deleteMutation.mutate(doc.id)}
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this document?')) {
+                        deleteMutation.mutate(doc.id);
+                      }
+                    }}
                     className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500"
+                    data-testid={`button-delete-${doc.id}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 
-                <h3 className="font-semibold text-slate-900 mb-1">{doc.title}</h3>
+                <h3 className="font-semibold text-slate-900 mb-1" data-testid={`text-doc-title-${doc.id}`}>{doc.title}</h3>
                 <p className="text-sm text-slate-500 mb-3 line-clamp-2">{doc.description || doc.content?.substring(0, 100)}</p>
                 
                 <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
                   <span className="bg-slate-100 px-2 py-0.5 rounded">{categoryLabels[doc.category] || doc.category}</span>
                 </div>
                 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 mb-3">
                   <div className="flex items-center gap-1 text-xs text-slate-500">
                     <Clock className="h-3 w-3" />
                     {new Date(doc.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
@@ -231,6 +320,47 @@ export default function ManagerDocuments() {
                     <Users className="h-3 w-3" />
                     0/{driverCount} read
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  {doc.fileUrl && (
+                    <button
+                      onClick={() => handleViewDocument(doc.id)}
+                      disabled={viewingDocId === doc.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      data-testid={`button-view-${doc.id}`}
+                    >
+                      {viewingDocId === doc.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      )}
+                      View File
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => togglePublishMutation.mutate({ id: doc.id, published: !doc.publishedToDrivers })}
+                    disabled={togglePublishMutation.isPending}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                      doc.publishedToDrivers 
+                        ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' 
+                        : 'bg-green-50 text-green-700 hover:bg-green-100'
+                    }`}
+                    data-testid={`button-toggle-publish-${doc.id}`}
+                  >
+                    {doc.publishedToDrivers ? (
+                      <>
+                        <EyeOff className="h-3.5 w-3.5" />
+                        Unpublish
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5" />
+                        Publish
+                      </>
+                    )}
+                  </button>
                 </div>
               </TitanCard>
             ))}
@@ -246,6 +376,13 @@ export default function ManagerDocuments() {
               <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-slate-100 rounded">
                 <X className="h-5 w-5 text-slate-500" />
               </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800 flex items-center gap-2">
+                <EyeOff className="h-4 w-4 flex-shrink-0" />
+                New documents are saved as drafts. You can publish them to drivers after reviewing.
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -385,13 +522,14 @@ export default function ManagerDocuments() {
               <TitanButton 
                 onClick={() => createMutation.mutate(newDoc)}
                 disabled={!newDoc.title || createMutation.isPending || isUploading}
+                data-testid="button-create-document"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Uploading...
                   </>
-                ) : createMutation.isPending ? "Creating..." : "Create Document"}
+                ) : createMutation.isPending ? "Creating..." : "Save as Draft"}
               </TitanButton>
             </div>
           </div>

@@ -311,6 +311,7 @@ export const documents = pgTable("documents", {
   content: text("content"), // Rich text content if no file
   priority: varchar("priority", { length: 20 }).default("NORMAL"), // LOW | NORMAL | HIGH | URGENT
   requiresAcknowledgment: boolean("requires_acknowledgment").default(true),
+  publishedToDrivers: boolean("published_to_drivers").default(false),
   expiresAt: timestamp("expires_at"), // Optional expiry date
   active: boolean("active").default(true),
   createdBy: integer("created_by").references(() => users.id).notNull(),

@@ -174,6 +174,29 @@ export function registerCoreRoutes(app: Express) {
     }
   });
 
+  app.get("/api/manager/documents/:id/view-url", async (req, res) => {
+    try {
+      const docId = Number(req.params.id);
+      const [doc] = await db.select().from(documents).where(eq(documents.id, docId));
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      if (req.user && doc.companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      if (!doc.fileUrl) {
+        return res.status(404).json({ error: "No file attached to this document" });
+      }
+      if (doc.fileUrl.startsWith('http://') || doc.fileUrl.startsWith('https://')) {
+        return res.json({ viewUrl: doc.fileUrl });
+      }
+      res.json({ viewUrl: doc.fileUrl });
+    } catch (error) {
+      console.error("Error getting document view URL:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Get document acknowledgments (manager)
   app.get("/api/manager/documents/:id/acknowledgments", async (req, res) => {
     try {
