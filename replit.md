@@ -49,7 +49,7 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **Clock-in from anywhere**: No geofence restriction. Out-of-geofence clock-ins flagged for manager review.
 
 **Core Features & Implementations:**
-- **Authentication**: PIN-based login for drivers, email/password with 2FA for managers, secure account setup and password reset flows. JWT tokens stored in httpOnly cookies (cookie name: `tf_token`, 24h expiry, secure in production, sameSite: lax). Client-side fully migrated — global fetch interceptor adds `credentials: "include"`, no more localStorage token storage. Bearer token header fallback still accepted server-side.
+- **Authentication**: PIN-based login for drivers only (quick access on shared tablets). Managers use email/password exclusively (no PIN option) with optional 2FA. Secure account setup and password reset flows. JWT tokens stored in httpOnly cookies (cookie name: `tf_token`, 24h expiry, secure in production, sameSite: lax). Client-side fully migrated — global fetch interceptor adds `credentials: "include"`, no more localStorage token storage. Bearer token header fallback still accepted server-side.
 - **Role-Based Access**: ADMIN (full access + approval authority), TRANSPORT_MANAGER (standard management), PLANNER (view-only: on-duty drivers, no clock in/out), OFFICE (read-only dashboard view), DRIVER, MECHANIC, AUDITOR.
 - **Timesheet Approval Workflow**: Time adjustments by transport managers require ADMIN approval. Pending/Approved/Rejected states with server-side role enforcement.
 - **Company Car Register**: Drivers log which company car they're using (number plate, date/time) for fine attribution. Located at /driver/car-register.

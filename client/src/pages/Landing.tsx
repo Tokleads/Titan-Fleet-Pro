@@ -85,10 +85,8 @@ export default function Landing() {
         localStorage.setItem("titanfleet_last_role", isManager ? "manager" : "driver");
         setLocation(isManager ? "/manager" : "/driver");
       } else {
-        const company = await api.getCompanyByCode(companyCode);
-        session.setCompany(company);
-        refreshCompany();
         setLocation("/manager/login");
+        return;
       }
     } catch (error) {
       toast({
@@ -223,23 +221,10 @@ export default function Landing() {
                                 <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="text-sm font-bold text-blue-900">Manager Console</p>
-                                    <p className="text-xs text-blue-700 mt-1">Please log in with your corporate credentials.</p>
+                                    <p className="text-xs text-blue-700 mt-1">Secure login with email and password.</p>
                                 </div>
                             </div>
-                            <TitanInput 
-                                placeholder="Company Code" 
-                                value={companyCode}
-                                onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                                className="h-14 bg-slate-50 uppercase"
-                            />
-                            <TitanInput 
-                                placeholder="Manager PIN" 
-                                type="password"
-                                value={pin}
-                                onChange={(e) => setPin(e.target.value)}
-                                className="h-14 bg-slate-50"
-                                maxLength={6}
-                            />
+                            <p className="text-sm text-slate-500 text-center">You will be redirected to the secure manager login.</p>
                         </div>
                     )}
 
@@ -249,7 +234,7 @@ export default function Landing() {
                         isLoading={isLoading}
                         data-testid="button-login"
                     >
-                        {mode === "driver" ? "Start Shift" : "Access Console"} <ArrowRight className="ml-2 h-5 w-5" />
+                        {mode === "driver" ? "Start Shift" : "Go to Manager Login"} <ArrowRight className="ml-2 h-5 w-5" />
                     </TitanButton>
                 </form>
 

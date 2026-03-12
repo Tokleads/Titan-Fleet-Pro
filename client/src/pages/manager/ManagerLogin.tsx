@@ -4,22 +4,17 @@ import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanCard } from "@/components/titan-ui/Card";
 import { TitanInput } from "@/components/titan-ui/Input";
 import { motion, AnimatePresence } from "framer-motion";
-import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowRight, Smartphone, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Smartphone, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function ManagerLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [loginMode, setLoginMode] = useState<'pin' | 'email'>('pin');
-  const [companyCode, setCompanyCode] = useState("APEX");
-  const [pin, setPin] = useState("7429");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showPin, setShowPin] = useState(false);
   
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [totpToken, setTotpToken] = useState("");
@@ -28,34 +23,19 @@ export default function ManagerLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (loginMode === 'pin' && (!companyCode || !pin)) return;
-    if (loginMode === 'email' && (!email || !password)) return;
+    if (!email || !password) return;
 
     setIsLoading(true);
     try {
-      let response: Response;
-      
-      if (loginMode === 'email') {
-        response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            email, 
-            password,
-            totpToken: requiresTwoFactor ? totpToken : undefined
-          }),
-        });
-      } else {
-        response = await fetch("/api/manager/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            companyCode: companyCode.toUpperCase(), 
-            pin,
-            totpToken: requiresTwoFactor ? totpToken : undefined
-          }),
-        });
-      }
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email, 
+          password,
+          totpToken: requiresTwoFactor ? totpToken : undefined
+        }),
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -124,118 +104,69 @@ export default function ManagerLogin() {
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <div className="flex mb-6 bg-slate-100 rounded-lg p-1">
-                  <button
-                    type="button"
-                    onClick={() => setLoginMode('pin')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${loginMode === 'pin' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    data-testid="button-mode-pin"
-                  >
-                    Company Code
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLoginMode('email')}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${loginMode === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    data-testid="button-mode-email"
-                  >
-                    Email Login
-                  </button>
+                <div className="flex items-center gap-2 mb-6 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                  <Lock className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <p className="text-xs text-blue-700">Sign in with your email and password to access the manager dashboard.</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6">
-                  {loginMode === 'pin' ? (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Company Code</label>
-                        <TitanInput
-                          value={companyCode}
-                          onChange={(e) => setCompanyCode(e.target.value.toUpperCase())}
-                          placeholder="e.g. APEX"
-                          className="uppercase"
-                          data-testid="input-company-code"
-                        />
-                      </div>
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        data-testid="input-login-email"
+                        className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 pl-11 pr-4 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
+                        autoComplete="email"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Manager PIN</label>
-                        <div className="relative">
-                          <input
-                            type={showPin ? "text" : "password"}
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                            placeholder="Enter PIN"
-                            maxLength={6}
-                            data-testid="input-pin"
-                            className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 pr-12 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPin(!showPin)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                            data-testid="button-toggle-pin"
-                            tabIndex={-1}
-                          >
-                            {showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-                        <TitanInput
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@company.com"
-                          data-testid="input-login-email"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter password"
-                            data-testid="input-login-password"
-                            className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 px-4 pr-12 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                            data-testid="button-toggle-password"
-                            tabIndex={-1}
-                          >
-                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password"
+                        data-testid="input-login-password"
+                        className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/90 pl-11 pr-12 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-primary/15 focus:border-primary/40"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                        data-testid="button-toggle-password"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
 
                   <TitanButton 
                     type="submit" 
                     className="w-full" 
-                    disabled={loginMode === 'pin' ? (!companyCode || !pin || isLoading) : (!email || !password || isLoading)}
+                    disabled={!email || !password || isLoading}
                     data-testid="button-login"
                   >
-                    {isLoading ? "Signing in..." : "Sign in"}
+                    {isLoading ? "Signing in..." : "Sign In"}
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </TitanButton>
 
-                  {loginMode === 'email' && (
-                    <div className="text-center">
-                      <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium" data-testid="link-forgot-password">
-                          Forgot your password?
-                      </Link>
-                    </div>
-                  )}
+                  <div className="text-center">
+                    <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium" data-testid="link-forgot-password">
+                      Forgot your password?
+                    </Link>
+                  </div>
                 </form>
               </motion.div>
             ) : (
