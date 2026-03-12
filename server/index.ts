@@ -465,6 +465,25 @@ app.use((req, res, next) => {
     console.error('Documents migration (non-fatal):', docMigErr);
   }
 
+  try {
+    const { db: dbPwReset2 } = await import('./db');
+    const { users: usersPwReset2 } = await import('@shared/schema');
+    const { eq: eqPwReset2, sql: sqlPwReset2 } = await import('drizzle-orm');
+    const pwMigName2 = 'robert_bekas_password_reset_v1';
+    const pwExisting2 = await dbPwReset2.execute(sqlPwReset2`SELECT name FROM _migrations WHERE name = ${pwMigName2}`);
+    if (!pwExisting2.rows || pwExisting2.rows.length === 0) {
+      const bcryptPw2 = await import('bcrypt');
+      const newHash2 = await bcryptPw2.default.hash('TitanFleet2026!', 12);
+      await dbPwReset2.update(usersPwReset2)
+        .set({ password: newHash2 })
+        .where(eqPwReset2(usersPwReset2.email, 'abtsorobert@gmail.com'));
+      await dbPwReset2.execute(sqlPwReset2`INSERT INTO _migrations (name) VALUES (${pwMigName2})`);
+      console.log('[Migration] Reset password for Robert Bekas (abtsorobert@gmail.com)');
+    }
+  } catch (pwErr2) {
+    console.error('Password reset migration v2 (non-fatal):', pwErr2);
+  }
+
   };
 
   // Register admin routes
