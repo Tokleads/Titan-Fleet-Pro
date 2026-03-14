@@ -12,9 +12,10 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bell, Mail, MessageSquare, Smartphone, Save, CheckCircle2, Loader2 } from 'lucide-react';
+import { Bell, Mail, MessageSquare, Smartphone, Save, CheckCircle2, Loader2, BellRing } from 'lucide-react';
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
+import { pushNotificationService } from '@/services/pushNotifications';
 
 function authHeaders(): Record<string, string> {
   const token = session.getToken();
@@ -39,6 +40,8 @@ function NotificationPreferencesContent() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [inAppEnabled, setInAppEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(() => pushNotificationService.isSubscribed());
+  const user = session.getUser();
   
   // Notification types
   const [motExpiryEnabled, setMotExpiryEnabled] = useState(true);
@@ -213,6 +216,37 @@ function NotificationPreferencesContent() {
               id="inapp-enabled"
               checked={inAppEnabled}
               onCheckedChange={setInAppEnabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BellRing className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <Label htmlFor="push-enabled" className="text-base font-medium">Browser Push Notifications</Label>
+                <p className="text-sm text-muted-foreground">
+                  {pushNotificationService.isSupported()
+                    ? 'Get alerts even when the app is in the background'
+                    : 'Not supported in this browser'}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="push-enabled"
+              checked={pushEnabled}
+              disabled={!pushNotificationService.isSupported()}
+              onCheckedChange={async (checked) => {
+                if (checked && user) {
+                  const success = await pushNotificationService.subscribe(user.id, 'manager');
+                  setPushEnabled(success);
+                  if (!success) {
+                    toast({ title: 'Permission Required', description: 'Please allow notifications in your browser settings.', variant: 'destructive' });
+                  }
+                } else {
+                  await pushNotificationService.unsubscribe();
+                  setPushEnabled(false);
+                }
+              }}
             />
           </div>
           

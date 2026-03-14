@@ -505,6 +505,70 @@ function DriverProfileModal({
   );
 }
 
+function InviteLinkSection({ companyId }: { companyId: number | undefined }) {
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const user = session.getUser();
+
+  async function generateInvite() {
+    if (!companyId || !user) return;
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/drivers/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ companyId, createdBy: user.id, maxUses: 0, expiresInDays: 30 }),
+      });
+      const data = await res.json();
+      if (data.invite?.token) {
+        const link = `${window.location.origin}/join/${data.invite.token}`;
+        setInviteLink(link);
+      }
+    } catch {
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function copyLink() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <div className="flex-1">
+        <h3 className="text-sm font-semibold text-blue-900">Driver Self-Registration</h3>
+        <p className="text-xs text-blue-700 mt-0.5">Generate an invite link to share with new drivers. They can register themselves.</p>
+      </div>
+      {inviteLink ? (
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <input
+            value={inviteLink}
+            readOnly
+            className="flex-1 sm:w-64 px-3 py-2 text-xs bg-white border border-blue-200 rounded-lg font-mono truncate"
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+            data-testid="input-invite-link"
+          />
+          <Button size="sm" variant="outline" onClick={copyLink} data-testid="button-copy-invite">
+            {copied ? "Copied!" : "Copy"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={generateInvite} data-testid="button-new-invite">
+            New
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" onClick={generateInvite} disabled={generating} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-generate-invite">
+          {generating ? "Generating..." : "Generate Invite Link"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
@@ -894,6 +958,9 @@ export default function Drivers() {
             </div>
           </div>
         </div>
+
+        {/* Invite Link Section */}
+        <InviteLinkSection companyId={companyId} />
 
         {/* Search */}
         <div className="relative">

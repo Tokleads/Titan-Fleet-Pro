@@ -282,11 +282,27 @@ export default function ManagerDashboard() {
            (taxExpiry && taxExpiry <= fourteenDaysFromNow && taxExpiry >= now);
   });
 
+  const overdueMOTVehicles = vehiclesList.filter((v: any) => {
+    const motExpiry = v.motDue ? new Date(v.motDue) : null;
+    return motExpiry && motExpiry < now;
+  });
+
+  const driversNear14Hr = (onShiftDrivers || []).filter((d: any) => {
+    if (!d.arrivalTime) return false;
+    const shiftMinutes = (now.getTime() - new Date(d.arrivalTime).getTime()) / 60000;
+    return shiftMinutes >= 720;
+  }).map((d: any) => {
+    const shiftMinutes = Math.floor((now.getTime() - new Date(d.arrivalTime).getTime()) / 60000);
+    const hours = Math.floor(shiftMinutes / 60);
+    const mins = shiftMinutes % 60;
+    return { ...d, shiftHours: hours, shiftMins: mins, shiftMinutes };
+  });
+
   const score = complianceScore?.score || 0;
   const fleetStatusColor = score >= 80 ? 'emerald' : score >= 60 ? 'amber' : 'red';
   const fleetStatusLabel = score >= 80 ? 'Operational' : score >= 60 ? 'Needs Attention' : 'Critical';
 
-  const attentionItemsCount = missedInspections.length + criticalDefects.length + highDefects.length + unreadCount + expiringVehicles.length;
+  const attentionItemsCount = missedInspections.length + criticalDefects.length + highDefects.length + unreadCount + expiringVehicles.length + overdueMOTVehicles.length + driversNear14Hr.length;
 
   return (
     <ManagerLayout>
@@ -527,6 +543,60 @@ export default function ManagerDashboard() {
                       </span>
                     ))}
                     {expiringVehicles.length > 3 && ` +${expiringVehicles.length - 3} more`}
+                  </p>
+                </button>
+              )}
+
+              {overdueMOTVehicles.length > 0 && (
+                <button
+                  onClick={() => setLocation("/manager/fleet")}
+                  className="bg-red-50 border border-red-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-red-300 transition-all cursor-pointer"
+                  data-testid="attention-overdue-mot"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-red-900">MOT Overdue</p>
+                      <p className="text-xs font-bold text-red-700">{overdueMOTVehicles.length} vehicles</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-red-700 line-clamp-2">
+                    {overdueMOTVehicles.slice(0, 3).map((v: any, idx: number) => (
+                      <span key={v.id || idx}>
+                        {idx > 0 && ', '}
+                        {v.vrm}
+                      </span>
+                    ))}
+                    {overdueMOTVehicles.length > 3 && ` +${overdueMOTVehicles.length - 3} more`}
+                  </p>
+                </button>
+              )}
+
+              {driversNear14Hr.length > 0 && (
+                <button
+                  onClick={() => setLocation("/manager/timesheets")}
+                  className="bg-red-50 border border-red-200/60 rounded-2xl p-4 text-left w-full hover:shadow-md hover:border-red-300 transition-all cursor-pointer animate-pulse"
+                  data-testid="attention-14hr-limit"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-red-900">14hr Limit Warning</p>
+                      <p className="text-xs font-bold text-red-700">{driversNear14Hr.length} driver{driversNear14Hr.length > 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-red-700 line-clamp-2">
+                    {driversNear14Hr.slice(0, 2).map((d: any, idx: number) => (
+                      <span key={d.driverId || idx}>
+                        {idx > 0 && '; '}
+                        {d.driverName}: {d.shiftHours}h {d.shiftMins}m
+                      </span>
+                    ))}
+                    {driversNear14Hr.length > 2 && ` +${driversNear14Hr.length - 2} more`}
                   </p>
                 </button>
               )}

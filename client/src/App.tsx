@@ -74,6 +74,7 @@ const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const HelpCenter = lazy(() => import("@/pages/HelpCenter"));
 const Blog = lazy(() => import("@/pages/Blog"));
+const DriverSignup = lazy(() => import("@/pages/driver/DriverSignup"));
 
 function LoadingFallback() {
   return (
@@ -155,6 +156,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/help" component={HelpCenter} />
+        <Route path="/join/:token" component={DriverSignup} />
         <Route path="/blog/:slug" component={Blog} />
         <Route path="/blog" component={Blog} />
         <Route component={NotFound} />

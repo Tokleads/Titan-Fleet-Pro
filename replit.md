@@ -54,9 +54,11 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **Timesheet Approval Workflow**: Time adjustments by transport managers require ADMIN approval. Pending/Approved/Rejected states with server-side role enforcement.
 - **Company Car Register**: Drivers log which company car they're using (number plate, date/time) for fine attribution. Located at /driver/car-register.
 - **Data Models**: Comprehensive schema for Companies, Users, Vehicles, Inspections, Fuel Entries, Defects, Deliveries, Subscriptions, and CompanyCarRegister.
-- **Manager Dashboard**: Provides KPIs, recent inspections, defect tracking (Kanban), fuel logs, fleet management, and settings.
-- **Fleet Management**: Vehicle list with O-licence filtering, geofence management (10m minimum radius).
-- **Per-Driver Wage System**: Individual hourly rates, night/weekend/holiday premiums, overtime threshold (14hr default), CSV export.
+- **Manager Dashboard**: Provides KPIs, recent inspections, defect tracking (Kanban), fuel logs, fleet management, and settings. Attention Required section shows overdue MOTs (red, links to fleet), 14-hour driver limit warnings (red pulsing, links to timesheets), missed inspections, critical defects, unread messages, and expiring docs.
+- **Advanced Analytics Dashboard**: Fleet utilization rate (active/idle/VOR breakdown), cost-per-mile estimates, top drivers by MPG, defect trend analysis, compliance status charts, driver activity trends, cost analysis, all with recharts visualizations.
+- **Fleet Management**: Vehicle list with O-licence filtering, geofence management (10m minimum radius). All 49 ABTSO vehicles enriched with DVSA MOT data (expiry dates, make, model).
+- **Per-Driver Wage System**: Individual hourly rates, night/weekend/holiday premiums, overtime threshold (14hr default), CSV export. 2026 UK bank holidays loaded for ABTSO.
+- **Driver Self-Registration**: Managers generate invite links (`POST /api/drivers/invites`). Drivers self-register at `/join/:token` with name/email/phone, auto-assigned PIN. Invite links support max-uses and expiry. `driver_invites` table tracks usage. Public endpoints (no auth required for invite validation and registration).
 - **Messaging System**: In-app communication between drivers and transport managers.
 - **PDF Generation**: Dynamic generation of inspection reports and Proof of Delivery documents with embedded photos.
 - **14-Hour Working Limit**: Red highlight warning when driver hours reach/exceed 14h (840 minutes) in timesheets and TM app.
@@ -68,6 +70,7 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **Driver Stop Detection**: Automatic logging of 10+ minute stationary periods during shifts. GPS pings analyzed on each submission — if driver stays within 50m for 10+ minutes, a stop is recorded with start/end times, duration, and coordinates. Stored in `driver_stops` table linked to timesheets. Stops under 10 minutes are auto-deleted.
 - **Shift Trail Map**: Manager Live Tracking page includes "Shift Trail" section — select a driver and shift to see their GPS route plotted on a map with numbered stop markers. Shows start (green), latest position (red), route line (blue), and stops (amber numbered squares) with click-to-view duration/times. Summary stats: GPS points, stop count, total stop time.
 - **GPS Clock-In Override**: Drivers can clock in even when geolocation is denied (permission denied). Button shows "Clock In (No GPS)" with amber warning. Clock-in is flagged as `locationOverride` for manager review. Manual depot selection is shown automatically when GPS is unavailable.
+- **Browser Push Notifications**: Native Web Push API via service worker (`sw.js`). Managers can enable/disable in Notification Preferences. Shows desktop notifications for fleet alerts even when app is in background. No Firebase dependency.
 - **Environmental Variables**: Secure management of API keys and database connections.
 
 **UI/UX Decisions:**

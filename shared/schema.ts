@@ -1423,3 +1423,19 @@ export const complianceKnowledge = pgTable("compliance_knowledge", {
 export const insertComplianceKnowledgeSchema = createInsertSchema(complianceKnowledge).omit({ id: true, createdAt: true, updatedAt: true });
 export type ComplianceKnowledge = typeof complianceKnowledge.$inferSelect;
 export type InsertComplianceKnowledge = z.infer<typeof insertComplianceKnowledgeSchema>;
+
+export const driverInvites = pgTable("driver_invites", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  createdBy: integer("created_by").notNull(),
+  maxUses: integer("max_uses").default(0),
+  usedCount: integer("used_count").default(0),
+  expiresAt: timestamp("expires_at"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertDriverInviteSchema = createInsertSchema(driverInvites).omit({ id: true, createdAt: true, usedCount: true });
+export type DriverInvite = typeof driverInvites.$inferSelect;
+export type InsertDriverInvite = z.infer<typeof insertDriverInviteSchema>;

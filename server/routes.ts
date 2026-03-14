@@ -79,6 +79,8 @@ export async function registerRoutes(
 
   const PUBLIC_EXACT_PATTERNS = [
     /^\/api\/company\/[A-Za-z0-9_-]+$/,
+    /^\/api\/drivers\/invite\/[a-f0-9]+$/,
+    /^\/api\/drivers\/invite\/[a-f0-9]+\/register$/,
   ];
 
   app.use((req, res, next) => {

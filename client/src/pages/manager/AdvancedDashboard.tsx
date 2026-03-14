@@ -544,6 +544,98 @@ export default function AdvancedDashboard() {
           </Card>
         )}
 
+        {/* Fleet Utilization & Cost Per Mile */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fleet Utilization</CardTitle>
+              <CardDescription>Vehicle usage rate across the fleet</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {(() => {
+                  const total = kpis?.totalVehicles || 1;
+                  const active = fleetStatusData.find((d: ChartData) => d.name === 'Active')?.value || 0;
+                  const vor = fleetStatusData.find((d: ChartData) => d.name === 'VOR')?.value || 0;
+                  const idle = total - active - vor;
+                  const utilRate = ((active / total) * 100).toFixed(1);
+                  return (
+                    <>
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-blue-600">{utilRate}%</p>
+                        <p className="text-sm text-muted-foreground mt-1">Fleet Utilization Rate</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center p-3 bg-emerald-50 rounded-xl">
+                          <p className="text-xl font-bold text-emerald-600">{active}</p>
+                          <p className="text-xs text-emerald-700">Active</p>
+                        </div>
+                        <div className="text-center p-3 bg-slate-50 rounded-xl">
+                          <p className="text-xl font-bold text-slate-600">{idle}</p>
+                          <p className="text-xs text-slate-700">Idle</p>
+                        </div>
+                        <div className="text-center p-3 bg-red-50 rounded-xl">
+                          <p className="text-xl font-bold text-red-600">{vor}</p>
+                          <p className="text-xs text-red-700">VOR</p>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                        <div className="h-full flex">
+                          <div className="bg-emerald-500 h-full" style={{ width: `${(active / total) * 100}%` }} />
+                          <div className="bg-slate-400 h-full" style={{ width: `${(idle / total) * 100}%` }} />
+                          <div className="bg-red-500 h-full" style={{ width: `${(vor / total) * 100}%` }} />
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cost Per Mile Estimate</CardTitle>
+              <CardDescription>Fuel cost efficiency metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {(() => {
+                  const fuelCost = kpis?.fuelCostMTD || 0;
+                  const avgMpg = kpis?.avgMpg || 8;
+                  const totalVehicles = kpis?.totalVehicles || 1;
+                  const estimatedMiles = avgMpg > 0 ? (fuelCost / 1.5) * avgMpg : 0;
+                  const costPerMile = estimatedMiles > 0 ? (fuelCost / estimatedMiles) : 0;
+                  const costPerVehicle = fuelCost / totalVehicles;
+                  return (
+                    <>
+                      <div className="text-center">
+                        <p className="text-4xl font-bold text-emerald-600">£{costPerMile.toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Est. Fuel Cost Per Mile</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center p-3 bg-blue-50 rounded-xl">
+                          <p className="text-lg font-bold text-blue-600">£{costPerVehicle.toFixed(0)}</p>
+                          <p className="text-xs text-blue-700">Per Vehicle/Month</p>
+                        </div>
+                        <div className="text-center p-3 bg-green-50 rounded-xl">
+                          <p className="text-lg font-bold text-green-600">{avgMpg.toFixed(1)}</p>
+                          <p className="text-xs text-green-700">Fleet Avg MPG</p>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-amber-50 rounded-xl text-center">
+                        <p className="text-sm text-amber-800">
+                          Total fuel spend this period: <strong>£{fuelCost.toLocaleString()}</strong>
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Quick Actions */}
         <Card>
           <CardHeader>
@@ -552,21 +644,21 @@ export default function AdvancedDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button variant="outline" className="h-auto flex-col py-4" onClick={() => setLocation('/manager/fleet')}>
                 <Truck className="w-6 h-6 mb-2" />
                 <span>Add Vehicle</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button variant="outline" className="h-auto flex-col py-4" onClick={() => setLocation('/manager/drivers')}>
                 <Users className="w-6 h-6 mb-2" />
                 <span>Add Driver</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button variant="outline" className="h-auto flex-col py-4" onClick={() => setLocation('/manager/inspections')}>
                 <FileText className="w-6 h-6 mb-2" />
-                <span>New Inspection</span>
+                <span>View Inspections</span>
               </Button>
-              <Button variant="outline" className="h-auto flex-col py-4">
+              <Button variant="outline" className="h-auto flex-col py-4" onClick={() => setLocation('/manager/defects')}>
                 <AlertTriangle className="w-6 h-6 mb-2" />
-                <span>Report Defect</span>
+                <span>View Defects</span>
               </Button>
             </div>
           </CardContent>

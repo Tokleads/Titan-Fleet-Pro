@@ -117,7 +117,7 @@ export function PWAInstallPrompt() {
 
               <div className="flex-1">
                 <h3 className="font-semibold text-lg mb-1">
-                  Install Titan Fleet
+                  Install Fleet App
                 </h3>
                 <p className="text-sm text-blue-100 mb-3">
                   {isIOS

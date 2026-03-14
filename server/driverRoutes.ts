@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, driverLocations, timesheets, inspections, vehicles, companies } from "@shared/schema";
+import { users, driverLocations, timesheets, inspections, vehicles, companies, driverInvites } from "@shared/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { sendWelcomeEmail } from "./emailService";
 import { generateUniquePin, validatePinAvailable } from "./pinUtils";
+import crypto from "crypto";
 
 const router = Router();
 
@@ -269,6 +270,131 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Error creating driver:", error);
     res.status(500).json({ error: "Failed to create driver" });
+  }
+});
+
+router.post("/invites", async (req, res) => {
+  try {
+    const { companyId, createdBy, maxUses, expiresInDays } = req.body;
+    if (!companyId || !createdBy) {
+      return res.status(400).json({ error: "companyId and createdBy are required" });
+    }
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = expiresInDays ? new Date(Date.now() + expiresInDays * 86400000) : null;
+    const [invite] = await db.insert(driverInvites).values({
+      companyId: Number(companyId),
+      token,
+      createdBy: Number(createdBy),
+      maxUses: maxUses || 0,
+      expiresAt,
+      active: true,
+    }).returning();
+    res.json({ success: true, invite });
+  } catch (error) {
+    console.error("Error creating invite:", error);
+    res.status(500).json({ error: "Failed to create invite" });
+  }
+});
+
+router.get("/invites", async (req, res) => {
+  try {
+    const { companyId } = req.query;
+    if (!companyId) return res.status(400).json({ error: "companyId is required" });
+    const invites = await db.select().from(driverInvites)
+      .where(eq(driverInvites.companyId, Number(companyId)));
+    res.json(invites);
+  } catch (error) {
+    console.error("Error listing invites:", error);
+    res.status(500).json({ error: "Failed to list invites" });
+  }
+});
+
+router.delete("/invites/:id", async (req, res) => {
+  try {
+    await db.update(driverInvites).set({ active: false }).where(eq(driverInvites.id, Number(req.params.id)));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to deactivate invite" });
+  }
+});
+
+router.get("/invite/:token", async (req, res) => {
+  try {
+    const [invite] = await db.select().from(driverInvites)
+      .where(eq(driverInvites.token, req.params.token));
+    if (!invite || !invite.active) {
+      return res.status(404).json({ error: "Invalid or expired invite link" });
+    }
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return res.status(410).json({ error: "This invite link has expired" });
+    }
+    if (invite.maxUses > 0 && (invite.usedCount || 0) >= invite.maxUses) {
+      return res.status(410).json({ error: "This invite link has reached its maximum uses" });
+    }
+    const [company] = await db.select({ id: companies.id, name: companies.name, companyCode: companies.companyCode })
+      .from(companies).where(eq(companies.id, invite.companyId));
+    res.json({ valid: true, companyName: company?.name, companyCode: company?.companyCode });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to validate invite" });
+  }
+});
+
+router.post("/invite/:token/register", async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    if (!name) return res.status(400).json({ error: "Name is required" });
+
+    const [invite] = await db.select().from(driverInvites)
+      .where(eq(driverInvites.token, req.params.token));
+    if (!invite || !invite.active) {
+      return res.status(404).json({ error: "Invalid or expired invite link" });
+    }
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return res.status(410).json({ error: "Invite expired" });
+    }
+    if (invite.maxUses > 0 && (invite.usedCount || 0) >= invite.maxUses) {
+      return res.status(410).json({ error: "Invite link max uses reached" });
+    }
+
+    const pin = await generateUniquePin(invite.companyId);
+    const [newDriver] = await db.insert(users).values({
+      companyId: invite.companyId,
+      name,
+      email: email || null,
+      phone: phone || null,
+      pin,
+      role: "DRIVER",
+      active: true,
+    }).returning();
+
+    await db.update(driverInvites).set({
+      usedCount: (invite.usedCount || 0) + 1,
+    }).where(eq(driverInvites.id, invite.id));
+
+    const [company] = await db.select({ companyCode: companies.companyCode, name: companies.name })
+      .from(companies).where(eq(companies.id, invite.companyId));
+
+    if (email) {
+      try {
+        await sendWelcomeEmail(email, name, company?.companyCode || "", pin);
+      } catch (e) {
+        console.error("Welcome email failed:", e);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Registration successful",
+      companyCode: company?.companyCode,
+      pin,
+      driverName: name,
+    });
+  } catch (error: any) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: "Email already registered" });
+    }
+    console.error("Error registering driver:", error);
+    res.status(500).json({ error: "Failed to register driver" });
   }
 });
 
