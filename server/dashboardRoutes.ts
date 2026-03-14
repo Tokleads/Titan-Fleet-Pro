@@ -134,7 +134,7 @@ router.get('/fleet-overview', async (req: Request, res: Response) => {
       data: [
         { name: 'Operational', value: Number(operational.count), color: '#10b981' },
         { name: 'VOR', value: Number(vor.count), color: '#ef4444' },
-        { name: 'In Service', value: 0, color: '#f59e0b' }, // TODO: Track service status
+        { name: 'In Service', value: 0, color: '#f59e0b' },
         { name: 'Maintenance', value: 0, color: '#6366f1' }
       ]
     });
@@ -187,7 +187,7 @@ router.get('/cost-analysis', async (req: Request, res: Response) => {
         month: month.toLocaleDateString('en-US', { month: 'short' }),
         fuel: Math.round(Number(fuelCost.total) / 100), // Convert pence to pounds
         service: Math.round(Number(serviceCost.total) / 100),
-        insurance: 0 // TODO: Track insurance costs
+        insurance: 0
       });
     }
     

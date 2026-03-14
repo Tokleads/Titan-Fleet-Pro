@@ -1,3 +1,0 @@
-This is a placeholder for icon-384x384.png
-Please replace with actual icon using ImageMagick or online tool:
-https://realfavicongenerator.net/

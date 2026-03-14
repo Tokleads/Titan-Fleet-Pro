@@ -376,7 +376,7 @@ router.post("/invite/:token/register", async (req, res) => {
 
     if (email) {
       try {
-        await sendWelcomeEmail(email, name, company?.companyCode || "", pin);
+        await sendWelcomeEmail({ email, name, companyName: company?.name || "", companyCode: company?.companyCode || "", pin });
       } catch (e) {
         console.error("Welcome email failed:", e);
       }

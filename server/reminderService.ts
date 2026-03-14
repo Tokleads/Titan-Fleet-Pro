@@ -1,5 +1,8 @@
 import { storage } from './storage';
 import type { Reminder } from '@shared/schema';
+import { db } from './db';
+import { companies } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 export type ReminderType = 'MOT' | 'SERVICE' | 'TACHO' | 'INSURANCE' | 'TAX' | 'INSPECTION';
 
@@ -206,17 +209,30 @@ async function sendReminderNotification(reminder: Reminder, escalationLevel: num
       Please take action to complete this ${reminder.type} requirement.
     `;
     
-    // TODO: Integrate with Resend email service
-    // For now, just log
-    console.log(`[REMINDER] ${subject}`, message);
-    
-    // In production, use Resend:
-    // await resend.emails.send({
-    //   from: 'Titan Fleet <notifications@titanfleet.com>',
-    //   to: company.contactEmail,
-    //   subject,
-    //   text: message,
-    // });
+    console.log(`[REMINDER] ${subject}`);
+    try {
+      const { sendEmail } = await import('./emailService');
+      const companyRecord = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+      const managerEmail = companyRecord[0]?.contactEmail;
+      if (managerEmail) {
+        await sendEmail({
+          to: managerEmail,
+          subject,
+          html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 24px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">🚛 Titan Fleet</h1>
+            </div>
+            <div style="background: #f8fafc; padding: 24px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #1e293b;">${subject}</h2>
+              <pre style="white-space: pre-wrap; color: #334155;">${message}</pre>
+            </div>
+          </div>`,
+          text: message,
+        });
+      }
+    } catch (emailError) {
+      console.error('[REMINDER] Email delivery failed:', emailError);
+    }
   } catch (error) {
     console.error('Failed to send reminder notification:', error);
     throw error;

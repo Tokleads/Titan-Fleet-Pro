@@ -72,6 +72,8 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **GPS Clock-In Override**: Drivers can clock in even when geolocation is denied (permission denied). Button shows "Clock In (No GPS)" with amber warning. Clock-in is flagged as `locationOverride` for manager review. Manual depot selection is shown automatically when GPS is unavailable.
 - **Browser Push Notifications**: Native Web Push API via service worker (`sw.js`). Managers can enable/disable in Notification Preferences. Shows desktop notifications for fleet alerts even when app is in background. No Firebase dependency.
 - **Environmental Variables**: Secure management of API keys and database connections.
+- **PWA Icons**: All PWA icons generated as real PNGs from the TF logo SVG (72px through 512px). Manifest configured with proper sizes and maskable purpose.
+- **Email Delivery**: Resend integration for transactional emails (welcome, defect alerts, reminders). Welcome emails sent on driver registration and invite self-signup.
 
 **UI/UX Decisions:**
 - **Branding**: Configurable white-label branding via `client/src/config/tenant.ts` for company name, logo, primary colors, and feature toggles.

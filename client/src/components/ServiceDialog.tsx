@@ -53,7 +53,7 @@ export function ServiceDialog({ vehicle, onClose }: ServiceDialogProps) {
           serviceProvider,
           cost: cost ? Math.round(parseFloat(cost) * 100) : undefined, // Convert to pence
           workPerformed,
-          performedBy: 1 // TODO: Get from session
+          performedBy: session.getUser()?.id || 1
         })
       });
 

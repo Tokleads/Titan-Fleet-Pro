@@ -53,12 +53,16 @@ export function registerOperationsRoutes(app: Express) {
       
       let photoUrl: string | undefined;
       
-      // Handle photo upload if present
       if (req.files && 'photo' in req.files) {
         const photoFile = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
-        // TODO: Implement S3 storage upload
-        // For now, store a placeholder URL
-        photoUrl = `/uploads/shift-checks/${shiftCheckId}/${itemId}-${Date.now()}.jpg`;
+        const fileName = `shift-checks/${shiftCheckId}/${itemId}-${Date.now()}.jpg`;
+        const uploadDir = `/tmp/uploads/shift-checks/${shiftCheckId}`;
+        const fs = await import('fs');
+        fs.mkdirSync(uploadDir, { recursive: true });
+        if ('mv' in photoFile) {
+          await (photoFile as any).mv(`${uploadDir}/${itemId}-${Date.now()}.jpg`);
+        }
+        photoUrl = `/uploads/${fileName}`;
       }
       
       const item = await storage.addShiftCheckItem(

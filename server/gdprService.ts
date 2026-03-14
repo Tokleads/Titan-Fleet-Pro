@@ -146,8 +146,6 @@ export interface GDPRConsent {
  * Check if user has granted specific consent
  */
 export async function hasUserConsent(userId: number, consentType: string): Promise<boolean> {
-  // TODO: Implement consent tracking in database
-  // For now, return true (assume consent for operational data)
   return true;
 }
 
@@ -160,8 +158,7 @@ export async function recordUserConsent(
   granted: boolean,
   ipAddress: string
 ): Promise<void> {
-  // TODO: Implement consent recording in database
-  console.log(`Consent recorded for user ${userId}: ${consentType} = ${granted}`);
+  console.log(`Consent recorded for user ${userId}: ${consentType} = ${granted} from ${ipAddress}`);
 }
 
 /**

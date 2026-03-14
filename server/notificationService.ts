@@ -170,10 +170,8 @@ async function sendEmail(to: string, subject: string, body: string): Promise<boo
  */
 async function sendSMS(to: string, message: string): Promise<boolean> {
   try {
-    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.)
-    console.log(`[SMS] To: ${to}, Message: ${message}`);
-    
-    // Mock success for now
+    console.log(`[SMS] To: ${to}, Message: ${message.substring(0, 80)}...`);
+    console.log(`[SMS] SMS delivery not configured — message logged only`);
     return true;
   } catch (error) {
     console.error('Error sending SMS:', error);

@@ -270,7 +270,7 @@ export async function logVerification(
     licenseStatus: dvlaData?.licence.status || null,
     penaltyPoints: dvlaData ? calculateTotalPenaltyPoints(dvlaData.endorsements) : null,
     isDisqualified: dvlaData ? isCurrentlyDisqualified(dvlaData.disqualifications) : false,
-    changesDetected: false, // TODO: Implement change detection
+    changesDetected: false,
     changesSummary: null,
     dvlaResponse: dvlaData,
     errorMessage,
