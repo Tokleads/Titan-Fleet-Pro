@@ -1,12 +1,14 @@
 import type { Company, Vehicle, Inspection, FuelEntry } from "@shared/schema";
 import { session } from "./session";
+import { addToQueue, isOnline } from "./offlineQueue";
 
 const BASE_URL = "";
 
 class ApiClient {
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    offlineConfig?: { type: 'inspection' | 'defect' | 'fuel'; displayLabel: string }
   ): Promise<T> {
     const authHeaders: Record<string, string> = {
       "Content-Type": "application/json",
@@ -15,6 +17,19 @@ class ApiClient {
     if (token) {
       authHeaders["Authorization"] = `Bearer ${token}`;
     }
+
+    if (!isOnline() && offlineConfig && options.method === 'POST') {
+      const id = await addToQueue({
+        type: offlineConfig.type,
+        endpoint: `${BASE_URL}${endpoint}`,
+        method: options.method,
+        body: options.body ? JSON.parse(options.body as string) : {},
+        displayLabel: offlineConfig.displayLabel,
+      });
+      window.dispatchEvent(new CustomEvent('offline-queue-update'));
+      return { id, queued: true, offlineId: id } as any;
+    }
+
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -65,15 +80,15 @@ class ApiClient {
     defects?: any;
     hasTrailer?: boolean;
     cabPhotos?: string[];
-    startedAt?: string; // ISO timestamp when check started
-    completedAt?: string; // ISO timestamp when submitted
-    durationSeconds?: number; // Total duration
-    vehicleCategory?: string; // HGV | LGV
+    startedAt?: string;
+    completedAt?: string;
+    durationSeconds?: number;
+    vehicleCategory?: string;
   }): Promise<Inspection> {
     return this.request(`/api/inspections`, {
       method: "POST",
       body: JSON.stringify(inspection),
-    });
+    }, { type: 'inspection', displayLabel: `${inspection.type} check — Vehicle #${inspection.vehicleId}` });
   }
 
   async getInspections(companyId: number, driverId: number, days = 7): Promise<Inspection[]> {
@@ -94,7 +109,7 @@ class ApiClient {
     return this.request(`/api/fuel`, {
       method: "POST",
       body: JSON.stringify(entry),
-    });
+    }, { type: 'fuel', displayLabel: `Fuel entry — ${entry.litres || 0}L` });
   }
 
   async getFuelEntries(companyId: number, driverId: number, days = 7): Promise<FuelEntry[]> {
@@ -115,7 +130,7 @@ class ApiClient {
     return this.request(`/api/defects`, {
       method: "POST",
       body: JSON.stringify(defect),
-    });
+    }, { type: 'defect', displayLabel: `Defect — ${defect.description.substring(0, 40)}` });
   }
 
   // DVSA API

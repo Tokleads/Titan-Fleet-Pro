@@ -1439,3 +1439,81 @@ export const driverInvites = pgTable("driver_invites", {
 export const insertDriverInviteSchema = createInsertSchema(driverInvites).omit({ id: true, createdAt: true, usedCount: true });
 export type DriverInvite = typeof driverInvites.$inferSelect;
 export type InsertDriverInvite = z.infer<typeof insertDriverInviteSchema>;
+
+export const driverCpcRecords = pgTable("driver_cpc_records", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  driverId: integer("driver_id").notNull(),
+  trainingDate: timestamp("training_date").notNull(),
+  hours: integer("hours").notNull(),
+  provider: text("provider").notNull(),
+  courseTitle: text("course_title"),
+  certificateRef: varchar("certificate_ref", { length: 100 }),
+  cpcExpiryDate: timestamp("cpc_expiry_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDriverCpcSchema = createInsertSchema(driverCpcRecords).omit({ id: true, createdAt: true, updatedAt: true });
+export type DriverCpcRecord = typeof driverCpcRecords.$inferSelect;
+export type InsertDriverCpcRecord = z.infer<typeof insertDriverCpcSchema>;
+
+export const driverHoursLogs = pgTable("driver_hours_logs", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  driverId: integer("driver_id").notNull(),
+  date: timestamp("date").notNull(),
+  drivingMinutes: integer("driving_minutes").notNull().default(0),
+  otherWorkMinutes: integer("other_work_minutes").notNull().default(0),
+  availabilityMinutes: integer("availability_minutes").notNull().default(0),
+  restMinutes: integer("rest_minutes").notNull().default(0),
+  breakMinutes: integer("break_minutes").notNull().default(0),
+  source: varchar("source", { length: 20 }).default("manual"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_driver_hours_driver_date").on(table.driverId, table.date),
+]);
+
+export const insertDriverHoursLogSchema = createInsertSchema(driverHoursLogs).omit({ id: true, createdAt: true, updatedAt: true });
+export type DriverHoursLog = typeof driverHoursLogs.$inferSelect;
+export type InsertDriverHoursLog = z.infer<typeof insertDriverHoursLogSchema>;
+
+export const scheduledReports = pgTable("scheduled_reports", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  reportType: varchar("report_type", { length: 50 }).notNull(),
+  frequency: varchar("frequency", { length: 20 }).notNull().default("weekly"),
+  dayOfWeek: integer("day_of_week").default(1),
+  recipients: text("recipients").array().notNull(),
+  enabled: boolean("enabled").default(true),
+  lastSentAt: timestamp("last_sent_at"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertScheduledReportSchema = createInsertSchema(scheduledReports).omit({ id: true, createdAt: true, updatedAt: true, lastSentAt: true });
+export type ScheduledReport = typeof scheduledReports.$inferSelect;
+export type InsertScheduledReport = z.infer<typeof insertScheduledReportSchema>;
+
+export const earnedRecognitionKpis = pgTable("earned_recognition_kpis", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  period: varchar("period", { length: 7 }).notNull(),
+  motFirstTimePassRate: integer("mot_first_time_pass_rate"),
+  prohibitionRate: integer("prohibition_rate"),
+  roadworthinessPassRate: integer("roadworthiness_pass_rate"),
+  inspectionCompletionRate: integer("inspection_completion_rate"),
+  defectResolutionHours: integer("defect_resolution_hours"),
+  driverCpcComplianceRate: integer("driver_cpc_compliance_rate"),
+  overallScore: integer("overall_score"),
+  fors_level: varchar("fors_level", { length: 10 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEarnedRecognitionKpiSchema = createInsertSchema(earnedRecognitionKpis).omit({ id: true, createdAt: true });
+export type EarnedRecognitionKpi = typeof earnedRecognitionKpis.$inferSelect;
+export type InsertEarnedRecognitionKpi = z.infer<typeof insertEarnedRecognitionKpiSchema>;

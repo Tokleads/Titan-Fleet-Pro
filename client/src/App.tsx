@@ -55,6 +55,10 @@ const AIInsights = lazy(() => import("@/pages/manager/AIInsights"));
 const ComplianceCopilot = lazy(() => import("@/pages/manager/ComplianceCopilot"));
 const ApiHealth = lazy(() => import("@/pages/manager/ApiHealth"));
 const BulkUpload = lazy(() => import("@/pages/manager/BulkUpload"));
+const DriverCPC = lazy(() => import("@/pages/manager/DriverCPC"));
+const DriverHours = lazy(() => import("@/pages/manager/DriverHours"));
+const EarnedRecognition = lazy(() => import("@/pages/manager/EarnedRecognition"));
+const ScheduledReports = lazy(() => import("@/pages/manager/ScheduledReports"));
 const TransportManagerApp = lazy(() => import("@/pages/manager/TransportManagerApp"));
 const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -138,6 +142,10 @@ function Router() {
         <Route path="/manager/compliance-copilot" component={ComplianceCopilot} />
         <Route path="/manager/api-health" component={ApiHealth} />
         <Route path="/manager/bulk-upload" component={BulkUpload} />
+        <Route path="/manager/cpc" component={DriverCPC} />
+        <Route path="/manager/driver-hours" component={DriverHours} />
+        <Route path="/manager/earned-recognition" component={EarnedRecognition} />
+        <Route path="/manager/scheduled-reports" component={ScheduledReports} />
         <Route path="/manager/app" component={TransportManagerApp} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/login" component={AdminLogin} />

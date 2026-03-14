@@ -209,6 +209,17 @@ export function startScheduler(): void {
     }
   });
 
+  cron.schedule('0 7 * * *', async () => {
+    console.log('[Scheduler] Running scheduled report delivery...');
+    try {
+      const { processScheduledReports } = await import('./scheduledReportService');
+      const result = await processScheduledReports();
+      console.log(`[Scheduler] ✓ Scheduled reports: ${result.sent} sent, ${result.errors} errors`);
+    } catch (error) {
+      console.error('[Scheduler] Scheduled reports error:', error);
+    }
+  });
+
   cron.schedule('0 * * * *', async () => {
     console.log('[Scheduler] Running hourly API health checks...');
     try {

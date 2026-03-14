@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
-import { reminders, operatorLicences, operatorLicenceVehicles, vehicles, insertReminderSchema, insertOperatorLicenceSchema, insertCompanyCarRegisterSchema } from "@shared/schema";
+import { eq, and, desc, sql, gte, count } from "drizzle-orm";
+import { reminders, operatorLicences, operatorLicenceVehicles, vehicles, insertReminderSchema, insertOperatorLicenceSchema, insertCompanyCarRegisterSchema, driverCpcRecords, driverHoursLogs, scheduledReports, users } from "@shared/schema";
 import { requirePermission } from "./permissionGuard";
 
 export function registerComplianceRoutes(app: Express) {
@@ -585,6 +585,226 @@ export function registerComplianceRoutes(app: Express) {
     } catch (error) {
       console.error("GDPR anonymize error:", error);
       res.status(500).json({ error: "Failed to anonymize user data" });
+    }
+  });
+
+  app.get("/api/cpc/records", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const records = await db.select().from(driverCpcRecords)
+        .where(eq(driverCpcRecords.companyId, companyId))
+        .orderBy(desc(driverCpcRecords.trainingDate));
+      res.json(records);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch CPC records" });
+    }
+  });
+
+  app.get("/api/cpc/summary", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+
+      const drivers = await db.select({ id: users.id, name: users.name })
+        .from(users)
+        .where(and(eq(users.companyId, companyId), eq(users.role, 'DRIVER'), eq(users.active, true)));
+
+      const records = await db.select().from(driverCpcRecords)
+        .where(eq(driverCpcRecords.companyId, companyId));
+
+      const now = new Date();
+      const ninetyDaysFromNow = new Date(now);
+      ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+
+      const summary = drivers.map(driver => {
+        const driverRecords = records.filter(r => r.driverId === driver.id);
+        const totalHours = driverRecords.reduce((sum, r) => sum + r.hours, 0);
+        const latestExpiry = driverRecords
+          .filter(r => r.cpcExpiryDate)
+          .sort((a, b) => new Date(b.cpcExpiryDate!).getTime() - new Date(a.cpcExpiryDate!).getTime())[0]?.cpcExpiryDate;
+
+        const isExpired = latestExpiry ? new Date(latestExpiry) < now : true;
+        const isExpiringSoon = latestExpiry ? new Date(latestExpiry) < ninetyDaysFromNow && !isExpired : false;
+
+        return {
+          driverId: driver.id,
+          driverName: driver.name,
+          totalHours,
+          remainingHours: Math.max(0, 35 - totalHours),
+          cpcExpiryDate: latestExpiry,
+          status: isExpired ? 'expired' : isExpiringSoon ? 'expiring' : totalHours >= 35 ? 'compliant' : 'in_progress',
+          recordCount: driverRecords.length,
+        };
+      });
+
+      const compliant = summary.filter(s => s.status === 'compliant').length;
+      const expiring = summary.filter(s => s.status === 'expiring').length;
+      const expired = summary.filter(s => s.status === 'expired').length;
+
+      res.json({ drivers: summary, stats: { total: drivers.length, compliant, expiring, expired } });
+    } catch (error) {
+      console.error("CPC summary error:", error);
+      res.status(500).json({ error: "Failed to fetch CPC summary" });
+    }
+  });
+
+  app.post("/api/cpc/records", async (req, res) => {
+    try {
+      const { companyId, driverId, trainingDate, hours, provider, courseTitle, certificateRef, cpcExpiryDate, notes } = req.body;
+      if (!companyId || !driverId || !trainingDate || !hours || !provider) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const [record] = await db.insert(driverCpcRecords).values({
+        companyId, driverId, trainingDate: new Date(trainingDate), hours, provider,
+        courseTitle, certificateRef, cpcExpiryDate: cpcExpiryDate ? new Date(cpcExpiryDate) : null, notes,
+      }).returning();
+      res.json(record);
+    } catch (error) {
+      console.error("CPC create error:", error);
+      res.status(500).json({ error: "Failed to create CPC record" });
+    }
+  });
+
+  app.delete("/api/cpc/records/:id", async (req, res) => {
+    try {
+      await db.delete(driverCpcRecords).where(eq(driverCpcRecords.id, parseInt(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete CPC record" });
+    }
+  });
+
+  app.get("/api/driver-hours/summary", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const { getAllDriverHoursSummaries } = await import('./driverHoursService');
+      const summaries = await getAllDriverHoursSummaries(companyId);
+      res.json(summaries);
+    } catch (error) {
+      console.error("Driver hours summary error:", error);
+      res.status(500).json({ error: "Failed to fetch driver hours" });
+    }
+  });
+
+  app.get("/api/driver-hours/:driverId", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const { getDriverHoursSummary } = await import('./driverHoursService');
+      const summary = await getDriverHoursSummary(companyId, driverId);
+      res.json(summary);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch driver hours" });
+    }
+  });
+
+  app.post("/api/driver-hours", async (req, res) => {
+    try {
+      const { companyId, driverId, date, drivingMinutes, otherWorkMinutes, availabilityMinutes, restMinutes, breakMinutes, source, notes } = req.body;
+      if (!companyId || !driverId || !date) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const { logDriverHours } = await import('./driverHoursService');
+      const id = await logDriverHours({
+        companyId, driverId, date: new Date(date),
+        drivingMinutes: drivingMinutes || 0, otherWorkMinutes: otherWorkMinutes || 0,
+        availabilityMinutes, restMinutes, breakMinutes, source, notes,
+      });
+      res.json({ success: true, id });
+    } catch (error) {
+      console.error("Driver hours log error:", error);
+      res.status(500).json({ error: "Failed to log driver hours" });
+    }
+  });
+
+  app.get("/api/driver-hours/logs/:driverId", async (req, res) => {
+    try {
+      const driverId = parseInt(req.params.driverId);
+      const days = parseInt(req.query.days as string) || 14;
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      const logs = await db.select().from(driverHoursLogs)
+        .where(and(eq(driverHoursLogs.driverId, driverId), gte(driverHoursLogs.date, since)))
+        .orderBy(desc(driverHoursLogs.date));
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch driver hours logs" });
+    }
+  });
+
+  app.get("/api/scheduled-reports", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const reports = await db.select().from(scheduledReports)
+        .where(eq(scheduledReports.companyId, companyId))
+        .orderBy(desc(scheduledReports.createdAt));
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch scheduled reports" });
+    }
+  });
+
+  app.get("/api/scheduled-reports/types", async (_req, res) => {
+    const { getAvailableReportTypes } = await import('./scheduledReportService');
+    res.json(getAvailableReportTypes());
+  });
+
+  app.post("/api/scheduled-reports", async (req, res) => {
+    try {
+      const { companyId, reportType, frequency, dayOfWeek, recipients, createdBy } = req.body;
+      if (!companyId || !reportType || !recipients?.length || !createdBy) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const [report] = await db.insert(scheduledReports).values({
+        companyId, reportType, frequency: frequency || 'weekly',
+        dayOfWeek: dayOfWeek ?? 1, recipients, createdBy, enabled: true,
+      }).returning();
+      res.json(report);
+    } catch (error) {
+      console.error("Scheduled report create error:", error);
+      res.status(500).json({ error: "Failed to create scheduled report" });
+    }
+  });
+
+  app.put("/api/scheduled-reports/:id", async (req, res) => {
+    try {
+      const { enabled, frequency, dayOfWeek, recipients } = req.body;
+      const updates: any = { updatedAt: new Date() };
+      if (enabled !== undefined) updates.enabled = enabled;
+      if (frequency) updates.frequency = frequency;
+      if (dayOfWeek !== undefined) updates.dayOfWeek = dayOfWeek;
+      if (recipients) updates.recipients = recipients;
+      const [updated] = await db.update(scheduledReports)
+        .set(updates).where(eq(scheduledReports.id, parseInt(req.params.id))).returning();
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update scheduled report" });
+    }
+  });
+
+  app.delete("/api/scheduled-reports/:id", async (req, res) => {
+    try {
+      await db.delete(scheduledReports).where(eq(scheduledReports.id, parseInt(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete scheduled report" });
+    }
+  });
+
+  app.get("/api/earned-recognition", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string);
+      if (!companyId) return res.status(400).json({ error: "companyId required" });
+      const { getEarnedRecognitionData } = await import('./evidencePackService');
+      const data = await getEarnedRecognitionData(companyId);
+      res.json(data);
+    } catch (error) {
+      console.error("Earned recognition error:", error);
+      res.status(500).json({ error: "Failed to fetch earned recognition data" });
     }
   });
 }

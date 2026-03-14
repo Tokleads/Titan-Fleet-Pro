@@ -32,7 +32,7 @@ FleetCheck Lite Drive is built as a full-stack application with a clear separati
 **Server Route Architecture:**
 Routes are split across focused files registered via `register...Routes(app)` pattern:
 - `routes.ts` (~2977 lines): Auth middleware, login endpoints, inspections, defects, fuel, vehicle CRUD, fleet hierarchy, referrals
-- `complianceRoutes.ts`: Reminders, DVLA license verification, operator licences, company car register, GDPR
+- `complianceRoutes.ts`: Reminders, DVLA license verification, operator licences, company car register, GDPR, Driver CPC CRUD, Driver Hours summary/logging, Scheduled Reports CRUD, Earned Recognition data
 - `operationsRoutes.ts`: Shift checks, GPS tracking, geofencing, stagnation alerts, delivery/POD
 - `financialRoutes.ts`: Timesheets, pay rates, wage calculations, CSV exports
 - `settingsRoutes.ts`: 2FA/TOTP, company feature settings, Google Drive, logo upload
@@ -74,6 +74,11 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **Environmental Variables**: Secure management of API keys and database connections.
 - **PWA Icons**: All PWA icons generated as real PNGs from the TF logo SVG (72px through 512px). Manifest configured with proper sizes and maskable purpose.
 - **Email Delivery**: Resend integration for transactional emails (welcome, defect alerts, reminders). Welcome emails sent on driver registration and invite self-signup.
+- **Offline Inspection Queue**: IndexedDB-powered queue (`titanfleet-offline` DB) stores inspections, defects, fuel entries when offline. Auto-syncs every 30s + on reconnect. Visual queue at `/driver/queue`. Service worker caches app shell and critical assets.
+- **Driver CPC Tracking**: Manager page at `/manager/cpc` to track Certificate of Professional Competence (35h over 5 years). CRUD on `driver_cpc_records` table. Summary view showing hours completed, remaining, expiry dates. Status badges (compliant/expiring/expired).
+- **Driver Hours & Working Time**: Manager page at `/manager/driver-hours`. EU/UK rules engine (`driverHoursService.ts`): max 9h daily (10h twice/week), 56h weekly, 90h fortnightly, WTD 60h/week max. Infringement detection. Manual hour logging with driving/rest/break breakdown.
+- **Scheduled Report Emails**: Manager page at `/manager/scheduled-reports`. Configure weekly/monthly automated report emails via Resend. Cron job at 7:00 AM daily processes scheduled reports. CRUD on `scheduled_reports` table. Supports 6 report types (compliance, fleet, driver hours, fuel, defects, inspections).
+- **FORS & Earned Recognition**: Manager page at `/manager/earned-recognition`. DVSA Earned Recognition KPIs (MOT pass rate, inspection completion, defect resolution, CPC compliance). FORS Bronze/Silver/Gold requirement checklists (14 requirements). Evidence summary with real fleet data. Score calculation from live data.
 
 **UI/UX Decisions:**
 - **Branding**: Configurable white-label branding via `client/src/config/tenant.ts` for company name, logo, primary colors, and feature toggles.

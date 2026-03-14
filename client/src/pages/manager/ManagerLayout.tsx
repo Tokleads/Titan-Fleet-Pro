@@ -31,7 +31,11 @@ import {
   ScrollText,
   Brain,
   Smartphone,
-  ShieldCheck
+  ShieldCheck,
+  GraduationCap,
+  Timer,
+  Award,
+  CalendarClock
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -62,6 +66,10 @@ const navItems = [
   { path: "/manager/user-roles", icon: Users, label: "User Roles", permissionKey: "user-roles" },
   { path: "/manager/notifications", icon: Bell, label: "Notifications", permissionKey: "notifications" },
   { path: "/manager/referrals", icon: Gift, label: "Referrals", permissionKey: "referrals" },
+  { path: "/manager/cpc", icon: GraduationCap, label: "Driver CPC", permissionKey: "driver-cpc" },
+  { path: "/manager/driver-hours", icon: Timer, label: "Driver Hours", permissionKey: "driver-hours" },
+  { path: "/manager/earned-recognition", icon: Award, label: "FORS / ER", permissionKey: "earned-recognition" },
+  { path: "/manager/scheduled-reports", icon: CalendarClock, label: "Report Schedules", permissionKey: "scheduled-reports" },
   { path: "/manager/audit-log", icon: ClipboardList, label: "Audit Log", permissionKey: "audit-log" },
   { path: "/manager/settings", icon: Settings, label: "Settings", permissionKey: "settings" },
 ];

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from "./App";
 import "./index.css";
 import { registerServiceWorker, requestPersistentStorage } from "./lib/registerSW";
+import { startAutoSync } from "./lib/offlineQueue";
 
 const originalFetch = window.fetch;
 window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -28,11 +29,11 @@ const queryClient = new QueryClient({
   },
 });
 
-// Register service worker for PWA functionality
 if (import.meta.env.PROD) {
   registerServiceWorker();
   requestPersistentStorage();
 }
+startAutoSync();
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
