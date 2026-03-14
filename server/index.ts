@@ -484,6 +484,23 @@ app.use((req, res, next) => {
     console.error('Password reset migration v2 (non-fatal):', pwErr2);
   }
 
+  try {
+    const { db: dbName } = await import('./db');
+    const { companies: companiesTable } = await import('@shared/schema');
+    const { eq: eqName, sql: sqlName } = await import('drizzle-orm');
+    const nameMigName = 'abtso_company_name_fix_v1';
+    const nameExisting = await dbName.execute(sqlName`SELECT name FROM _migrations WHERE name = ${nameMigName}`);
+    if (!nameExisting.rows || nameExisting.rows.length === 0) {
+      await dbName.update(companiesTable)
+        .set({ name: 'ABTSO Transport' })
+        .where(eqName(companiesTable.companyCode, 'ABTSO'));
+      await dbName.execute(sqlName`INSERT INTO _migrations (name) VALUES (${nameMigName})`);
+      console.log('[Migration] Updated ABTSO company name to "ABTSO Transport"');
+    }
+  } catch (nameErr) {
+    console.error('Company name migration (non-fatal):', nameErr);
+  }
+
   };
 
   // Register admin routes
