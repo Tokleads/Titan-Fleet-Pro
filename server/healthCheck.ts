@@ -50,7 +50,7 @@ export async function healthCheck(req: Request, res: Response) {
   const memPercentage = (usedMem / totalMem) * 100;
 
   checks.memory = {
-    status: memPercentage > 90 ? 'critical' : memPercentage > 75 ? 'warning' : 'ok',
+    status: memPercentage > 98 ? 'critical' : memPercentage > 95 ? 'warning' : 'ok',
     used: Math.round(usedMem / 1024 / 1024), // MB
     total: Math.round(totalMem / 1024 / 1024), // MB
     percentage: Math.round(memPercentage),

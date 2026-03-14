@@ -272,6 +272,41 @@ router.post("/", async (req, res) => {
   }
 });
 
+// GET /api/drivers/:id - Get a single driver by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const driverId = Number(req.params.id);
+    const { companyId } = req.query;
+    
+    const conditions = [eq(users.id, driverId)];
+    if (companyId) {
+      conditions.push(eq(users.companyId, Number(companyId)));
+    }
+    
+    const [driver] = await db.select({
+      id: users.id,
+      companyId: users.companyId,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      phone: users.phone,
+      pin: users.pin,
+      active: users.active,
+      permissions: users.permissions,
+      createdAt: users.createdAt,
+    }).from(users).where(and(...conditions));
+    
+    if (!driver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+    
+    res.json(driver);
+  } catch (error) {
+    console.error("Error fetching driver:", error);
+    res.status(500).json({ error: "Failed to fetch driver" });
+  }
+});
+
 const pinAttempts = new Map<string, { count: number; lastAttempt: number }>();
 const PIN_MAX_ATTEMPTS = 5;
 const PIN_LOCKOUT_MS = 15 * 60 * 1000;

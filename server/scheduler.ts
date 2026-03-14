@@ -47,6 +47,19 @@ export async function runNotificationChecks(): Promise<{
   const timestamp = new Date();
   console.log(`[Scheduler] Running notification checks at ${timestamp.toISOString()}`);
 
+  try {
+    const { pool } = await import('./db');
+    await pool.query('SELECT 1');
+  } catch (warmupErr) {
+    console.error('[Scheduler] Database warmup failed, retrying...', warmupErr instanceof Error ? warmupErr.message : warmupErr);
+    try {
+      const { pool } = await import('./db');
+      await pool.query('SELECT 1');
+    } catch (retryErr) {
+      console.error('[Scheduler] Database warmup retry failed:', retryErr instanceof Error ? retryErr.message : retryErr);
+    }
+  }
+
   const results = {
     motExpiry: { success: false, error: undefined as string | undefined },
     taxExpiry: { success: false, error: undefined as string | undefined },
