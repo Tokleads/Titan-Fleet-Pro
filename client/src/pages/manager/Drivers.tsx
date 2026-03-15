@@ -111,14 +111,19 @@ function DriverForm({
   setData, 
   showPinToggle, 
   setShowPinToggle,
-  isEdit = false 
+  isEdit = false,
+  callerRole = "TRANSPORT_MANAGER"
 }: { 
   data: DriverFormData; 
   setData: (data: DriverFormData) => void;
   showPinToggle: boolean;
   setShowPinToggle: (show: boolean) => void;
   isEdit?: boolean;
+  callerRole?: string;
 }) {
+  const filteredRoleOptions = callerRole === "ADMIN" 
+    ? ROLE_OPTIONS 
+    : ROLE_OPTIONS.filter(o => !["TRANSPORT_MANAGER", "ADMIN"].includes(o.value));
   return (
     <div className="space-y-4 py-4">
       <div className="space-y-2">
@@ -163,7 +168,7 @@ function DriverForm({
             <SelectValue placeholder="Select a role" />
           </SelectTrigger>
           <SelectContent>
-            {ROLE_OPTIONS.map((option) => (
+            {filteredRoleOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -572,6 +577,7 @@ function InviteLinkSection({ companyId }: { companyId: number | undefined }) {
 export default function Drivers() {
   const company = session.getCompany();
   const companyId = company?.id;
+  const currentUserRole = session.getUser()?.role || "TRANSPORT_MANAGER";
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
@@ -838,6 +844,7 @@ export default function Drivers() {
                 setData={setNewDriver} 
                 showPinToggle={showPin}
                 setShowPinToggle={setShowPin}
+                callerRole={currentUserRole}
               />
               <DialogFooter>
                 <Button
@@ -881,6 +888,7 @@ export default function Drivers() {
               showPinToggle={showEditPin}
               setShowPinToggle={setShowEditPin}
               isEdit
+              callerRole={currentUserRole}
             />
             <DialogFooter>
               <Button

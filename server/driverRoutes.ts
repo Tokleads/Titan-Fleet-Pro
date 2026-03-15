@@ -203,8 +203,31 @@ router.post("/", async (req, res) => {
       assignedPin = await generateUniquePin(Number(companyId));
     }
 
-    const validRoles = ["DRIVER", "TRANSPORT_MANAGER", "ADMIN"];
-    const userRole = role && validRoles.includes(role) ? role : "DRIVER";
+    const validRoles = ["DRIVER", "MECHANIC", "PLANNER", "OFFICE"];
+    const elevatedRoles = ["TRANSPORT_MANAGER", "ADMIN"];
+    let userRole = "DRIVER";
+    if (role) {
+      if (elevatedRoles.includes(role)) {
+        let callerRole = "";
+        try {
+          const { verifyToken } = await import("./jwtAuth");
+          const cookieToken = req.cookies?.tf_token;
+          const bearerToken = req.headers.authorization?.replace("Bearer ", "");
+          const token = cookieToken || bearerToken;
+          if (token) {
+            const decoded = verifyToken(token);
+            callerRole = decoded?.role || "";
+          }
+        } catch {}
+        if (callerRole === "ADMIN") {
+          userRole = role;
+        } else {
+          return res.status(403).json({ error: "Only admins can create Transport Manager or Admin accounts" });
+        }
+      } else if (validRoles.includes(role)) {
+        userRole = role;
+      }
+    }
 
     const existingDriver = await db
       .select()
@@ -518,8 +541,26 @@ router.put("/:id", async (req, res) => {
     }
     if (active !== undefined) updateData.active = active;
     if (role !== undefined) {
-      const validRoles = ["DRIVER", "TRANSPORT_MANAGER", "ADMIN"];
-      if (validRoles.includes(role)) {
+      const standardRoles = ["DRIVER", "MECHANIC", "PLANNER", "OFFICE"];
+      const elevatedRoles = ["TRANSPORT_MANAGER", "ADMIN"];
+      if (elevatedRoles.includes(role)) {
+        let callerRole = "";
+        try {
+          const { verifyToken } = await import("./jwtAuth");
+          const cookieToken = req.cookies?.tf_token;
+          const bearerToken = req.headers.authorization?.replace("Bearer ", "");
+          const tkn = cookieToken || bearerToken;
+          if (tkn) {
+            const decoded = verifyToken(tkn);
+            callerRole = decoded?.role || "";
+          }
+        } catch {}
+        if (callerRole === "ADMIN") {
+          updateData.role = role;
+        } else {
+          return res.status(403).json({ error: "Only admins can assign Transport Manager or Admin roles" });
+        }
+      } else if (standardRoles.includes(role)) {
         updateData.role = role;
       }
     }
