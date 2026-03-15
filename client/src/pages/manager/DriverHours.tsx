@@ -25,12 +25,16 @@ function authHeaders(): Record<string, string> {
 type DriverHoursSummary = {
   driverId: number;
   driverName: string;
-  dailyDriving: { used: number; limit: number; remaining: number };
-  weeklyDriving: { used: number; limit: number; remaining: number };
-  fortnightlyDriving: { used: number; limit: number; remaining: number };
-  weeklyWorking: { used: number; limit: number; remaining: number };
-  dailyRest: { taken: number; required: number; compliant: boolean };
-  weeklyRest: { taken: number; required: number; compliant: boolean };
+  todayDriving: number;
+  todayOtherWork: number;
+  todayTotal: number;
+  weekDriving: number;
+  weekTotal: number;
+  fortnightDriving: number;
+  remainingDailyDriving: number;
+  remainingWeeklyDriving: number;
+  wtdWeeklyHours: number;
+  wtdAverageHours: number;
   infringements: { type: string; severity: string; description: string; date: string }[];
   status: 'ok' | 'warning' | 'critical';
 };
@@ -44,6 +48,11 @@ type HoursLog = {
   restMinutes: number;
   breakMinutes: number;
 };
+
+const DAILY_DRIVING_LIMIT = 540;
+const WEEKLY_DRIVING_LIMIT = 3360;
+const FORTNIGHTLY_DRIVING_LIMIT = 5400;
+const WTD_WEEKLY_LIMIT = 3600;
 
 export default function DriverHours() {
   const [summaries, setSummaries] = useState<DriverHoursSummary[]>([]);
@@ -125,7 +134,7 @@ export default function DriverHours() {
   }
 
   function usageBar(used: number, limit: number) {
-    const pct = Math.min(100, (used / limit) * 100);
+    const pct = Math.min(100, limit > 0 ? (used / limit) * 100 : 0);
     const color = pct >= 95 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-green-500';
     return (
       <div className="flex items-center gap-2">
@@ -187,7 +196,7 @@ export default function DriverHours() {
       <Card className="bg-gray-900/50 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Driver Hours Overview</CardTitle>
-          <CardDescription className="text-gray-400">Daily 9h (10h twice/week) • Weekly 56h • Fortnightly 90h • WTD 60h/week max</CardDescription>
+          <CardDescription className="text-gray-400">Daily 9h (10h twice/week) | Weekly 56h | Fortnightly 90h | WTD 60h/week max</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -202,7 +211,7 @@ export default function DriverHours() {
                   <TableHead className="text-gray-400">Driver</TableHead>
                   <TableHead className="text-gray-400">Daily Driving</TableHead>
                   <TableHead className="text-gray-400">Weekly Driving</TableHead>
-                  <TableHead className="text-gray-400">Weekly Working</TableHead>
+                  <TableHead className="text-gray-400">Weekly Working (WTD)</TableHead>
                   <TableHead className="text-gray-400">Infringements</TableHead>
                   <TableHead className="text-gray-400">Actions</TableHead>
                 </TableRow>
@@ -212,9 +221,9 @@ export default function DriverHours() {
                   <TableRow key={s.driverId} className="border-gray-700" data-testid={`row-driver-${s.driverId}`}>
                     <TableCell>{statusIcon(s.status)}</TableCell>
                     <TableCell className="text-white font-medium">{s.driverName}</TableCell>
-                    <TableCell className="text-white">{usageBar(s.dailyDriving.used, s.dailyDriving.limit)}</TableCell>
-                    <TableCell className="text-white">{usageBar(s.weeklyDriving.used, s.weeklyDriving.limit)}</TableCell>
-                    <TableCell className="text-white">{usageBar(s.weeklyWorking.used, s.weeklyWorking.limit)}</TableCell>
+                    <TableCell className="text-white">{usageBar(s.todayDriving, DAILY_DRIVING_LIMIT)}</TableCell>
+                    <TableCell className="text-white">{usageBar(s.weekDriving, WEEKLY_DRIVING_LIMIT)}</TableCell>
+                    <TableCell className="text-white">{usageBar(s.weekTotal, WTD_WEEKLY_LIMIT)}</TableCell>
                     <TableCell>
                       {(s.infringements?.length || 0) > 0 ? (
                         <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{s.infringements.length}</Badge>
@@ -243,26 +252,26 @@ export default function DriverHours() {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Daily Driving</div>
-                    <div className="text-sm text-white">{formatMinutes(selectedDriver.dailyDriving.remaining)} remaining</div>
+                    <div className="text-xs text-gray-400">Daily Driving Remaining</div>
+                    <div className="text-sm text-white">{formatMinutes(selectedDriver.remainingDailyDriving)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Weekly Driving</div>
-                    <div className="text-sm text-white">{formatMinutes(selectedDriver.weeklyDriving.remaining)} remaining</div>
+                    <div className="text-xs text-gray-400">Weekly Driving Remaining</div>
+                    <div className="text-sm text-white">{formatMinutes(selectedDriver.remainingWeeklyDriving)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Fortnightly Driving</div>
-                    <div className="text-sm text-white">{formatMinutes(selectedDriver.fortnightlyDriving.remaining)} remaining</div>
+                    <div className="text-xs text-gray-400">Fortnightly Driving Used</div>
+                    <div className="text-sm text-white">{formatMinutes(selectedDriver.fortnightDriving)} / {formatMinutes(FORTNIGHTLY_DRIVING_LIMIT)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Weekly Working (WTD)</div>
-                    <div className="text-sm text-white">{formatMinutes(selectedDriver.weeklyWorking.remaining)} remaining</div>
+                    <div className="text-xs text-gray-400">WTD Weekly Hours</div>
+                    <div className="text-sm text-white">{selectedDriver.wtdWeeklyHours}h / 60h</div>
                   </CardContent>
                 </Card>
               </div>
