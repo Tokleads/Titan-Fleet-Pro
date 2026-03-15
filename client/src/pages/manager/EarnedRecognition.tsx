@@ -179,27 +179,27 @@ export default function EarnedRecognition() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4 text-center">
-            <div className="text-gray-400 text-sm mb-2">Compliance Score</div>
+            <div className="text-gray-300 text-sm mb-2">Compliance Score</div>
             <div className={`text-4xl font-bold ${scoreColor(data.kpis.overallScore)}`} data-testid="text-overall-score">{data.kpis.overallScore}%</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4 text-center">
-            <div className="text-gray-400 text-sm mb-2">ERS Status</div>
+            <div className="text-gray-300 text-sm mb-2">ERS Status</div>
             {ersStatusBadge(ersStatus)}
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4 text-center">
-            <div className="text-gray-400 text-sm mb-2">FORS Level</div>
+            <div className="text-gray-300 text-sm mb-2">FORS Level</div>
             {forsLevelBadge(data.forsReadiness.level)}
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4 text-center">
-            <div className="text-gray-400 text-sm mb-2">KPIs Passing</div>
+            <div className="text-gray-300 text-sm mb-2">KPIs Passing</div>
             <div className="text-2xl font-bold text-white" data-testid="text-kpi-pass-count">{passedKPIs}/{kpiList.length}</div>
           </CardContent>
         </Card>
@@ -213,21 +213,21 @@ export default function EarnedRecognition() {
 
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-gray-900/50 border-gray-700">
+          <Card className="bg-gray-900 border-gray-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2"><TrendingUp className="w-5 h-5 text-green-400" />Earned Recognition KPIs</CardTitle>
-              <CardDescription className="text-gray-400">DVSA performance indicators for operator compliance</CardDescription>
+              <CardDescription className="text-gray-300">DVSA performance indicators for operator compliance</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {kpiList.map((kpi, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg" data-testid={`kpi-item-${i}`}>
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg" data-testid={`kpi-item-${i}`}>
                     <div>
                       <div className="text-white text-sm font-medium">{kpi.name}</div>
-                      <div className="text-gray-400 text-xs">{kpi.description}</div>
+                      <div className="text-gray-300 text-xs">{kpi.description}</div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-white text-sm">{kpi.actual} / {kpi.target}</span>
+                      <span className="text-white text-sm font-semibold">{kpi.actual} / {kpi.target}</span>
                       {kpiStatusBadge(kpi.status)}
                     </div>
                   </div>
@@ -237,10 +237,10 @@ export default function EarnedRecognition() {
           </Card>
 
           <div className="space-y-6">
-            <Card className="bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2"><Award className="w-5 h-5 text-amber-400" />FORS Readiness</CardTitle>
-                <CardDescription className="text-gray-400">{metCount}/{reqs.length} requirements met — Score: {data.forsReadiness.score}%</CardDescription>
+                <CardDescription className="text-gray-300">{metCount}/{reqs.length} requirements met — Score: {data.forsReadiness.score}%</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -250,12 +250,12 @@ export default function EarnedRecognition() {
                     const pct = levelReqs.length > 0 ? Math.round((met / levelReqs.length) * 100) : 0;
                     const color = level === 'gold' ? 'bg-yellow-500' : level === 'silver' ? 'bg-gray-300' : 'bg-amber-600';
                     return (
-                      <div key={level} className="p-3 bg-gray-800/50 rounded-lg" data-testid={`fors-level-${level}`}>
+                      <div key={level} className="p-3 bg-gray-800 rounded-lg" data-testid={`fors-level-${level}`}>
                         <div className="flex justify-between mb-1">
-                          <span className="text-white text-sm capitalize">{level}</span>
-                          <span className="text-gray-400 text-sm">{met}/{levelReqs.length} ({pct}%)</span>
+                          <span className="text-white text-sm capitalize font-medium">{level}</span>
+                          <span className="text-gray-300 text-sm">{met}/{levelReqs.length} ({pct}%)</span>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="w-full bg-gray-600 rounded-full h-2">
                           <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -265,23 +265,23 @@ export default function EarnedRecognition() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-900/50 border-gray-700">
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white text-sm">Evidence Summary</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="text-gray-400">Vehicles</div>
+                  <div className="text-gray-300">Vehicles</div>
                   <div className="text-white font-medium">{data.evidenceSummary.totalVehicles}</div>
-                  <div className="text-gray-400">Active Drivers</div>
+                  <div className="text-gray-300">Active Drivers</div>
                   <div className="text-white font-medium">{data.evidenceSummary.totalActiveDrivers}</div>
-                  <div className="text-gray-400">Inspections (12m)</div>
+                  <div className="text-gray-300">Inspections (12m)</div>
                   <div className="text-white font-medium">{data.evidenceSummary.inspectionsLast12Months}</div>
-                  <div className="text-gray-400">Defects Reported</div>
+                  <div className="text-gray-300">Defects Reported</div>
                   <div className="text-white font-medium">{data.evidenceSummary.defectsReported}</div>
-                  <div className="text-gray-400">Defects Resolved</div>
+                  <div className="text-gray-300">Defects Resolved</div>
                   <div className="text-white font-medium">{data.evidenceSummary.defectsResolved}</div>
-                  <div className="text-gray-400">CPC Compliant Drivers</div>
+                  <div className="text-gray-300">CPC Compliant Drivers</div>
                   <div className="text-white font-medium">{data.evidenceSummary.cpcCompliantDrivers}/{data.evidenceSummary.totalActiveDrivers}</div>
                 </div>
               </CardContent>
@@ -291,20 +291,20 @@ export default function EarnedRecognition() {
       )}
 
       {activeTab === 'kpis' && (
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">DVSA Earned Recognition KPIs</CardTitle>
-            <CardDescription className="text-gray-400">Performance metrics required for DVSA Earned Recognition Scheme eligibility</CardDescription>
+            <CardDescription className="text-gray-300">Performance metrics required for DVSA Earned Recognition Scheme eligibility</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">KPI</TableHead>
-                  <TableHead className="text-gray-400">Description</TableHead>
-                  <TableHead className="text-gray-400">Target</TableHead>
-                  <TableHead className="text-gray-400">Actual</TableHead>
-                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-300">KPI</TableHead>
+                  <TableHead className="text-gray-300">Description</TableHead>
+                  <TableHead className="text-gray-300">Target</TableHead>
+                  <TableHead className="text-gray-300">Actual</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,21 +324,21 @@ export default function EarnedRecognition() {
       )}
 
       {activeTab === 'fors' && (
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">FORS Requirements Checklist</CardTitle>
-            <CardDescription className="text-gray-400">Fleet Operator Recognition Scheme — Bronze, Silver & Gold requirements</CardDescription>
+            <CardDescription className="text-gray-300">Fleet Operator Recognition Scheme — Bronze, Silver & Gold requirements</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">ID</TableHead>
-                  <TableHead className="text-gray-400">Level</TableHead>
-                  <TableHead className="text-gray-400">Category</TableHead>
-                  <TableHead className="text-gray-400">Requirement</TableHead>
-                  <TableHead className="text-gray-400">Evidence</TableHead>
-                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-300">ID</TableHead>
+                  <TableHead className="text-gray-300">Level</TableHead>
+                  <TableHead className="text-gray-300">Category</TableHead>
+                  <TableHead className="text-gray-300">Requirement</TableHead>
+                  <TableHead className="text-gray-300">Evidence</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,7 +352,7 @@ export default function EarnedRecognition() {
                     </TableCell>
                     <TableCell className="text-gray-300">{req.category}</TableCell>
                     <TableCell className="text-white">{req.requirement}</TableCell>
-                    <TableCell className="text-gray-400 text-sm">{req.evidence}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{req.evidence}</TableCell>
                     <TableCell>{forsStatusIcon(req.status)}</TableCell>
                   </TableRow>
                 ))}
