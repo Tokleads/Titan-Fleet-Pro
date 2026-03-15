@@ -159,7 +159,7 @@ export default function DriverHours() {
             <Timer className="w-7 h-7 text-blue-400" />
             Driver Hours & Working Time
           </h1>
-          <p className="text-gray-400 mt-1">EU/UK drivers' hours and Working Time Directive compliance</p>
+          <p className="text-gray-300 mt-1">EU/UK drivers' hours and Working Time Directive compliance</p>
         </div>
         <Button data-testid="button-log-hours" onClick={() => setShowAdd(true)} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold">
           <Plus className="w-4 h-4 mr-2" />Log Hours
@@ -167,53 +167,53 @@ export default function DriverHours() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Compliant</div>
+            <div className="text-gray-300 text-sm">Compliant</div>
             <div className="text-2xl font-bold text-green-400" data-testid="text-ok-count"><CheckCircle2 className="w-5 h-5 inline mr-2" />{okCount}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Warnings</div>
+            <div className="text-gray-300 text-sm">Warnings</div>
             <div className="text-2xl font-bold text-amber-400" data-testid="text-warn-count"><AlertTriangle className="w-5 h-5 inline mr-2" />{warnCount}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Critical</div>
+            <div className="text-gray-300 text-sm">Critical</div>
             <div className="text-2xl font-bold text-red-400" data-testid="text-crit-count"><ShieldAlert className="w-5 h-5 inline mr-2" />{critCount}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Infringements</div>
+            <div className="text-gray-300 text-sm">Infringements</div>
             <div className="text-2xl font-bold text-red-300" data-testid="text-infringement-count"><TrendingUp className="w-5 h-5 inline mr-2" />{totalInfringements}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-gray-900/50 border-gray-700">
+      <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Driver Hours Overview</CardTitle>
-          <CardDescription className="text-gray-400">Daily 9h (10h twice/week) | Weekly 56h | Fortnightly 90h | WTD 60h/week max</CardDescription>
+          <CardDescription className="text-gray-300">Daily 9h (10h twice/week) | Weekly 56h | Fortnightly 90h | WTD 60h/week max</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-gray-400">Loading...</div>
+            <div className="text-center py-8 text-gray-300">Loading...</div>
           ) : summaries.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">No driver hours data. Log hours to get started.</div>
+            <div className="text-center py-8 text-gray-300">No driver hours data. Log hours to get started.</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Status</TableHead>
-                  <TableHead className="text-gray-400">Driver</TableHead>
-                  <TableHead className="text-gray-400">Daily Driving</TableHead>
-                  <TableHead className="text-gray-400">Weekly Driving</TableHead>
-                  <TableHead className="text-gray-400">Weekly Working (WTD)</TableHead>
-                  <TableHead className="text-gray-400">Infringements</TableHead>
-                  <TableHead className="text-gray-400">Actions</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300">Driver</TableHead>
+                  <TableHead className="text-gray-300">Daily Driving</TableHead>
+                  <TableHead className="text-gray-300">Weekly Driving</TableHead>
+                  <TableHead className="text-gray-300">Weekly Working (WTD)</TableHead>
+                  <TableHead className="text-gray-300">Infringements</TableHead>
+                  <TableHead className="text-gray-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,25 +252,25 @@ export default function DriverHours() {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Daily Driving Remaining</div>
+                    <div className="text-xs text-gray-300">Daily Driving Remaining</div>
                     <div className="text-sm text-white">{formatMinutes(selectedDriver.remainingDailyDriving)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Weekly Driving Remaining</div>
+                    <div className="text-xs text-gray-300">Weekly Driving Remaining</div>
                     <div className="text-sm text-white">{formatMinutes(selectedDriver.remainingWeeklyDriving)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">Fortnightly Driving Used</div>
+                    <div className="text-xs text-gray-300">Fortnightly Driving Used</div>
                     <div className="text-sm text-white">{formatMinutes(selectedDriver.fortnightDriving)} / {formatMinutes(FORTNIGHTLY_DRIVING_LIMIT)}</div>
                   </CardContent>
                 </Card>
                 <Card className="bg-gray-800 border-gray-600">
                   <CardContent className="p-3">
-                    <div className="text-xs text-gray-400">WTD Weekly Hours</div>
+                    <div className="text-xs text-gray-300">WTD Weekly Hours</div>
                     <div className="text-sm text-white">{selectedDriver.wtdWeeklyHours}h / 60h</div>
                   </CardContent>
                 </Card>
@@ -294,15 +294,15 @@ export default function DriverHours() {
 
               {logs.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-400 mb-2">Recent Logs (14 days)</h4>
+                  <h4 className="text-sm font-semibold text-gray-300 mb-2">Recent Logs (14 days)</h4>
                   <Table>
                     <TableHeader>
                       <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-400">Date</TableHead>
-                        <TableHead className="text-gray-400">Driving</TableHead>
-                        <TableHead className="text-gray-400">Other Work</TableHead>
-                        <TableHead className="text-gray-400">Rest</TableHead>
-                        <TableHead className="text-gray-400">Break</TableHead>
+                        <TableHead className="text-gray-300">Date</TableHead>
+                        <TableHead className="text-gray-300">Driving</TableHead>
+                        <TableHead className="text-gray-300">Other Work</TableHead>
+                        <TableHead className="text-gray-300">Rest</TableHead>
+                        <TableHead className="text-gray-300">Break</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -331,7 +331,7 @@ export default function DriverHours() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-400">Driver *</Label>
+              <Label className="text-gray-300">Driver *</Label>
               <Select value={form.driverId} onValueChange={v => setForm({ ...form, driverId: v })}>
                 <SelectTrigger data-testid="select-driver-hours" className="bg-gray-800 border-gray-600"><SelectValue placeholder="Select driver" /></SelectTrigger>
                 <SelectContent>
@@ -340,26 +340,26 @@ export default function DriverHours() {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-400">Date *</Label>
+              <Label className="text-gray-300">Date *</Label>
               <Input data-testid="input-hours-date" type="date" className="bg-gray-800 border-gray-600" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Driving (minutes) *</Label>
+                <Label className="text-gray-300">Driving (minutes) *</Label>
                 <Input data-testid="input-driving-min" type="number" className="bg-gray-800 border-gray-600" value={form.drivingMinutes} onChange={e => setForm({ ...form, drivingMinutes: e.target.value })} />
               </div>
               <div>
-                <Label className="text-gray-400">Other Work (minutes)</Label>
+                <Label className="text-gray-300">Other Work (minutes)</Label>
                 <Input data-testid="input-other-work-min" type="number" className="bg-gray-800 border-gray-600" value={form.otherWorkMinutes} onChange={e => setForm({ ...form, otherWorkMinutes: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Rest (minutes)</Label>
+                <Label className="text-gray-300">Rest (minutes)</Label>
                 <Input data-testid="input-rest-min" type="number" className="bg-gray-800 border-gray-600" value={form.restMinutes} onChange={e => setForm({ ...form, restMinutes: e.target.value })} />
               </div>
               <div>
-                <Label className="text-gray-400">Break (minutes)</Label>
+                <Label className="text-gray-300">Break (minutes)</Label>
                 <Input data-testid="input-break-min" type="number" className="bg-gray-800 border-gray-600" value={form.breakMinutes} onChange={e => setForm({ ...form, breakMinutes: e.target.value })} />
               </div>
             </div>

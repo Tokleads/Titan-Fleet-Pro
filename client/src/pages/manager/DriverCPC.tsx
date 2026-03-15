@@ -130,7 +130,7 @@ export default function DriverCPC() {
             <GraduationCap className="w-7 h-7 text-amber-400" />
             Driver CPC Tracking
           </h1>
-          <p className="text-gray-400 mt-1">Monitor Certificate of Professional Competence status across your fleet</p>
+          <p className="text-gray-300 mt-1">Monitor Certificate of Professional Competence status across your fleet</p>
         </div>
         <Button data-testid="button-add-cpc" onClick={() => setShowAdd(true)} className="bg-amber-500 hover:bg-amber-600 text-black font-semibold">
           <Plus className="w-4 h-4 mr-2" />Add CPC Record
@@ -138,27 +138,27 @@ export default function DriverCPC() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Total Drivers</div>
+            <div className="text-gray-300 text-sm">Total Drivers</div>
             <div className="text-2xl font-bold text-white" data-testid="text-total-drivers"><Users className="w-5 h-5 inline mr-2 text-blue-400" />{stats.total}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Compliant</div>
+            <div className="text-gray-300 text-sm">Compliant</div>
             <div className="text-2xl font-bold text-green-400" data-testid="text-compliant-count"><CheckCircle2 className="w-5 h-5 inline mr-2" />{stats.compliant}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Expiring (90 days)</div>
+            <div className="text-gray-300 text-sm">Expiring (90 days)</div>
             <div className="text-2xl font-bold text-amber-400" data-testid="text-expiring-count"><AlertTriangle className="w-5 h-5 inline mr-2" />{stats.expiring}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Expired</div>
+            <div className="text-gray-300 text-sm">Expired</div>
             <div className="text-2xl font-bold text-red-400" data-testid="text-expired-count"><AlertTriangle className="w-5 h-5 inline mr-2" />{stats.expired}</div>
           </CardContent>
         </Card>
@@ -170,26 +170,26 @@ export default function DriverCPC() {
       </div>
 
       {view === 'summary' && (
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">Driver CPC Status</CardTitle>
-            <CardDescription className="text-gray-400">35 hours of periodic training required every 5 years</CardDescription>
+            <CardDescription className="text-gray-300">35 hours of periodic training required every 5 years</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8 text-gray-400">Loading...</div>
+              <div className="text-center py-8 text-gray-300">Loading...</div>
             ) : drivers.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">No drivers found. Add CPC training records to get started.</div>
+              <div className="text-center py-8 text-gray-300">No drivers found. Add CPC training records to get started.</div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Driver</TableHead>
-                    <TableHead className="text-gray-400">Hours Completed</TableHead>
-                    <TableHead className="text-gray-400">Remaining</TableHead>
-                    <TableHead className="text-gray-400">CPC Expiry</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Actions</TableHead>
+                    <TableHead className="text-gray-300">Driver</TableHead>
+                    <TableHead className="text-gray-300">Hours Completed</TableHead>
+                    <TableHead className="text-gray-300">Remaining</TableHead>
+                    <TableHead className="text-gray-300">CPC Expiry</TableHead>
+                    <TableHead className="text-gray-300">Status</TableHead>
+                    <TableHead className="text-gray-300">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -222,12 +222,12 @@ export default function DriverCPC() {
       )}
 
       {view === 'records' && (
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-white">Training Records</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-300">
                   {selectedDriver ? `Showing records for ${drivers.find(d => d.driverId === selectedDriver)?.driverName || 'driver'}` : 'All drivers'}
                 </CardDescription>
               </div>
@@ -238,17 +238,17 @@ export default function DriverCPC() {
           </CardHeader>
           <CardContent>
             {filteredRecords.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">No training records found.</div>
+              <div className="text-center py-8 text-gray-300">No training records found.</div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-400">Date</TableHead>
-                    <TableHead className="text-gray-400">Course</TableHead>
-                    <TableHead className="text-gray-400">Provider</TableHead>
-                    <TableHead className="text-gray-400">Hours</TableHead>
-                    <TableHead className="text-gray-400">Certificate</TableHead>
-                    <TableHead className="text-gray-400">Actions</TableHead>
+                    <TableHead className="text-gray-300">Date</TableHead>
+                    <TableHead className="text-gray-300">Course</TableHead>
+                    <TableHead className="text-gray-300">Provider</TableHead>
+                    <TableHead className="text-gray-300">Hours</TableHead>
+                    <TableHead className="text-gray-300">Certificate</TableHead>
+                    <TableHead className="text-gray-300">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -280,7 +280,7 @@ export default function DriverCPC() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-400">Driver *</Label>
+              <Label className="text-gray-300">Driver *</Label>
               <Select value={form.driverId} onValueChange={v => setForm({ ...form, driverId: v })}>
                 <SelectTrigger data-testid="select-driver" className="bg-gray-800 border-gray-600"><SelectValue placeholder="Select driver" /></SelectTrigger>
                 <SelectContent>
@@ -290,29 +290,29 @@ export default function DriverCPC() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Training Date *</Label>
+                <Label className="text-gray-300">Training Date *</Label>
                 <Input data-testid="input-training-date" type="date" className="bg-gray-800 border-gray-600" value={form.trainingDate} onChange={e => setForm({ ...form, trainingDate: e.target.value })} />
               </div>
               <div>
-                <Label className="text-gray-400">Hours *</Label>
+                <Label className="text-gray-300">Hours *</Label>
                 <Input data-testid="input-hours" type="number" step="0.5" min="0" max="7" className="bg-gray-800 border-gray-600" value={form.hours} onChange={e => setForm({ ...form, hours: e.target.value })} />
               </div>
             </div>
             <div>
-              <Label className="text-gray-400">Training Provider *</Label>
+              <Label className="text-gray-300">Training Provider *</Label>
               <Input data-testid="input-provider" className="bg-gray-800 border-gray-600" value={form.provider} onChange={e => setForm({ ...form, provider: e.target.value })} />
             </div>
             <div>
-              <Label className="text-gray-400">Course Title</Label>
+              <Label className="text-gray-300">Course Title</Label>
               <Input data-testid="input-course-title" className="bg-gray-800 border-gray-600" value={form.courseTitle} onChange={e => setForm({ ...form, courseTitle: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Certificate Ref</Label>
+                <Label className="text-gray-300">Certificate Ref</Label>
                 <Input data-testid="input-cert-ref" className="bg-gray-800 border-gray-600" value={form.certificateRef} onChange={e => setForm({ ...form, certificateRef: e.target.value })} />
               </div>
               <div>
-                <Label className="text-gray-400">CPC Expiry Date</Label>
+                <Label className="text-gray-300">CPC Expiry Date</Label>
                 <Input data-testid="input-expiry-date" type="date" className="bg-gray-800 border-gray-600" value={form.cpcExpiryDate} onChange={e => setForm({ ...form, cpcExpiryDate: e.target.value })} />
               </div>
             </div>
