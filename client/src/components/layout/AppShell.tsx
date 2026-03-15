@@ -30,6 +30,25 @@ function useDriverGPSTracking() {
     const company = session.getCompany();
     if (!user || !company) return;
 
+    const sendFallbackLocation = async (timesheet: any) => {
+      if (!timesheet?.arrivalLatitude || !timesheet?.arrivalLongitude) return;
+      try {
+        await fetch('/api/driver/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            driverId: user.id,
+            companyId: company.id,
+            latitude: timesheet.arrivalLatitude,
+            longitude: timesheet.arrivalLongitude,
+            speed: 0,
+            heading: null,
+            accuracy: null,
+          }),
+        });
+      } catch {}
+    };
+
     const syncTracking = async () => {
       try {
         const token = session.getToken();
@@ -40,7 +59,15 @@ function useDriverGPSTracking() {
         const data = await res.json();
         const isCurrentlyTracking = gpsTrackingService.getStatus().isTracking;
         if (data.timesheet && !isCurrentlyTracking) {
-          gpsTrackingService.startTracking(user.id, null, company.id);
+          const started = gpsTrackingService.startTracking(user.id, null, company.id);
+          if (!started) {
+            sendFallbackLocation(data.timesheet);
+          }
+        } else if (data.timesheet && isCurrentlyTracking) {
+          const status = gpsTrackingService.getStatus();
+          if (status.error || !status.lastUpdate) {
+            sendFallbackLocation(data.timesheet);
+          }
         } else if (!data.timesheet && isCurrentlyTracking) {
           gpsTrackingService.stopTracking();
         }
