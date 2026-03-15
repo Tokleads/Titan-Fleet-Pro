@@ -27,6 +27,7 @@ const CarRegister = lazy(() => import("@/pages/driver/CarRegister"));
 const ManagerLogin = lazy(() => import("@/pages/manager/ManagerLogin"));
 const ManagerDashboardOps = lazy(() => import("@/pages/manager/Dashboard"));
 const AdvancedDashboard = lazy(() => import("@/pages/manager/AdvancedDashboard"));
+const PredictiveAnalytics = lazy(() => import("@/pages/manager/PredictiveAnalytics"));
 const ManagerInspections = lazy(() => import("@/pages/manager/Inspections"));
 const ManagerDefects = lazy(() => import("@/pages/manager/Defects"));
 const ManagerFuelLog = lazy(() => import("@/pages/manager/FuelLog"));
@@ -139,6 +140,7 @@ function Router() {
         <Route path="/manager/operator-licence" component={OperatorLicence} />
         <Route path="/manager/vehicle-management" component={VehicleManagement} />
         <Route path="/manager/ai-insights" component={AIInsights} />
+        <Route path="/manager/predictive-analytics" component={PredictiveAnalytics} />
         <Route path="/manager/compliance-copilot" component={ComplianceCopilot} />
         <Route path="/manager/api-health" component={ApiHealth} />
         <Route path="/manager/bulk-upload" component={BulkUpload} />

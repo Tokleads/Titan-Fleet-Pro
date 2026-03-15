@@ -26,6 +26,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { triggerDefectReported, triggerInspectionFailed, triggerNewDriverWelcome, checkMOTExpiryWarnings } from "./notificationTriggers";
 import { triageDefect } from "./aiTriageService";
 import { getMaintenanceAlerts, runPredictiveMaintenance } from "./predictiveMaintenanceService";
+import { getFleetPredictiveAnalytics } from "./predictiveAnalyticsService";
 import { maintenanceAlerts } from "@shared/schema";
 import { signToken, setAuthCookie, clearAuthCookie, requireAuth, requireCompany, requireRole } from "./jwtAuth";
 import { requirePermission } from './permissionGuard';
@@ -984,6 +985,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to acknowledge alert:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/predictive-analytics/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      if (req.user && companyId !== req.user.companyId) {
+        return res.status(403).json({ error: 'Forbidden', message: 'Access denied to this company' });
+      }
+      const analytics = await getFleetPredictiveAnalytics(companyId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to get predictive analytics:", error);
+      res.status(500).json({ error: "Failed to generate predictive analytics" });
     }
   });
 

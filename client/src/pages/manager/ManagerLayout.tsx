@@ -56,6 +56,7 @@ const navItems = [
   { path: "/manager/deliveries", icon: Package, label: "Deliveries", permissionKey: "deliveries" },
   { path: "/manager/defects", icon: AlertTriangle, label: "Defects", permissionKey: "defects" },
   { path: "/manager/ai-insights", icon: Brain, label: "AI Insights", permissionKey: "ai-insights" },
+  { path: "/manager/predictive-analytics", icon: TrendingUp, label: "Predictive Analytics", permissionKey: "predictive-analytics" },
   { path: "/manager/compliance-copilot", icon: ShieldCheck, label: "Compliance Copilot", permissionKey: "compliance-copilot" },
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log", permissionKey: "fuel-log" },
   { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence", permissionKey: "o-licence" },
