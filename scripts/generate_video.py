@@ -9,6 +9,7 @@ slides = [
 
 clips = []
 fps = 24
+W, H = 1920, 1080
 
 for slide in slides:
     img_clip = ImageClip(slide["img"]).with_duration(5).with_fps(fps)
@@ -21,10 +22,13 @@ for slide in slides:
         color='yellow',
         font='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
         stroke_color='black',
-        stroke_width=2
-    ).with_position(('center', 800)).with_duration(5)
+        stroke_width=3
+    ).with_position(lambda t, txt_h=None: ('center', H - 120)).with_duration(5)
 
-    video = CompositeVideoClip([img_clip.with_position("center"), txt_clip])
+    video = CompositeVideoClip(
+        [img_clip.with_position("center"), txt_clip],
+        size=(W, H)
+    )
     clips.append(video)
 
 final_video = concatenate_videoclips(clips, method="compose")
