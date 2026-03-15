@@ -119,7 +119,7 @@ export default function ScheduledReports() {
             <CalendarClock className="w-7 h-7 text-purple-400" />
             Scheduled Report Emails
           </h1>
-          <p className="text-gray-400 mt-1">Configure automated report delivery to your team via email</p>
+          <p className="text-gray-300 mt-1">Configure automated report delivery to your team via email</p>
         </div>
         <Button data-testid="button-add-schedule" onClick={() => setShowAdd(true)} className="bg-purple-500 hover:bg-purple-600 text-white font-semibold">
           <Plus className="w-4 h-4 mr-2" />New Schedule
@@ -127,25 +127,25 @@ export default function ScheduledReports() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Active Schedules</div>
+            <div className="text-gray-300 text-sm">Active Schedules</div>
             <div className="text-2xl font-bold text-green-400" data-testid="text-active-count">
               <FileBarChart className="w-5 h-5 inline mr-2" />{reports.filter(r => r.enabled).length}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Total Schedules</div>
+            <div className="text-gray-300 text-sm">Total Schedules</div>
             <div className="text-2xl font-bold text-white" data-testid="text-total-count">
               <Mail className="w-5 h-5 inline mr-2" />{reports.length}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700">
+        <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
-            <div className="text-gray-400 text-sm">Report Types Available</div>
+            <div className="text-gray-300 text-sm">Report Types Available</div>
             <div className="text-2xl font-bold text-purple-400" data-testid="text-types-count">
               {Object.keys(reportTypes).length}
             </div>
@@ -153,27 +153,27 @@ export default function ScheduledReports() {
         </Card>
       </div>
 
-      <Card className="bg-gray-900/50 border-gray-700">
+      <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Configured Report Schedules</CardTitle>
-          <CardDescription className="text-gray-400">Reports are generated and emailed automatically at 7:00 AM on the scheduled day</CardDescription>
+          <CardDescription className="text-gray-300">Reports are generated and emailed automatically at 7:00 AM on the scheduled day</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-gray-400">Loading...</div>
+            <div className="text-center py-8 text-gray-300">Loading...</div>
           ) : reports.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">No scheduled reports configured yet. Create one to get started.</div>
+            <div className="text-center py-8 text-gray-300">No scheduled reports configured yet. Create one to get started.</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-400">Report</TableHead>
-                  <TableHead className="text-gray-400">Frequency</TableHead>
-                  <TableHead className="text-gray-400">Day</TableHead>
-                  <TableHead className="text-gray-400">Recipients</TableHead>
-                  <TableHead className="text-gray-400">Last Sent</TableHead>
-                  <TableHead className="text-gray-400">Enabled</TableHead>
-                  <TableHead className="text-gray-400">Actions</TableHead>
+                  <TableHead className="text-gray-300">Report</TableHead>
+                  <TableHead className="text-gray-300">Frequency</TableHead>
+                  <TableHead className="text-gray-300">Day</TableHead>
+                  <TableHead className="text-gray-300">Recipients</TableHead>
+                  <TableHead className="text-gray-300">Last Sent</TableHead>
+                  <TableHead className="text-gray-300">Enabled</TableHead>
+                  <TableHead className="text-gray-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,7 +183,7 @@ export default function ScheduledReports() {
                     <TableCell><Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">{r.frequency}</Badge></TableCell>
                     <TableCell className="text-gray-300">{DAYS[r.dayOfWeek] || '-'}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{r.recipients.join(', ')}</TableCell>
-                    <TableCell className="text-gray-400">{r.lastSent ? new Date(r.lastSent).toLocaleDateString('en-GB') : 'Never'}</TableCell>
+                    <TableCell className="text-gray-300">{r.lastSent ? new Date(r.lastSent).toLocaleDateString('en-GB') : 'Never'}</TableCell>
                     <TableCell>
                       <Switch
                         data-testid={`switch-enabled-${r.id}`}
@@ -211,7 +211,7 @@ export default function ScheduledReports() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-400">Report Type *</Label>
+              <Label className="text-gray-300">Report Type *</Label>
               <Select value={form.reportType} onValueChange={v => setForm({ ...form, reportType: v })}>
                 <SelectTrigger data-testid="select-report-type" className="bg-gray-800 border-gray-600"><SelectValue placeholder="Select report" /></SelectTrigger>
                 <SelectContent>
@@ -221,12 +221,12 @@ export default function ScheduledReports() {
                 </SelectContent>
               </Select>
               {form.reportType && reportTypes[form.reportType] && (
-                <p className="text-xs text-gray-500 mt-1">{reportTypes[form.reportType].description}</p>
+                <p className="text-xs text-gray-400 mt-1">{reportTypes[form.reportType].description}</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Frequency</Label>
+                <Label className="text-gray-300">Frequency</Label>
                 <Select value={form.frequency} onValueChange={v => setForm({ ...form, frequency: v })}>
                   <SelectTrigger data-testid="select-frequency" className="bg-gray-800 border-gray-600"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -236,7 +236,7 @@ export default function ScheduledReports() {
                 </Select>
               </div>
               <div>
-                <Label className="text-gray-400">Day of Week</Label>
+                <Label className="text-gray-300">Day of Week</Label>
                 <Select value={form.dayOfWeek} onValueChange={v => setForm({ ...form, dayOfWeek: v })}>
                   <SelectTrigger data-testid="select-day" className="bg-gray-800 border-gray-600"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -246,7 +246,7 @@ export default function ScheduledReports() {
               </div>
             </div>
             <div>
-              <Label className="text-gray-400">Recipients (comma-separated emails) *</Label>
+              <Label className="text-gray-300">Recipients (comma-separated emails) *</Label>
               <Input data-testid="input-recipients" className="bg-gray-800 border-gray-600" placeholder="manager@company.com, ops@company.com" value={form.recipients} onChange={e => setForm({ ...form, recipients: e.target.value })} />
             </div>
           </div>
