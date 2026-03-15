@@ -608,7 +608,7 @@ export default function DriverDashboard() {
         )}
       </div>
 
-      {hasUnreadDocs && showDocsPopup && (
+      {hasUnreadDocs && showDocsPopup && !showTour && (
         <DocumentsPopup onClose={() => setShowDocsPopup(false)} />
       )}
 
