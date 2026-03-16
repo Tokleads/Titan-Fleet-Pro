@@ -34,6 +34,7 @@ export default function TitanFleetLandingPage() {
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAnnouncementBar, setShowAnnouncementBar] = useState(true);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -322,13 +323,13 @@ export default function TitanFleetLandingPage() {
                   </button>
                   <p className="text-xs text-amber-500 font-semibold mt-2 text-center">🔥 7/10 spots remaining</p>
                 </div>
-                <a
-                  href="/demo"
+                <button
+                  onClick={() => setShowVideo(true)}
                   className="inline-flex items-center justify-center h-14 px-8 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
                   data-testid="button-watch-demo"
                 >
-                  Watch 90-Second Demo
-                </a>
+                  ▶ Watch Demo Video
+                </button>
               </motion.div>
 
               <motion.div
@@ -958,6 +959,34 @@ export default function TitanFleetLandingPage() {
           </div>
         </div>
       </footer>
+
+      {showVideo && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowVideo(false)}
+          data-testid="video-modal-overlay"
+        >
+          <div
+            className="relative w-full max-w-4xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowVideo(false)}
+              className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors"
+              data-testid="button-close-video"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            <video
+              src="/titan_fleet_ad.mp4"
+              controls
+              autoPlay
+              className="w-full rounded-2xl shadow-2xl"
+              data-testid="video-demo"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
