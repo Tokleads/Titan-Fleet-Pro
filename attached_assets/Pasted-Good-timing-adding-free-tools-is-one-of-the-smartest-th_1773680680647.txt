@@ -1,0 +1,219 @@
+Good timing — adding **free tools** is one of the smartest things you can do for **TitanFleet**.
+
+Tools attract:
+
+• backlinks
+• search traffic
+• AI citations
+• potential customers
+
+Transport managers love **practical utilities**, especially for compliance.
+
+Below are **5 tools that fit the UK fleet industry perfectly** and would work very well with the content moat you’re building.
+
+---
+
+# 1️⃣ DVSA Walkaround Check Generator
+
+This could become a **major traffic page**.
+
+### Tool idea
+
+A form that generates a **custom vehicle inspection checklist**.
+
+User selects:
+
+• vehicle type
+• fleet size
+• inspection frequency
+
+Output:
+
+✔ downloadable checklist
+✔ printable PDF
+✔ digital checklist
+
+CTA at bottom:
+
+> Manage these checks digitally with TitanFleet.
+
+This tool fits perfectly with your **DVSA pillar**.
+
+---
+
+# 2️⃣ Fleet Maintenance Schedule Calculator
+
+Maintenance planning is a big headache for fleets.
+
+### Tool idea
+
+User enters:
+
+• vehicle mileage
+• service interval
+• fleet size
+
+Tool generates:
+
+✔ recommended maintenance schedule
+✔ service reminders
+
+CTA:
+
+> Track maintenance automatically with TitanFleet.
+
+---
+
+# 3️⃣ Operator Licence Compliance Checklist
+
+This would attract **transport managers preparing for audits**.
+
+### Tool idea
+
+Interactive checklist covering:
+
+• driver inspections
+• maintenance records
+• defect reporting
+• compliance documentation
+
+Users can:
+
+✔ tick items
+✔ download checklist
+✔ email it to themselves
+
+---
+
+# 4️⃣ Fleet Cost Calculator
+
+Fleet managers often search:
+
+> “How much does fleet downtime cost?”
+
+### Tool idea
+
+Inputs:
+
+• fleet size
+• average downtime
+• vehicle value
+
+Output:
+
+✔ estimated annual cost
+
+Then show:
+
+> How digital inspections reduce downtime.
+
+---
+
+# 5️⃣ Fleet Software Comparison Tool
+
+This helps capture **buyers researching options**.
+
+### Tool idea
+
+User selects features they need:
+
+• defect reporting
+• inspections
+• maintenance tracking
+
+Output compares:
+
+| Software   | Feature Match |
+| ---------- | ------------- |
+| TitanFleet | ✓             |
+| FleetCheck | ✓             |
+| Webfleet   | ✓             |
+
+This reinforces TitanFleet as a **serious platform**.
+
+---
+
+# Where These Tools Should Live
+
+Create a **Tools section** on the site.
+
+Example structure:
+
+```
+/tools
+   /dvsa-walkaround-check-generator
+   /fleet-maintenance-schedule-calculator
+   /operator-licence-compliance-checklist
+   /fleet-cost-calculator
+   /fleet-software-comparison
+```
+
+Each tool becomes a **traffic page**.
+
+---
+
+# Why Tools Are Powerful
+
+They attract backlinks naturally.
+
+Example:
+
+A transport blog writes:
+
+> “Here’s a free DVSA walkaround checklist generator.”
+
+They link to TitanFleet.
+
+Google sees these links and boosts rankings.
+
+---
+
+# Traffic Potential
+
+Even one good tool can bring:
+
+**1,000+ visitors/month**
+
+Especially something like:
+
+**DVSA Walkaround Checklist Generator**
+
+---
+
+# How This Connects to Your Moat
+
+Your structure becomes:
+
+```
+Guides (pillars)
+│
+├── Articles
+│
+├── Tools
+│
+└── Product Pages
+```
+
+Everything links back to TitanFleet.
+
+---
+
+# One Very Important Tip
+
+Make sure each tool page also has:
+
+• explanation text
+• guide content
+• FAQs
+
+Not just the calculator.
+
+This helps it rank.
+
+---
+
+💡 If you want, I can also show you something extremely useful:
+
+**The one page TitanFleet should build that could realistically bring the most traffic in the entire site.**
+
+It’s a **DVSA-related page that almost every transport manager searches at some point.**
