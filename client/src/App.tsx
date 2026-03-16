@@ -13,6 +13,7 @@ const Landing = lazy(() => import("@/pages/Landing"));
 const SEOLanding = lazy(() => import("@/pages/SEOLanding"));
 const Guides = lazy(() => import("@/pages/Guides"));
 const Resources = lazy(() => import("@/pages/Resources"));
+const Tools = lazy(() => import("@/pages/Tools"));
 const TitanFleetLandingPage = lazy(() => import("@/pages/TitanFleetLanding"));
 const DriverDashboard = lazy(() => import("@/pages/driver/DriverDashboard"));
 const VehicleDetail = lazy(() => import("@/pages/driver/VehicleDetail"));
@@ -170,6 +171,8 @@ function Router() {
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/help" component={HelpCenter} />
         <Route path="/join/:token" component={DriverSignup} />
+        <Route path="/tools/:slug" component={Tools} />
+        <Route path="/tools" component={Tools} />
         <Route path="/guides/:slug" component={Guides} />
         <Route path="/guides" component={Guides} />
         <Route path="/resources/:slug" component={Resources} />

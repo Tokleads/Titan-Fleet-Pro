@@ -2,15 +2,15 @@
 
 ## Overview
 
-FleetCheck Lite Drive is a premium, multi-tenant fleet management application designed to streamline operations for both drivers and managers. It offers distinct, mobile-optimized workflows to enhance efficiency and compliance in fleet management. The project aims to provide a comprehensive solution for vehicle inspections, defect reporting, fuel management, and regulatory compliance, with ambitious plans for white-label branding and advanced automation features.
+FleetCheck Lite Drive is a premium, multi-tenant fleet management application designed to optimize operations for drivers and managers. It provides mobile-optimized workflows for vehicle inspections, defect reporting, fuel management, and regulatory compliance. The project aims to offer a comprehensive solution with capabilities for white-label branding and advanced agentic automation, ultimately enhancing efficiency and ensuring compliance in fleet operations.
 
 **Key Capabilities:**
 - **Driver Portal**: Mobile-first vehicle inspections, defect reporting, and fuel entry.
-- **Manager Console**: Centralized dashboard for fleet overview, settings, and advanced management features.
-- **DVSA Integration**: Real-time MOT status lookups for compliance.
+- **Manager Console**: Centralized dashboard for fleet overview and advanced management.
+- **DVSA Integration**: Real-time MOT status lookups.
 - **Agentic Automation**: Proactive features like auto-VOR, defect escalation, and fuel anomaly detection.
-- **Proof of Delivery (POD) System**: Comprehensive delivery capture with signatures, photos, and GPS.
-- **Subscription Management**: Integrated Stripe for subscription billing and account management.
+- **Proof of Delivery (POD)**: Comprehensive delivery capture with signatures, photos, and GPS.
+- **Subscription Management**: Integrated Stripe for billing.
 
 ## User Preferences
 
@@ -21,82 +21,73 @@ FleetCheck Lite Drive is a premium, multi-tenant fleet management application de
 
 ## System Architecture
 
-FleetCheck Lite Drive is built as a full-stack application with a clear separation of concerns.
+FleetCheck Lite Drive is a full-stack application built with a clear separation of concerns, emphasizing scalability, compliance automation, and a mobile-first approach.
 
 **Technical Stack:**
 - **Frontend**: React, TypeScript, Vite, TailwindCSS
 - **Backend**: Express, TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
-- **UI Components**: Custom "Titan Fleet" design system, ensuring a consistent and premium user experience.
+- **UI Components**: Custom "Titan Fleet" design system.
 
 **Server Route Architecture:**
-Routes are split across focused files registered via `register...Routes(app)` pattern:
-- `routes.ts` (~2977 lines): Auth middleware, login endpoints, inspections, defects, fuel, vehicle CRUD, fleet hierarchy, referrals
-- `complianceRoutes.ts`: Reminders, DVLA license verification, operator licences, company car register, GDPR, Driver CPC CRUD, Driver Hours summary/logging, Scheduled Reports CRUD, Earned Recognition data
-- `operationsRoutes.ts`: Shift checks, GPS tracking, geofencing, stagnation alerts, delivery/POD
-- `financialRoutes.ts`: Timesheets, pay rates, wage calculations, CSV exports
-- `settingsRoutes.ts`: 2FA/TOTP, company feature settings, Google Drive, logo upload
-- `coreRoutes.ts`: Audit logs, documents, driver messages, PDF report generation, Titan Command notifications, report endpoints
-- `complianceCopilotRoutes.ts`: POST /api/compliance/query — RAG-powered DVSA compliance Q&A (vector search + GPT-4o)
-- Plus existing: `vehicleManagementRoutes.ts`, `fuelIntelligenceRoutes.ts`, `apiHealthRoutes.ts`, `driverRoutes.ts`, `authRoutes.ts`, `adminRoutes.ts`, `dashboardRoutes.ts`, `fleetDocumentsRoutes.ts`, `notificationPreferencesRoutes.ts`, `userRolesRoutes.ts`
+Routes are organized by feature area (e.g., authentication, inspections, compliance, operations, finance, settings) and are registered using a `register...Routes(app)` pattern. Key areas include:
+- `routes.ts`: Auth, inspections, defects, fuel, vehicle CRUD, fleet hierarchy.
+- `complianceRoutes.ts`: Reminders, DVLA checks, operator licences, Driver CPC, scheduled reports.
+- `operationsRoutes.ts`: Shift checks, GPS tracking, geofencing, delivery/POD.
+- `financialRoutes.ts`: Timesheets, pay rates, wage calculations.
+- `settingsRoutes.ts`: 2FA/TOTP, company features, Google Drive integration.
+- `coreRoutes.ts`: Audit logs, documents, driver messages, PDF generation, notifications.
+- `complianceCopilotRoutes.ts`: RAG-powered DVSA compliance Q&A.
 
 **Design Principles:**
-- **Multi-tenancy**: Designed from the ground up to support multiple companies with isolated data and configurable branding.
-- **Mobile-first**: All driver-facing functionalities are optimized for mobile devices, prioritizing ease of use and accessibility.
-- **Scalability**: Utilizing a robust tech stack and architectural patterns to support future growth and feature expansion.
-- **Compliance Automation**: Integration of agentic systems for automated compliance checks, notifications, and proactive management.
-- **GPS Tracking Persistence**: Tracking lifecycle managed in DriverLayout (AppShell.tsx) via `useDriverGPSTracking` hook — persists across all driver pages, syncs with active timesheet every 30s.
-- **Clock-in from anywhere**: No geofence restriction. Out-of-geofence clock-ins flagged for manager review.
+- **Multi-tenancy**: Supports multiple companies with isolated data and configurable branding.
+- **Mobile-first**: Driver-facing functionalities optimized for mobile.
+- **Scalability**: Robust tech stack and patterns for future growth.
+- **Compliance Automation**: Agentic systems for automated checks and notifications.
+- **GPS Tracking Persistence**: Managed via a `useDriverGPSTracking` hook in `DriverLayout`.
+- **Clock-in from anywhere**: Out-of-geofence clock-ins are flagged for review.
 
 **Core Features & Implementations:**
-- **Authentication**: PIN-based login for drivers only (quick access on shared tablets). Managers use email/password exclusively (no PIN option) with optional 2FA. Secure account setup and password reset flows. JWT tokens stored in httpOnly cookies (cookie name: `tf_token`, 24h expiry, secure in production, sameSite: lax). Client-side fully migrated — global fetch interceptor adds `credentials: "include"`, no more localStorage token storage. Bearer token header fallback still accepted server-side.
-- **Role-Based Access**: ADMIN (full access + approval authority), TRANSPORT_MANAGER (standard management), PLANNER (view-only: on-duty drivers, no clock in/out), OFFICE (read-only dashboard view), DRIVER, MECHANIC, AUDITOR.
-- **Timesheet Approval Workflow**: Time adjustments by transport managers require ADMIN approval. Pending/Approved/Rejected states with server-side role enforcement.
-- **Company Car Register**: Drivers log which company car they're using (number plate, date/time) for fine attribution. Located at /driver/car-register.
-- **Data Models**: Comprehensive schema for Companies, Users, Vehicles, Inspections, Fuel Entries, Defects, Deliveries, Subscriptions, and CompanyCarRegister.
-- **Manager Dashboard**: Provides KPIs, recent inspections, defect tracking (Kanban), fuel logs, fleet management, and settings. Attention Required section shows overdue MOTs (red, links to fleet), 14-hour driver limit warnings (red pulsing, links to timesheets), missed inspections, critical defects, unread messages, and expiring docs.
-- **Advanced Analytics Dashboard**: Fleet utilization rate (active/idle/VOR breakdown), cost-per-mile estimates, top drivers by MPG, defect trend analysis, compliance status charts, driver activity trends, cost analysis, all with recharts visualizations.
-- **Fleet Management**: Vehicle list with O-licence filtering, geofence management (10m minimum radius). All 49 ABTSO vehicles enriched with DVSA MOT data (expiry dates, make, model).
-- **Per-Driver Wage System**: Individual hourly rates, night/weekend/holiday premiums, overtime threshold (14hr default), CSV export. 2026 UK bank holidays loaded for ABTSO.
-- **Driver Self-Registration**: Managers generate invite links (`POST /api/drivers/invites`). Drivers self-register at `/join/:token` with name/email/phone, auto-assigned PIN. Invite links support max-uses and expiry. `driver_invites` table tracks usage. Public endpoints (no auth required for invite validation and registration).
-- **Messaging System**: In-app communication between drivers and transport managers.
-- **PDF Generation**: Dynamic generation of inspection reports and Proof of Delivery documents with embedded photos.
-- **14-Hour Working Limit**: Red highlight warning when driver hours reach/exceed 14h (840 minutes) in timesheets and TM app.
-- **VIN Auto-Populate**: DVSA lookup auto-fills VIN, make, and model when adding vehicles by registration.
-- **End-of-Shift Inspections**: Visible in manager Inspections tab via dedicated "End of Shift Checks" sub-tab.
-- **Titan Command Message History**: Sent message history with recipient, priority, and read status displayed below compose form.
-- **RAG Compliance Pipeline**: pgvector-powered Retrieval-Augmented Generation using DVSA Guide to Roadworthiness. `complianceSearchService.ts` generates embeddings via `text-embedding-3-large` (2000 dims, truncated from 3072 to fit pgvector HNSW index limit), performs cosine similarity search on `compliance_knowledge` table (HNSW index, 26 seeded chunks with keywords). Uses `TitanFleetOpenai` secret for direct OpenAI API access (embeddings endpoint not supported by Replit AI proxy). AI triage in `aiTriageService.ts` retrieves top-3 relevant DVSA sections before GPT-4o analysis to ensure legally grounded defect classification. Seed script: `npx tsx scripts/seed-compliance-knowledge.ts ./data/dvsa`.
-- **Admin Impersonation**: Platform admin can log in as any company's manager from `/admin/companies` via "Login as" button. Creates a JWT cookie for the target company's manager, shows an amber banner across the manager dashboard/mobile app with "Return to Admin" button. Exit flow calls `POST /api/admin/exit-impersonation` to clear the impersonated cookie. All impersonation actions are audit-logged. JWT is not exposed in response body — relies solely on httpOnly cookie.
-- **Driver Stop Detection**: Automatic logging of 10+ minute stationary periods during shifts. GPS pings analyzed on each submission — if driver stays within 50m for 10+ minutes, a stop is recorded with start/end times, duration, and coordinates. Stored in `driver_stops` table linked to timesheets. Stops under 10 minutes are auto-deleted.
-- **Shift Trail Map**: Manager Live Tracking page includes "Shift Trail" section — select a driver and shift to see their GPS route plotted on a map with numbered stop markers. Shows start (green), latest position (red), route line (blue), and stops (amber numbered squares) with click-to-view duration/times. Summary stats: GPS points, stop count, total stop time.
-- **GPS Clock-In Override**: Drivers can clock in even when geolocation is denied (permission denied). Button shows "Clock In (No GPS)" with amber warning. Clock-in is flagged as `locationOverride` for manager review. Manual depot selection is shown automatically when GPS is unavailable.
-- **Browser Push Notifications**: Native Web Push API via service worker (`sw.js`). Managers can enable/disable in Notification Preferences. Shows desktop notifications for fleet alerts even when app is in background. No Firebase dependency.
-- **Environmental Variables**: Secure management of API keys and database connections.
-- **PWA Icons**: All PWA icons generated as real PNGs from the TF logo SVG (72px through 512px). Manifest configured with proper sizes and maskable purpose.
-- **Email Delivery**: Resend integration for transactional emails (welcome, defect alerts, reminders). Welcome emails sent on driver registration and invite self-signup.
-- **Offline Inspection Queue**: IndexedDB-powered queue (`titanfleet-offline` DB) stores inspections, defects, fuel entries when offline. Auto-syncs every 30s + on reconnect. Visual queue at `/driver/queue`. Service worker caches app shell and critical assets.
-- **Driver CPC Tracking**: Manager page at `/manager/cpc` to track Certificate of Professional Competence (35h over 5 years). CRUD on `driver_cpc_records` table. Summary view showing hours completed, remaining, expiry dates. Status badges (compliant/expiring/expired).
-- **Driver Hours & Working Time**: Manager page at `/manager/driver-hours`. EU/UK rules engine (`driverHoursService.ts`): max 9h daily (10h twice/week), 56h weekly, 90h fortnightly, WTD 60h/week max. Infringement detection. Manual hour logging with driving/rest/break breakdown.
-- **Scheduled Report Emails**: Manager page at `/manager/scheduled-reports`. Configure weekly/monthly automated report emails via Resend. Cron job at 7:00 AM daily processes scheduled reports. CRUD on `scheduled_reports` table. Supports 6 report types (compliance, fleet, driver hours, fuel, defects, inspections).
-- **FORS & Earned Recognition**: Manager page at `/manager/earned-recognition`. DVSA Earned Recognition KPIs (MOT pass rate, inspection completion, defect resolution, CPC compliance). FORS Bronze/Silver/Gold requirement checklists (14 requirements). Evidence summary with real fleet data. Score calculation from live data.
+- **Authentication**: PIN-based for drivers, email/password with optional 2FA for managers. JWT tokens in httpOnly cookies.
+- **Role-Based Access**: Granular roles including ADMIN, TRANSPORT_MANAGER, DRIVER, MECHANIC, etc.
+- **Timesheet Approval Workflow**: Manager adjustments require ADMIN approval.
+- **Company Car Register**: Drivers log company car usage for fine attribution.
+- **Data Models**: Comprehensive schemas for all entities (Companies, Users, Vehicles, Inspections, etc.).
+- **Manager Dashboard**: KPIs, defect tracking (Kanban), fuel logs, and an "Attention Required" section for critical alerts.
+- **Advanced Analytics**: Fleet utilization, cost-per-mile, MPG, defect trends, compliance status using recharts.
+- **Fleet Management**: Vehicle list with O-licence filtering and geofence management.
+- **Per-Driver Wage System**: Individual hourly rates, premiums, overtime, and CSV export.
+- **Driver Self-Registration**: Managers generate invite links for drivers to self-register.
+- **Messaging System**: In-app communication between drivers and managers.
+- **PDF Generation**: Dynamic generation of inspection and POD reports.
+- **14-Hour Working Limit**: Visual warnings for drivers exceeding working limits.
+- **VIN Auto-Populate**: DVSA lookup for vehicle details.
+- **RAG Compliance Pipeline**: `pgvector`-powered Retrieval-Augmented Generation using DVSA Guide to Roadworthiness, with `text-embedding-3-large` and GPT-4o for legally grounded defect classification.
+- **Admin Impersonation**: Platform admins can impersonate company managers for support, with audit logging.
+- **Driver Stop Detection**: Automatic logging of stationary periods during shifts.
+- **Shift Trail Map**: Managers can view GPS routes and stop markers for driver shifts.
+- **GPS Clock-In Override**: Allows clock-in without GPS, flagged for review.
+- **Browser Push Notifications**: Native Web Push API for manager alerts.
+- **Email Delivery**: Resend integration for transactional emails.
+- **Offline Inspection Queue**: IndexedDB-powered queue for offline data submission, with service worker caching.
+- **Driver CPC Tracking**: Manager page to track Certificate of Professional Competence hours.
+- **Driver Hours & Working Time**: Manager page with EU/UK rules engine for compliance and infringement detection.
+- **Scheduled Report Emails**: Managers can configure automated weekly/monthly report emails.
+- **FORS & Earned Recognition**: Tracking of DVSA Earned Recognition KPIs and FORS compliance checklists.
 
-**SEO Content Moat (3-Layer Strategy):**
-- **Layer 1 — Pillar Guides** (`/guides/*`): 5 comprehensive authority guides (12-18 min reads) covering DVSA compliance, HGV walkaround checks, fleet maintenance, operator licensing, and transport manager compliance. Component: `client/src/pages/Guides.tsx`.
-- **Layer 2 — Supporting Articles** (`/resources/*`): 5 focused articles (7-10 min reads) that support pillar guides — DVSA walkaround checklist, transport manager responsibilities, DVSA audit preparation, driver defect reporting, fleet maintenance scheduling. Component: `client/src/pages/Resources.tsx`.
-- **Layer 3 — Product Pages** (`/solutions/*`): 10 keyword-targeted product/landing pages covering fleet management software UK, DVSA walkaround check app, fleet compliance software, driver defect reporting app, fleet maintenance software, FleetCheck alternative, Webfleet alternative, haulage fleet software, logistics fleet software, Xero integration. Component: `client/src/pages/SEOLanding.tsx`.
-- **Internal Linking**: Guides link to supporting articles and product pages. Articles link up to parent guides and down to product pages. Product pages link to demo. All layers cross-reference each other for topical authority.
-- **Sitemap**: `public/sitemap.xml` contains all 22+ content URLs with priority weighting (guides: 0.95, articles: 0.85, products: 0.8-0.9).
+**SEO Content Moat:**
+A 4-layer strategy including Pillar Guides, Supporting Articles, Product Pages, and Free Tools, all interconnected with internal linking and a comprehensive sitemap for topical authority and traffic acquisition.
 
 **UI/UX Decisions:**
-- **Branding**: Configurable white-label branding via `client/src/config/tenant.ts` for company name, logo, primary colors, and feature toggles.
-- **Typography**: Inter for UI elements and Oswald for headings to maintain a professional and clean aesthetic.
-- **Visuals**: Emphasis on premium quality with motion, depth, and glass effects.
+- **Branding**: Configurable white-label branding (company name, logo, colors, feature toggles).
+- **Typography**: Inter for UI, Oswald for headings.
+- **Visuals**: Premium quality with motion, depth, and glass effects.
 
 ## External Dependencies
 
-- **PostgreSQL**: Primary database for all application data.
-- **DVSA API**: Used for real-time MOT status lookups and comprehensive vehicle data.
-- **Stripe**: Integrated for subscription management, payment processing, and customer billing portals.
-- **Resend**: Email service for transactional emails such as account setup, password resets, and notifications.
-- **Google Drive API**: Optional integration for per-company PDF upload and storage.
-- **node-cron**: Used for scheduling agentic automation tasks (e.g., defect escalation, compliance score updates).
+- **PostgreSQL**: Primary database.
+- **DVSA API**: Real-time MOT status and vehicle data.
+- **Stripe**: Subscription management and payment processing.
+- **Resend**: Transactional email delivery.
+- **Google Drive API**: Optional integration for PDF storage.
+- **node-cron**: Scheduling agentic automation tasks.
