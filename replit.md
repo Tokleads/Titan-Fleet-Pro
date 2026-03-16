@@ -80,6 +80,13 @@ Routes are split across focused files registered via `register...Routes(app)` pa
 - **Scheduled Report Emails**: Manager page at `/manager/scheduled-reports`. Configure weekly/monthly automated report emails via Resend. Cron job at 7:00 AM daily processes scheduled reports. CRUD on `scheduled_reports` table. Supports 6 report types (compliance, fleet, driver hours, fuel, defects, inspections).
 - **FORS & Earned Recognition**: Manager page at `/manager/earned-recognition`. DVSA Earned Recognition KPIs (MOT pass rate, inspection completion, defect resolution, CPC compliance). FORS Bronze/Silver/Gold requirement checklists (14 requirements). Evidence summary with real fleet data. Score calculation from live data.
 
+**SEO Content Moat (3-Layer Strategy):**
+- **Layer 1 — Pillar Guides** (`/guides/*`): 5 comprehensive authority guides (12-18 min reads) covering DVSA compliance, HGV walkaround checks, fleet maintenance, operator licensing, and transport manager compliance. Component: `client/src/pages/Guides.tsx`.
+- **Layer 2 — Supporting Articles** (`/resources/*`): 5 focused articles (7-10 min reads) that support pillar guides — DVSA walkaround checklist, transport manager responsibilities, DVSA audit preparation, driver defect reporting, fleet maintenance scheduling. Component: `client/src/pages/Resources.tsx`.
+- **Layer 3 — Product Pages** (`/solutions/*`): 10 keyword-targeted product/landing pages covering fleet management software UK, DVSA walkaround check app, fleet compliance software, driver defect reporting app, fleet maintenance software, FleetCheck alternative, Webfleet alternative, haulage fleet software, logistics fleet software, Xero integration. Component: `client/src/pages/SEOLanding.tsx`.
+- **Internal Linking**: Guides link to supporting articles and product pages. Articles link up to parent guides and down to product pages. Product pages link to demo. All layers cross-reference each other for topical authority.
+- **Sitemap**: `public/sitemap.xml` contains all 22+ content URLs with priority weighting (guides: 0.95, articles: 0.85, products: 0.8-0.9).
+
 **UI/UX Decisions:**
 - **Branding**: Configurable white-label branding via `client/src/config/tenant.ts` for company name, logo, primary colors, and feature toggles.
 - **Typography**: Inter for UI elements and Oswald for headings to maintain a professional and clean aesthetic.
