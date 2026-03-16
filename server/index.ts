@@ -59,6 +59,13 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+import path from "path";
+app.use('/titan_fleet_ad.mp4', (_req, res) => {
+  res.setHeader('Content-Type', 'video/mp4');
+  res.sendFile(path.resolve(process.cwd(), 'public', 'titan_fleet_ad.mp4'));
+});
+
 app.use(populateUser);
 
 app.use('/sw.js', (_req, res, next) => {
