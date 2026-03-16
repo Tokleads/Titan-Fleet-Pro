@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FeedbackButton } from "@/components/FeedbackButton";
 
 const Landing = lazy(() => import("@/pages/Landing"));
+const SEOLanding = lazy(() => import("@/pages/SEOLanding"));
 const TitanFleetLandingPage = lazy(() => import("@/pages/TitanFleetLanding"));
 const DriverDashboard = lazy(() => import("@/pages/driver/DriverDashboard"));
 const VehicleDetail = lazy(() => import("@/pages/driver/VehicleDetail"));
@@ -167,6 +168,8 @@ function Router() {
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/help" component={HelpCenter} />
         <Route path="/join/:token" component={DriverSignup} />
+        <Route path="/solutions/:slug" component={SEOLanding} />
+        <Route path="/solutions" component={SEOLanding} />
         <Route path="/blog/:slug" component={Blog} />
         <Route path="/blog" component={Blog} />
         <Route component={NotFound} />
