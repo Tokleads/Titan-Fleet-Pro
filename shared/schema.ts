@@ -1306,7 +1306,10 @@ export const companyCarRegister = pgTable("company_car_register", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertCompanyCarRegisterSchema = createInsertSchema(companyCarRegister).omit({ id: true, createdAt: true });
+export const insertCompanyCarRegisterSchema = createInsertSchema(companyCarRegister).omit({ id: true, createdAt: true }).extend({
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date().nullable().optional(),
+});
 export type CompanyCarRegister = typeof companyCarRegister.$inferSelect;
 export type InsertCompanyCarRegister = z.infer<typeof insertCompanyCarRegisterSchema>;
 
