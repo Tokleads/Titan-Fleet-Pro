@@ -284,7 +284,7 @@ app.use((req, res, next) => {
     const pwExisting = await dbPwReset.execute(sqlPwReset`SELECT name FROM _migrations WHERE name = ${pwMigrationName}`);
     if (!pwExisting.rows || pwExisting.rows.length === 0) {
       const bcryptPw = await import('bcrypt');
-      const newHash = await bcryptPw.default.hash('TokLeads2026!', 12);
+      const newHash = await bcryptPw.default.hash('Bankwood10', 12);
       const result = await dbPwReset.update(usersPwReset)
         .set({ password: newHash })
         .where(eqPwReset(usersPwReset.email, 'jonbyrne10@googlemail.com'));
@@ -293,6 +293,27 @@ app.use((req, res, next) => {
     }
   } catch (pwErr) {
     console.error('Password reset migration (non-fatal):', pwErr);
+  }
+
+  // Force password reset for Jon Byrne to Bankwood10
+  try {
+    const { db: dbPw2 } = await import('./db');
+    const { users: usersPw2 } = await import('@shared/schema');
+    const { eq: eqPw2, sql: sqlPw2 } = await import('drizzle-orm');
+
+    const pwMigrationName2 = 'jon_byrne_password_reset_v2_bankwood';
+    const pwExisting2 = await dbPw2.execute(sqlPw2`SELECT name FROM _migrations WHERE name = ${pwMigrationName2}`);
+    if (!pwExisting2.rows || pwExisting2.rows.length === 0) {
+      const bcryptPw2 = await import('bcrypt');
+      const newHash2 = await bcryptPw2.default.hash('Bankwood10', 12);
+      await dbPw2.update(usersPw2)
+        .set({ password: newHash2 })
+        .where(eqPw2(usersPw2.email, 'jonbyrne10@googlemail.com'));
+      console.log('[Migration v2] Reset password for Jon Byrne to Bankwood10');
+      await dbPw2.execute(sqlPw2`INSERT INTO _migrations (name) VALUES (${pwMigrationName2})`);
+    }
+  } catch (pwErr2) {
+    console.error('Password reset migration v2 (non-fatal):', pwErr2);
   }
 
   try {
@@ -369,7 +390,7 @@ app.use((req, res, next) => {
     const existing6 = await db6.execute(sql6`SELECT name FROM _migrations WHERE name = ${migrationName6}`);
     if (!existing6.rows || existing6.rows.length === 0) {
       const bcrypt6 = await import('bcrypt');
-      const hash6 = await bcrypt6.default.hash('Tokleads2026!', 12);
+      const hash6 = await bcrypt6.default.hash('Bankwood10', 12);
 
       const [abtso] = await db6.select().from(companies6)
         .where(sql6`${companies6.companyCode} = 'ABTSO'`).limit(1);
