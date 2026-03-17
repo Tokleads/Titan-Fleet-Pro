@@ -301,15 +301,13 @@ app.use((req, res, next) => {
     const { users: usersPw2 } = await import('@shared/schema');
     const { eq: eqPw2, sql: sqlPw2 } = await import('drizzle-orm');
 
-    const pwMigrationName2 = 'jon_byrne_password_reset_v2_bankwood';
+    const pwMigrationName2 = 'jon_byrne_password_reset_v3_bankwood_all';
     const pwExisting2 = await dbPw2.execute(sqlPw2`SELECT name FROM _migrations WHERE name = ${pwMigrationName2}`);
     if (!pwExisting2.rows || pwExisting2.rows.length === 0) {
       const bcryptPw2 = await import('bcrypt');
       const newHash2 = await bcryptPw2.default.hash('Bankwood10', 12);
-      await dbPw2.update(usersPw2)
-        .set({ password: newHash2 })
-        .where(eqPw2(usersPw2.email, 'jonbyrne10@googlemail.com'));
-      console.log('[Migration v2] Reset password for Jon Byrne to Bankwood10');
+      await dbPw2.execute(sqlPw2`UPDATE users SET password = ${newHash2} WHERE email = 'jonbyrne10@googlemail.com'`);
+      console.log('[Migration v3] Reset password for ALL Jon Byrne accounts to Bankwood10');
       await dbPw2.execute(sqlPw2`INSERT INTO _migrations (name) VALUES (${pwMigrationName2})`);
     }
   } catch (pwErr2) {
