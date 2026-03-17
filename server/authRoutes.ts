@@ -282,12 +282,13 @@ router.get('/verify-reset-token', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password, totpToken } = req.body;
+    const { email, password: rawPassword, totpToken } = req.body;
     
-    if (!email || !password) {
+    if (!email || !rawPassword) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     
+    const password = rawPassword.trim();
     const emailKey = email.toLowerCase().trim();
     if (!checkRateLimit(loginAttempts, emailKey)) {
       return res.status(429).json({ error: 'Too many login attempts. Please try again in 15 minutes.' });
@@ -296,17 +297,21 @@ router.post('/login', async (req, res) => {
     const matchingUsers = await db.select().from(users)
       .where(eq(users.email, emailKey));
     
+    console.log(`[Auth] Login attempt for: "${emailKey}", found ${matchingUsers.length} users, IDs: ${matchingUsers.map(u => `${u.id}(${u.role})`).join(', ')}`);
+    
     const MANAGER_ROLE_PRIORITY = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'PLANNER', 'AUDITOR', 'MECHANIC', 'manager'];
     const user = matchingUsers.length > 1
       ? matchingUsers.find(u => MANAGER_ROLE_PRIORITY.includes(u.role)) || matchingUsers[0]
       : matchingUsers[0];
     
     if (!user || !user.active || !user.password) {
+      console.log(`[Auth] Login rejected: user=${!!user}, active=${user?.active}, hasPassword=${!!user?.password}`);
       recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const validPassword = await bcrypt.compare(password, user.password);
+    console.log(`[Auth] Password check for user ${user.id} (${user.role}): valid=${validPassword}, hash_prefix=${user.password.substring(0, 7)}`);
     if (!validPassword) {
       recordFailedAttempt(loginAttempts, emailKey);
       return res.status(401).json({ error: 'Invalid email or password' });

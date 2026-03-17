@@ -31,8 +31,8 @@ export default function ManagerLogin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          email, 
-          password,
+          email: email.trim().toLowerCase(), 
+          password: password.trim(),
           totpToken: requiresTwoFactor ? totpToken : undefined
         }),
       });
