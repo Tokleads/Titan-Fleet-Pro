@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { FleetCopilot } from "@/components/manager/FleetCopilot";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const SEOLanding = lazy(() => import("@/pages/SEOLanding"));
@@ -187,6 +188,13 @@ function Router() {
   );
 }
 
+function ManagerCopilotOverlay() {
+  const [location] = useLocation();
+  const isManagerArea = location.startsWith('/manager') && location !== '/manager/login';
+  if (!isManagerArea) return null;
+  return <FleetCopilot />;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -196,6 +204,7 @@ function App() {
           <Toaster />
           <PWAInstallPrompt />
           <FeedbackButton />
+          <ManagerCopilotOverlay />
         </BrandProvider>
       </QueryClientProvider>
     </ErrorBoundary>

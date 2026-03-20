@@ -535,6 +535,10 @@ app.use((req, res, next) => {
   // Register fuel intelligence routes
   const { registerFuelIntelligenceRoutes } = await import("./fuelIntelligenceRoutes");
   registerFuelIntelligenceRoutes(app);
+
+  // Register Fleet Copilot routes
+  const copilotRouter = (await import("./copilotRoutes")).default;
+  app.use("/api/copilot", copilotRouter);
   
   await registerRoutes(httpServer, app);
 
