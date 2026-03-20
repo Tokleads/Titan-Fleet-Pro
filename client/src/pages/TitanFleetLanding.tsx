@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
   Check,
@@ -11,6 +11,12 @@ import {
   Truck,
   Quote,
   Mail,
+  Sparkles,
+  Bot,
+  MapPin,
+  AlertTriangle,
+  Clock,
+  FileCheck,
 } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
 
@@ -26,6 +32,225 @@ const staggerContainer = {
     transition: { staggerChildren: 0.08 },
   },
 };
+
+const COPILOT_DEMOS = [
+  {
+    question: "Who is driving DE22NNX right now?",
+    answer: "**Tomasz Czyzewski** is currently driving **DE22NNX** (MAN TGX, MY2018). He clocked in at 06:14 this morning and is currently 12 km north of Doncaster, travelling at 56 mph.",
+    delay: 1200,
+  },
+  {
+    question: "Show me all open defects",
+    answer: "There are **2 open defects**, both on **A25DTP** (MAN TGX 26.460):\n\n• **Nearside indicator flickering** — AMBER — reported 5 Mar by Adam Oman\n• **Test defect check** — AMBER — reported 5 Mar by Adam Oman\n\nBoth require attention before next dispatch.",
+    delay: 1400,
+  },
+  {
+    question: "Did Tomasz record mileage on 17 March?",
+    answer: "Yes — Tomasz completed a walkaround check on **DE22NNX** on 17 March 2026 at 09:09. He recorded an odometer reading of **573,944 miles**. The check passed with no defects.",
+    delay: 1300,
+  },
+  {
+    question: "Which vehicles have MOT due soon?",
+    answer: "**3 vehicles** have MOT due within 30 days:\n\n• **A25DTP** — due 31 Mar 2026 (11 days)\n• **BT71TVM** — due 31 Dec 2026\n• **BT71TVN** — due 31 Jan 2027\n\nBook A25DTP immediately to stay compliant.",
+    delay: 1200,
+  },
+  {
+    question: "How many hours can a driver work before a break?",
+    answer: "Under **EU drivers' hours rules**, a driver must take a **45-minute break** after **4 hours 30 minutes** of driving. The break can be split — 15 min first, then 30 min — taken within the driving period. Breaks must be uninterrupted with no other work.",
+    delay: 1500,
+  },
+];
+
+function TypedText({ text, onDone }: { text: string; onDone?: () => void }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const idx = useRef(0);
+
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    idx.current = 0;
+    const timer = setInterval(() => {
+      if (idx.current < text.length) {
+        setDisplayed(text.slice(0, idx.current + 1));
+        idx.current++;
+      } else {
+        clearInterval(timer);
+        setDone(true);
+        onDone?.();
+      }
+    }, 18);
+    return () => clearInterval(timer);
+  }, [text]);
+
+  return (
+    <span>
+      {displayed}
+      {!done && <span className="inline-block w-0.5 h-4 bg-current ml-0.5 animate-pulse" />}
+    </span>
+  );
+}
+
+function FormattedAnswer({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <span>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**")
+          ? <strong key={i} className="text-white">{p.slice(2, -2)}</strong>
+          : <span key={i}>{p}</span>
+      )}
+    </span>
+  );
+}
+
+function CopilotDemo() {
+  const [demoIdx, setDemoIdx] = useState(0);
+  const [phase, setPhase] = useState<"typing-q" | "waiting" | "typing-a" | "done">("typing-q");
+  const [showAnswer, setShowAnswer] = useState(false);
+  const demo = COPILOT_DEMOS[demoIdx];
+
+  useEffect(() => {
+    setPhase("typing-q");
+    setShowAnswer(false);
+  }, [demoIdx]);
+
+  const handleQuestionDone = () => {
+    setPhase("waiting");
+    setTimeout(() => {
+      setShowAnswer(true);
+      setPhase("typing-a");
+    }, demo.delay);
+  };
+
+  const handleAnswerDone = () => {
+    setPhase("done");
+    setTimeout(() => {
+      setDemoIdx(i => (i + 1) % COPILOT_DEMOS.length);
+    }, 3500);
+  };
+
+  return (
+    <div className="relative">
+      {/* Glow */}
+      <div className="absolute -inset-4 bg-[#5B6CFF]/10 rounded-3xl blur-2xl" />
+
+      <div className="relative bg-gray-950 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-800 bg-gray-900">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-500/70" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+            <div className="w-3 h-3 rounded-full bg-green-500/70" />
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <div className="w-6 h-6 rounded-full bg-[#5B6CFF] flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-semibold text-white">Fleet Copilot</span>
+            <div className="flex items-center gap-1 ml-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs text-green-400">Live fleet data</span>
+            </div>
+          </div>
+          {/* Demo indicator */}
+          <div className="ml-auto flex gap-1">
+            {COPILOT_DEMOS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setDemoIdx(i); }}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${i === demoIdx ? "bg-[#5B6CFF]" : "bg-gray-600"}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Chat area */}
+        <div className="p-5 space-y-4 min-h-[280px]">
+          {/* Intro message */}
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-[#5B6CFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-300 max-w-xs">
+              Hi — I have live access to your fleet. Ask me anything.
+            </div>
+          </div>
+
+          {/* Animated Q */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`q-${demoIdx}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex justify-end"
+            >
+              <div className="bg-[#5B6CFF] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white max-w-xs">
+                {phase === "typing-q"
+                  ? <TypedText text={demo.question} onDone={handleQuestionDone} />
+                  : demo.question}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Thinking indicator */}
+          {phase === "waiting" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex gap-2.5"
+            >
+              <div className="w-7 h-7 rounded-full bg-[#5B6CFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </motion.div>
+          )}
+
+          {/* Animated A */}
+          {showAnswer && (
+            <AnimatePresence>
+              <motion.div
+                key={`a-${demoIdx}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex gap-2.5"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#5B6CFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-300 max-w-sm whitespace-pre-line leading-relaxed">
+                  {(phase === "typing-a")
+                    ? <TypedText text={demo.answer} onDone={handleAnswerDone} />
+                    : <FormattedAnswer text={demo.answer} />}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+
+        {/* Input bar */}
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+            <span className="text-gray-500 text-sm flex-1">Ask anything about your fleet...</span>
+            <div className="w-7 h-7 bg-[#5B6CFF] rounded-lg flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function TitanFleetLandingPage() {
   const [, setLocation] = useLocation();
@@ -711,6 +936,65 @@ export default function TitanFleetLandingPage() {
               Your compliance agent is always working — even when you're not
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Fleet Copilot Showcase */}
+      <section className="py-20 lg:py-28 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left: copy */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+            >
+              <motion.div variants={fadeUp} transition={{ duration: 0.4 }} className="inline-flex items-center gap-2 bg-[#5B6CFF]/10 text-[#5B6CFF] px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+                <Sparkles className="w-4 h-4" />
+                NEW — Fleet Copilot
+              </motion.div>
+              <motion.h2 variants={fadeUp} transition={{ duration: 0.5, delay: 0.05 }} className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                Ask your fleet anything.<br />
+                <span className="text-[#5B6CFF]">Get answers instantly.</span>
+              </motion.h2>
+              <motion.p variants={fadeUp} transition={{ duration: 0.5, delay: 0.1 }} className="text-lg text-slate-600 mb-8 leading-relaxed">
+                Fleet Copilot is an AI assistant built into every transport manager's dashboard. It has live access to your fleet data and deep DVSA compliance knowledge — so you can ask plain-English questions and get accurate answers in seconds.
+              </motion.p>
+              <motion.div variants={staggerContainer} className="space-y-4 mb-10">
+                {[
+                  { icon: MapPin, text: "\"Who is near Sheffield right now?\" — shows live GPS locations instantly" },
+                  { icon: FileCheck, text: "\"Did DE22NNX have mileage logged on 17 March?\" — pulls walkaround data" },
+                  { icon: AlertTriangle, text: "\"Show me all open defects\" — instant fleet-wide defect summary" },
+                  { icon: Clock, text: "\"How many hours can a driver work before a break?\" — DVSA rules on demand" },
+                ].map((item, i) => (
+                  <motion.div key={i} variants={fadeUp} transition={{ duration: 0.4, delay: i * 0.08 }} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#5B6CFF]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <item.icon className="w-4 h-4 text-[#5B6CFF]" />
+                    </div>
+                    <p className="text-slate-700 text-sm leading-relaxed">{item.text}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+              <motion.div variants={fadeUp} transition={{ duration: 0.4, delay: 0.4 }} className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
+                <p className="text-sm text-slate-700 font-medium">Saves transport managers <span className="text-slate-900 font-bold">hours every week</span> — no more digging through reports, chasing drivers, or switching between screens.</p>
+              </motion.div>
+            </motion.div>
+
+            {/* Right: animated chat demo */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative"
+            >
+              <CopilotDemo />
+            </motion.div>
+          </div>
         </div>
       </section>
 
