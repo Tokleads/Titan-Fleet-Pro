@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
-import { db } from './db';
-import { sql } from 'drizzle-orm';
+import { pool } from './db';
 import { searchComplianceKnowledge } from './complianceSearchService';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 const SYSTEM_PROMPT = `You are Fleet Copilot, an expert AI assistant built into TitanFleet — a UK fleet management platform for transport operators.
 
@@ -26,17 +28,16 @@ When answering:
 
 You speak like a professional with 20 years in UK transport — practical, knowledgeable, no nonsense.`;
 
-// Tool definitions for GPT-4o function calling
 const tools: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
       name: 'get_vehicle_by_registration',
-      description: 'Look up a vehicle by its registration number/number plate',
+      description: 'Look up a vehicle by its registration number/number plate (VRM)',
       parameters: {
         type: 'object',
         properties: {
-          registration: { type: 'string', description: 'Vehicle registration number e.g. AB65 4TG' },
+          registration: { type: 'string', description: 'Vehicle registration e.g. AB65TG or BT71TVM' },
         },
         required: ['registration'],
       },
@@ -46,12 +47,11 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_driver_for_vehicle_on_date',
-      description: 'Find out which driver was assigned to or drove a specific vehicle on a specific date. Checks inspections, timesheets and GPS data.',
+      description: 'Find out which driver drove or inspected a specific vehicle on a specific date',
       parameters: {
         type: 'object',
         properties: {
-          vehicle_id: { type: 'number', description: 'Internal vehicle ID' },
-          registration: { type: 'string', description: 'Vehicle registration as fallback' },
+          registration: { type: 'string', description: 'Vehicle registration (VRM)' },
           date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         },
         required: ['date'],
@@ -62,11 +62,11 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_active_driver_locations',
-      description: 'Get current GPS locations of all drivers who are clocked in or recently active. Returns driver names, coordinates, speed, and approximate location.',
+      description: 'Get current GPS locations of all recently active drivers. Returns driver names, coordinates, and speed.',
       parameters: {
         type: 'object',
         properties: {
-          search_location: { type: 'string', description: 'Optional city or place name to filter nearby drivers e.g. Sheffield, Leeds' },
+          search_location: { type: 'string', description: 'Optional city to find nearby drivers e.g. Sheffield, Leeds, Doncaster' },
         },
       },
     },
@@ -75,7 +75,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_fleet_status',
-      description: 'Get a summary of the current fleet status — vehicles, active drivers, defects, MOT status, and compliance overview',
+      description: 'Get a summary of the current fleet — total vehicles, active/VOR status, defect counts, MOT overview',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -83,13 +83,13 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_defects',
-      description: 'Get defects for the fleet — open defects, resolved, or for a specific vehicle',
+      description: 'Get defects for the fleet — open, resolved, or for a specific vehicle',
       parameters: {
         type: 'object',
         properties: {
-          status: { type: 'string', enum: ['open', 'resolved', 'all'], description: 'Filter by defect status' },
-          vehicle_registration: { type: 'string', description: 'Optional: filter by vehicle registration' },
-          limit: { type: 'number', description: 'Max number of defects to return, default 10' },
+          status: { type: 'string', enum: ['open', 'resolved', 'all'], description: 'Filter by status' },
+          vehicle_registration: { type: 'string', description: 'Optional: filter by VRM' },
+          limit: { type: 'number', description: 'Max results, default 10' },
         },
       },
     },
@@ -102,8 +102,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
       parameters: {
         type: 'object',
         properties: {
-          driver_name: { type: 'string', description: 'Driver name to search for (partial match)' },
-          include_hours: { type: 'boolean', description: 'Whether to include recent working hours' },
+          driver_name: { type: 'string', description: 'Driver name (partial match)' },
         },
       },
     },
@@ -112,11 +111,11 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_mot_status',
-      description: 'Get MOT expiry dates and status for fleet vehicles. Can filter by vehicles expiring soon.',
+      description: 'Get MOT due dates for fleet vehicles, with option to filter by expiring soon',
       parameters: {
         type: 'object',
         properties: {
-          days_ahead: { type: 'number', description: 'Show vehicles with MOT expiring within this many days. 0 = all vehicles.' },
+          days_ahead: { type: 'number', description: 'Show MOTs due within this many days (0 = all)' },
           registration: { type: 'string', description: 'Optional: check a specific vehicle' },
         },
       },
@@ -126,15 +125,15 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_inspections',
-      description: 'Get vehicle inspection records — walkaround checks, PMI records, by driver or vehicle',
+      description: 'Get vehicle inspection/walkaround check records by driver or vehicle',
       parameters: {
         type: 'object',
         properties: {
-          vehicle_registration: { type: 'string', description: 'Filter by vehicle registration' },
+          vehicle_registration: { type: 'string', description: 'Filter by VRM' },
           driver_name: { type: 'string', description: 'Filter by driver name' },
           date_from: { type: 'string', description: 'Start date YYYY-MM-DD' },
           date_to: { type: 'string', description: 'End date YYYY-MM-DD' },
-          limit: { type: 'number', description: 'Max records to return, default 10' },
+          limit: { type: 'number', description: 'Max records, default 10' },
         },
       },
     },
@@ -143,11 +142,11 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'search_compliance_knowledge',
-      description: 'Search the DVSA compliance knowledge base for regulatory information, rules, and guidance. Use for questions about regulations, rules, legal requirements.',
+      description: 'Search DVSA compliance knowledge base for regulatory guidance on roadworthiness, driver hours, O-licence etc.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'The compliance or regulatory question to search for' },
+          query: { type: 'string', description: 'Compliance or regulatory question' },
         },
         required: ['query'],
       },
@@ -156,91 +155,83 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'get_driver_hours',
-      description: 'Get driver working hours and tachograph data for compliance checking',
+      name: 'get_driver_shifts',
+      description: 'Get driver shift records (clock-in/clock-out history)',
       parameters: {
         type: 'object',
         properties: {
           driver_name: { type: 'string', description: 'Driver name' },
           date_from: { type: 'string', description: 'Start date YYYY-MM-DD' },
-          date_to: { type: 'string', description: 'End date YYYY-MM-DD, defaults to today' },
+          date_to: { type: 'string', description: 'End date YYYY-MM-DD' },
         },
       },
     },
   },
 ];
 
-// ─── Tool execution functions ─────────────────────────────────────────────────
+// ─── DB helper ────────────────────────────────────────────────────────────────
 
-async function getVehicleByRegistration(companyId: number, registration: string) {
-  const reg = registration.toUpperCase().replace(/\s+/g, '');
-  const result = await db.execute(sql`
-    SELECT v.id, v.registration, v.make, v.model, v.type, v.mot_expiry, v.fuel_type, v.status, v.year
-    FROM vehicles v
-    WHERE v.company_id = ${companyId}
-      AND UPPER(REPLACE(v.registration, ' ', '')) = ${reg}
-    LIMIT 1
-  `);
-  return result.rows?.[0] || null;
+async function q(text: string, params: any[] = []) {
+  const result = await pool.query(text, params);
+  return result.rows;
 }
 
-async function getDriverForVehicleOnDate(companyId: number, vehicleId: number | null, registration: string | null, date: string) {
-  // Try inspections first
-  let vehicleFilter = vehicleId
-    ? sql`v.id = ${vehicleId}`
-    : sql`UPPER(REPLACE(v.registration, ' ', '')) = ${(registration || '').toUpperCase().replace(/\s+/g, '')}`;
+// ─── Tool implementations ─────────────────────────────────────────────────────
 
-  const inspResult = await db.execute(sql`
-    SELECT u.name as driver_name, u.email, i.created_at, i.type, i.status,
-           v.registration, v.make, v.model
-    FROM inspections i
-    JOIN users u ON i.driver_id = u.id
-    JOIN vehicles v ON i.vehicle_id = v.id
-    WHERE i.company_id = ${companyId}
-      AND ${vehicleFilter}
-      AND DATE(i.created_at) = ${date}
-    ORDER BY i.created_at DESC
-    LIMIT 5
-  `);
+async function getVehicleByRegistration(companyId: number, registration: string) {
+  const vrm = registration.toUpperCase().replace(/\s+/g, '');
+  const rows = await q(
+    `SELECT id, vrm AS registration, make, model, vehicle_category, mot_due, vor_status, active
+     FROM vehicles
+     WHERE company_id = $1 AND UPPER(REPLACE(vrm, ' ', '')) = $2
+     LIMIT 1`,
+    [companyId, vrm]
+  );
+  return rows[0] || null;
+}
 
-  // Also check timesheets
-  const tsResult = await db.execute(sql`
-    SELECT u.name as driver_name, u.email, t.clock_in, t.clock_out,
-           v.registration, v.make, v.model
-    FROM timesheets t
-    JOIN users u ON t.driver_id = u.id
-    LEFT JOIN vehicles v ON t.vehicle_id = v.id
-    WHERE t.company_id = ${companyId}
-      AND ${vehicleId ? sql`t.vehicle_id = ${vehicleId}` : sql`UPPER(REPLACE(v.registration, ' ', '')) = ${(registration || '').toUpperCase().replace(/\s+/g, '')}`}
-      AND DATE(t.clock_in) = ${date}
-    ORDER BY t.clock_in DESC
-    LIMIT 5
-  `);
+async function getDriverForVehicleOnDate(companyId: number, registration: string | null, date: string) {
+  const vrm = (registration || '').toUpperCase().replace(/\s+/g, '');
 
-  return {
-    inspections: inspResult.rows || [],
-    timesheets: tsResult.rows || [],
-    date,
-  };
+  const inspections = await q(
+    `SELECT u.name AS driver_name, u.email, i.started_at, i.completed_at, i.type, i.status,
+            v.vrm AS registration, v.make, v.model
+     FROM inspections i
+     JOIN users u ON i.driver_id = u.id
+     JOIN vehicles v ON i.vehicle_id = v.id
+     WHERE i.company_id = $1
+       AND UPPER(REPLACE(v.vrm, ' ', '')) = $2
+       AND DATE(i.started_at) = $3
+     ORDER BY i.started_at DESC
+     LIMIT 5`,
+    [companyId, vrm, date]
+  );
+
+  return { inspections, date, note: 'Checked inspection records for this vehicle on the given date.' };
 }
 
 async function getActiveDriverLocations(companyId: number, searchLocation?: string) {
-  const result = await db.execute(sql`
-    SELECT u.name as driver_name, dl.latitude, dl.longitude, dl.speed,
-           dl.updated_at, dl.heading,
-           v.registration as vehicle_registration
-    FROM driver_locations dl
-    JOIN users u ON dl.driver_id = u.id
-    LEFT JOIN timesheets t ON t.driver_id = u.id AND t.clock_out IS NULL
-    LEFT JOIN vehicles v ON t.vehicle_id = v.id
-    WHERE dl.company_id = ${companyId}
-      AND dl.updated_at > NOW() - INTERVAL '4 hours'
-    ORDER BY dl.updated_at DESC
-  `);
+  const drivers = await q(
+    `SELECT u.name AS driver_name, dl.latitude, dl.longitude, dl.speed,
+            dl.timestamp AS last_seen, dl.heading
+     FROM driver_locations dl
+     JOIN users u ON dl.driver_id = u.id
+     WHERE dl.company_id = $1
+       AND dl.timestamp > NOW() - INTERVAL '4 hours'
+     ORDER BY dl.timestamp DESC`,
+    [companyId]
+  );
 
-  const drivers = result.rows || [];
+  // Deduplicate — keep only most recent per driver
+  const seen = new Set<number>();
+  const unique: any[] = [];
+  for (const d of drivers) {
+    if (!seen.has(d.driver_id)) {
+      seen.add(d.driver_id);
+      unique.push(d);
+    }
+  }
 
-  // If searching near a location, add distance info using approximate UK city coords
   const cityCoords: Record<string, [number, number]> = {
     sheffield: [53.3811, -1.4701],
     leeds: [53.8008, -1.5491],
@@ -254,155 +245,202 @@ async function getActiveDriverLocations(companyId: number, searchLocation?: stri
     bradford: [53.7960, -1.7594],
     liverpool: [53.4084, -2.9916],
     bristol: [51.4545, -2.5879],
+    bawtry: [53.4270, -1.0170],
+    rotherham: [53.4300, -1.3566],
   };
 
-  if (searchLocation) {
+  if (searchLocation && unique.length > 0) {
     const loc = searchLocation.toLowerCase();
-    const coords = Object.entries(cityCoords).find(([city]) => loc.includes(city));
-    if (coords) {
-      const [, [lat, lon]] = coords;
-      const withDistance = drivers.map((d: any) => {
-        const dlat = d.latitude - lat;
-        const dlon = d.longitude - lon;
-        const distKm = Math.sqrt(dlat * dlat + dlon * dlon) * 111;
-        return { ...d, distance_km: Math.round(distKm) };
-      });
-      return withDistance.sort((a: any, b: any) => a.distance_km - b.distance_km);
+    const match = Object.entries(cityCoords).find(([city]) => loc.includes(city));
+    if (match) {
+      const [, [lat, lon]] = match;
+      return unique
+        .map((d: any) => {
+          const dLat = parseFloat(d.latitude) - lat;
+          const dLon = parseFloat(d.longitude) - lon;
+          const distKm = Math.sqrt(dLat * dLat + dLon * dLon) * 111;
+          return { ...d, distance_km: Math.round(distKm) };
+        })
+        .sort((a: any, b: any) => a.distance_km - b.distance_km);
     }
   }
 
-  return drivers;
+  return unique;
 }
 
 async function getFleetStatus(companyId: number) {
-  const [vehicles, activeDrivers, openDefects, expiringMOT] = await Promise.all([
-    db.execute(sql`SELECT COUNT(*) as total, status FROM vehicles WHERE company_id = ${companyId} GROUP BY status`),
-    db.execute(sql`SELECT COUNT(*) as count FROM timesheets WHERE company_id = ${companyId} AND clock_out IS NULL`),
-    db.execute(sql`SELECT COUNT(*) as count FROM defects WHERE company_id = ${companyId} AND status NOT IN ('resolved', 'closed')`),
-    db.execute(sql`SELECT COUNT(*) as count FROM vehicles WHERE company_id = ${companyId} AND mot_expiry IS NOT NULL AND mot_expiry <= NOW() + INTERVAL '30 days' AND mot_expiry > NOW()`),
+  const [vehicles, openDefects, expiringMOT, vorVehicles] = await Promise.all([
+    q(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE active = true) AS active,
+              COUNT(*) FILTER (WHERE vor_status = true) AS vor
+       FROM vehicles WHERE company_id = $1`, [companyId]),
+    q(`SELECT COUNT(*) AS count FROM defects WHERE company_id = $1 AND status = 'OPEN'`, [companyId]),
+    q(`SELECT COUNT(*) AS count FROM vehicles
+       WHERE company_id = $1 AND mot_due IS NOT NULL
+         AND mot_due <= NOW() + INTERVAL '30 days' AND mot_due > NOW()`, [companyId]),
+    q(`SELECT vrm, make, model, vor_reason FROM vehicles WHERE company_id = $1 AND vor_status = true`, [companyId]),
   ]);
+
   return {
-    vehicles: vehicles.rows,
-    active_drivers: (activeDrivers.rows?.[0] as any)?.count || 0,
-    open_defects: (openDefects.rows?.[0] as any)?.count || 0,
-    mot_expiring_soon: (expiringMOT.rows?.[0] as any)?.count || 0,
+    fleet_totals: vehicles[0],
+    open_defects: openDefects[0]?.count || 0,
+    mot_expiring_within_30_days: expiringMOT[0]?.count || 0,
+    vehicles_off_road: vorVehicles,
   };
 }
 
-async function getDefects(companyId: number, status: string = 'open', vehicleRegistration?: string, limit = 10) {
-  const statusFilter = status === 'open'
-    ? sql`d.status NOT IN ('resolved', 'closed')`
-    : status === 'resolved'
-    ? sql`d.status IN ('resolved', 'closed')`
-    : sql`1=1`;
+async function getDefects(companyId: number, status = 'open', vehicleRegistration?: string, limit = 10) {
+  const params: any[] = [companyId];
+  let statusClause = `d.status = 'OPEN'`;
+  if (status === 'resolved') statusClause = `d.status IN ('COMPLETED', 'CANCELLED')`;
+  if (status === 'all') statusClause = `1=1`;
 
-  const vehicleFilter = vehicleRegistration
-    ? sql`AND UPPER(REPLACE(v.registration, ' ', '')) = ${vehicleRegistration.toUpperCase().replace(/\s+/g, '')}`
-    : sql``;
+  let regClause = '';
+  if (vehicleRegistration) {
+    params.push(vehicleRegistration.toUpperCase().replace(/\s+/g, ''));
+    regClause = `AND UPPER(REPLACE(v.vrm, ' ', '')) = $${params.length}`;
+  }
 
-  const result = await db.execute(sql`
-    SELECT d.id, d.description, d.severity, d.status, d.created_at,
-           v.registration, v.make, v.model,
-           u.name as reported_by
-    FROM defects d
-    JOIN vehicles v ON d.vehicle_id = v.id
-    LEFT JOIN users u ON d.reported_by = u.id
-    WHERE d.company_id = ${companyId}
-      AND ${statusFilter}
-      ${vehicleFilter}
-    ORDER BY d.created_at DESC
-    LIMIT ${limit}
-  `);
-  return result.rows || [];
+  params.push(limit);
+  return q(
+    `SELECT d.id, d.description, d.severity, d.status, d.created_at,
+            v.vrm AS registration, v.make, v.model,
+            u.name AS reported_by
+     FROM defects d
+     JOIN vehicles v ON d.vehicle_id = v.id
+     LEFT JOIN users u ON d.reported_by = u.id
+     WHERE d.company_id = $1 AND ${statusClause} ${regClause}
+     ORDER BY d.created_at DESC
+     LIMIT $${params.length}`,
+    params
+  );
 }
 
 async function getDriverInfo(companyId: number, driverName?: string) {
-  const nameFilter = driverName
-    ? sql`AND LOWER(u.name) LIKE ${`%${driverName.toLowerCase()}%`}`
-    : sql``;
+  const params: any[] = [companyId];
+  let nameClause = '';
+  if (driverName) {
+    params.push(`%${driverName.toLowerCase()}%`);
+    nameClause = `AND LOWER(u.name) LIKE $${params.length}`;
+  }
 
-  const result = await db.execute(sql`
-    SELECT u.id, u.name, u.email, u.role, u.active, u.pin,
-           (SELECT COUNT(*) FROM inspections i WHERE i.driver_id = u.id AND i.created_at > NOW() - INTERVAL '30 days') as recent_inspections,
-           (SELECT clock_in FROM timesheets t WHERE t.driver_id = u.id ORDER BY clock_in DESC LIMIT 1) as last_shift,
-           (SELECT clock_out IS NULL FROM timesheets t WHERE t.driver_id = u.id ORDER BY clock_in DESC LIMIT 1) as currently_clocked_in
-    FROM users u
-    WHERE u.company_id = ${companyId}
-      AND u.role = 'DRIVER'
-      AND u.active = true
-      ${nameFilter}
-    ORDER BY u.name
-    LIMIT 20
-  `);
-  return result.rows || [];
+  return q(
+    `SELECT u.id, u.name, u.email, u.role, u.active,
+            (SELECT COUNT(*) FROM inspections i WHERE i.driver_id = u.id AND i.started_at > NOW() - INTERVAL '30 days') AS recent_inspections,
+            (SELECT arrival_time FROM timesheets t WHERE t.driver_id = u.id ORDER BY arrival_time DESC LIMIT 1) AS last_shift
+     FROM users u
+     WHERE u.company_id = $1 AND u.role = 'DRIVER' AND u.active = true ${nameClause}
+     ORDER BY u.name
+     LIMIT 20`,
+    params
+  );
 }
 
 async function getMOTStatus(companyId: number, daysAhead = 0, registration?: string) {
-  const regFilter = registration
-    ? sql`AND UPPER(REPLACE(v.registration, ' ', '')) = ${registration.toUpperCase().replace(/\s+/g, '')}`
-    : sql``;
+  const params: any[] = [companyId];
+  let regClause = '';
+  let daysClause = '';
 
-  const daysFilter = daysAhead > 0
-    ? sql`AND v.mot_expiry <= NOW() + INTERVAL '1 day' * ${daysAhead}`
-    : sql``;
+  if (registration) {
+    params.push(registration.toUpperCase().replace(/\s+/g, ''));
+    regClause = `AND UPPER(REPLACE(vrm, ' ', '')) = $${params.length}`;
+  }
+  if (daysAhead > 0) {
+    params.push(daysAhead);
+    daysClause = `AND mot_due <= NOW() + ($${params.length} || ' days')::INTERVAL`;
+  }
 
-  const result = await db.execute(sql`
-    SELECT v.registration, v.make, v.model, v.mot_expiry,
-           CASE
-             WHEN v.mot_expiry < NOW() THEN 'EXPIRED'
-             WHEN v.mot_expiry <= NOW() + INTERVAL '30 days' THEN 'EXPIRING_SOON'
-             ELSE 'VALID'
-           END as mot_status,
-           DATE_PART('day', v.mot_expiry - NOW()) as days_until_expiry
-    FROM vehicles v
-    WHERE v.company_id = ${companyId}
-      AND v.mot_expiry IS NOT NULL
-      ${regFilter}
-      ${daysFilter}
-    ORDER BY v.mot_expiry ASC
-    LIMIT 30
-  `);
-  return result.rows || [];
+  return q(
+    `SELECT vrm AS registration, make, model, mot_due,
+            CASE
+              WHEN mot_due < NOW() THEN 'OVERDUE'
+              WHEN mot_due <= NOW() + INTERVAL '30 days' THEN 'DUE_SOON'
+              ELSE 'VALID'
+            END AS mot_status,
+            FLOOR(EXTRACT(EPOCH FROM (mot_due - NOW())) / 86400) AS days_until_due
+     FROM vehicles
+     WHERE company_id = $1 AND mot_due IS NOT NULL ${regClause} ${daysClause}
+     ORDER BY mot_due ASC
+     LIMIT 30`,
+    params
+  );
 }
 
-async function getInspections(companyId: number, opts: { vehicleRegistration?: string; driverName?: string; dateFrom?: string; dateTo?: string; limit?: number }) {
+async function getInspections(companyId: number, opts: {
+  vehicleRegistration?: string;
+  driverName?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}) {
   const { vehicleRegistration, driverName, dateFrom, dateTo, limit = 10 } = opts;
+  const params: any[] = [companyId];
+  const clauses: string[] = [];
 
-  const result = await db.execute(sql`
-    SELECT i.id, i.type, i.status, i.created_at, i.result,
-           v.registration, v.make, v.model,
-           u.name as driver_name
-    FROM inspections i
-    JOIN vehicles v ON i.vehicle_id = v.id
-    JOIN users u ON i.driver_id = u.id
-    WHERE i.company_id = ${companyId}
-      ${vehicleRegistration ? sql`AND UPPER(REPLACE(v.registration, ' ', '')) = ${vehicleRegistration.toUpperCase().replace(/\s+/g, '')}` : sql``}
-      ${driverName ? sql`AND LOWER(u.name) LIKE ${`%${driverName.toLowerCase()}%`}` : sql``}
-      ${dateFrom ? sql`AND i.created_at >= ${dateFrom}` : sql``}
-      ${dateTo ? sql`AND i.created_at <= ${dateTo + ' 23:59:59'}` : sql``}
-    ORDER BY i.created_at DESC
-    LIMIT ${limit}
-  `);
-  return result.rows || [];
+  if (vehicleRegistration) {
+    params.push(vehicleRegistration.toUpperCase().replace(/\s+/g, ''));
+    clauses.push(`UPPER(REPLACE(v.vrm, ' ', '')) = $${params.length}`);
+  }
+  if (driverName) {
+    params.push(`%${driverName.toLowerCase()}%`);
+    clauses.push(`LOWER(u.name) LIKE $${params.length}`);
+  }
+  if (dateFrom) {
+    params.push(dateFrom);
+    clauses.push(`i.started_at >= $${params.length}`);
+  }
+  if (dateTo) {
+    params.push(dateTo + ' 23:59:59');
+    clauses.push(`i.started_at <= $${params.length}`);
+  }
+
+  const whereExtra = clauses.length > 0 ? 'AND ' + clauses.join(' AND ') : '';
+  params.push(limit);
+
+  return q(
+    `SELECT i.id, i.type, i.status, i.started_at, i.completed_at,
+            v.vrm AS registration, v.make, v.model,
+            u.name AS driver_name
+     FROM inspections i
+     JOIN vehicles v ON i.vehicle_id = v.id
+     JOIN users u ON i.driver_id = u.id
+     WHERE i.company_id = $1 ${whereExtra}
+     ORDER BY i.started_at DESC
+     LIMIT $${params.length}`,
+    params
+  );
 }
 
-async function getDriverHours(companyId: number, driverName?: string, dateFrom?: string, dateTo?: string) {
-  const result = await db.execute(sql`
-    SELECT u.name as driver_name,
-           t.clock_in, t.clock_out,
-           ROUND(EXTRACT(EPOCH FROM (COALESCE(t.clock_out, NOW()) - t.clock_in)) / 3600, 2) as hours_worked,
-           v.registration as vehicle
-    FROM timesheets t
-    JOIN users u ON t.driver_id = u.id
-    LEFT JOIN vehicles v ON t.vehicle_id = v.id
-    WHERE t.company_id = ${companyId}
-      ${driverName ? sql`AND LOWER(u.name) LIKE ${`%${driverName.toLowerCase()}%`}` : sql``}
-      ${dateFrom ? sql`AND DATE(t.clock_in) >= ${dateFrom}` : sql`AND t.clock_in >= NOW() - INTERVAL '7 days'`}
-      ${dateTo ? sql`AND DATE(t.clock_in) <= ${dateTo}` : sql``}
-    ORDER BY t.clock_in DESC
-    LIMIT 20
-  `);
-  return result.rows || [];
+async function getDriverShifts(companyId: number, driverName?: string, dateFrom?: string, dateTo?: string) {
+  const params: any[] = [companyId];
+  const clauses: string[] = [];
+
+  if (driverName) {
+    params.push(`%${driverName.toLowerCase()}%`);
+    clauses.push(`LOWER(u.name) LIKE $${params.length}`);
+  }
+  if (dateFrom) {
+    params.push(dateFrom);
+    clauses.push(`DATE(t.arrival_time) >= $${params.length}`);
+  } else {
+    clauses.push(`t.arrival_time >= NOW() - INTERVAL '7 days'`);
+  }
+  if (dateTo) {
+    params.push(dateTo);
+    clauses.push(`DATE(t.arrival_time) <= $${params.length}`);
+  }
+
+  const whereExtra = clauses.length > 0 ? 'AND ' + clauses.join(' AND ') : '';
+
+  return q(
+    `SELECT u.name AS driver_name, t.arrival_time, t.departure_time, t.status, t.depot_name,
+            ROUND(COALESCE(t.total_minutes, 0) / 60.0, 2) AS hours_worked
+     FROM timesheets t
+     JOIN users u ON t.driver_id = u.id
+     WHERE t.company_id = $1 ${whereExtra}
+     ORDER BY t.arrival_time DESC
+     LIMIT 20`,
+    params
+  );
 }
 
 // ─── Tool dispatcher ──────────────────────────────────────────────────────────
@@ -417,12 +455,12 @@ async function executeTool(toolName: string, args: any, companyId: number): Prom
           : `No vehicle found with registration ${args.registration} in your fleet.`;
       }
       case 'get_driver_for_vehicle_on_date': {
-        const data = await getDriverForVehicleOnDate(companyId, args.vehicle_id, args.registration, args.date);
+        const data = await getDriverForVehicleOnDate(companyId, args.registration, args.date);
         return JSON.stringify(data);
       }
       case 'get_active_driver_locations': {
         const data = await getActiveDriverLocations(companyId, args.search_location);
-        return JSON.stringify(data);
+        return data.length === 0 ? 'No active driver GPS data found in the last 4 hours.' : JSON.stringify(data);
       }
       case 'get_fleet_status': {
         const data = await getFleetStatus(companyId);
@@ -430,15 +468,15 @@ async function executeTool(toolName: string, args: any, companyId: number): Prom
       }
       case 'get_defects': {
         const data = await getDefects(companyId, args.status, args.vehicle_registration, args.limit);
-        return JSON.stringify(data);
+        return data.length === 0 ? 'No defects found matching the criteria.' : JSON.stringify(data);
       }
       case 'get_driver_info': {
         const data = await getDriverInfo(companyId, args.driver_name);
-        return JSON.stringify(data);
+        return data.length === 0 ? 'No drivers found.' : JSON.stringify(data);
       }
       case 'get_mot_status': {
         const data = await getMOTStatus(companyId, args.days_ahead, args.registration);
-        return JSON.stringify(data);
+        return data.length === 0 ? 'No vehicles found with MOT data.' : JSON.stringify(data);
       }
       case 'get_inspections': {
         const data = await getInspections(companyId, {
@@ -448,13 +486,13 @@ async function executeTool(toolName: string, args: any, companyId: number): Prom
           dateTo: args.date_to,
           limit: args.limit,
         });
-        return JSON.stringify(data);
+        return data.length === 0 ? 'No inspections found.' : JSON.stringify(data);
       }
       case 'search_compliance_knowledge': {
         try {
           const results = await searchComplianceKnowledge({ query: args.query, topK: 3 });
           if (!results || results.length === 0) return 'No relevant compliance information found.';
-          return JSON.stringify(results.map((r) => ({
+          return JSON.stringify(results.map(r => ({
             section: r.sectionTitle,
             reference: r.complianceReference,
             category: r.category,
@@ -464,16 +502,16 @@ async function executeTool(toolName: string, args: any, companyId: number): Prom
           return 'Compliance knowledge base search unavailable.';
         }
       }
-      case 'get_driver_hours': {
-        const data = await getDriverHours(companyId, args.driver_name, args.date_from, args.date_to);
-        return JSON.stringify(data);
+      case 'get_driver_shifts': {
+        const data = await getDriverShifts(companyId, args.driver_name, args.date_from, args.date_to);
+        return data.length === 0 ? 'No shift records found.' : JSON.stringify(data);
       }
       default:
         return `Unknown tool: ${toolName}`;
     }
   } catch (error: any) {
     console.error(`[Copilot] Tool ${toolName} error:`, error.message);
-    return `Error executing ${toolName}: ${error.message}`;
+    return `Database error: ${error.message}`;
   }
 }
 
@@ -495,7 +533,6 @@ export async function runCopilot(
     { role: 'user', content: userMessage },
   ];
 
-  // Agentic loop — keep going until no more tool calls
   for (let i = 0; i < 5; i++) {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -509,12 +546,10 @@ export async function runCopilot(
     const message = response.choices[0].message;
     conversationMessages.push(message);
 
-    // No tool calls — we have the final answer
     if (!message.tool_calls || message.tool_calls.length === 0) {
       return message.content || 'I was unable to generate a response.';
     }
 
-    // Execute all tool calls in parallel
     const toolResults = await Promise.all(
       message.tool_calls.map(async (toolCall) => {
         const args = JSON.parse(toolCall.function.arguments);
