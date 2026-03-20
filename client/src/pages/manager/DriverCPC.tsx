@@ -126,11 +126,11 @@ export default function DriverCPC() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2" data-testid="text-page-title">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2" data-testid="text-page-title">
             <GraduationCap className="w-7 h-7 text-amber-400" />
             Driver CPC Tracking
           </h1>
-          <p className="text-gray-300 mt-1">Monitor Certificate of Professional Competence status across your fleet</p>
+          <p className="text-slate-600 mt-1">Monitor Certificate of Professional Competence status across your fleet</p>
         </div>
         <Button data-testid="button-add-cpc" onClick={() => setShowAdd(true)} className="bg-amber-500 hover:bg-amber-600 text-black font-semibold">
           <Plus className="w-4 h-4 mr-2" />Add CPC Record
