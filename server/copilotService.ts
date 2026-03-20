@@ -18,6 +18,10 @@ You have deep knowledge of:
 
 You also have LIVE ACCESS to this company's fleet data via tools — use them to answer factual questions accurately.
 
+Key data notes:
+- Mileage/odometer readings are logged during walkaround checks (inspections). Use get_inspections or get_driver_for_vehicle_on_date to retrieve them. The field is called "mileage_at_inspection" and "mileage_recorded" indicates whether it was entered.
+- Vehicle registrations are stored as VRM (e.g. DE22NNX, A25DTP).
+
 When answering:
 - Be concise and direct, like a knowledgeable transport manager colleague
 - For data questions, always use the tools to get accurate real-time information
@@ -47,7 +51,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_driver_for_vehicle_on_date',
-      description: 'Find out which driver drove or inspected a specific vehicle on a specific date',
+      description: 'Find out which driver drove or inspected a specific vehicle on a specific date. Also returns the odometer/mileage logged during the walkaround check.',
       parameters: {
         type: 'object',
         properties: {
@@ -125,7 +129,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_inspections',
-      description: 'Get vehicle inspection/walkaround check records by driver or vehicle',
+      description: 'Get vehicle inspection/walkaround check records by driver or vehicle. Each record includes the odometer mileage logged at time of inspection and whether mileage was recorded.',
       parameters: {
         type: 'object',
         properties: {
@@ -195,6 +199,8 @@ async function getDriverForVehicleOnDate(companyId: number, registration: string
 
   const inspections = await q(
     `SELECT u.name AS driver_name, u.email, i.started_at, i.completed_at, i.type, i.status,
+            i.odometer AS mileage_at_inspection,
+            CASE WHEN i.odometer IS NULL OR i.odometer = 0 THEN false ELSE true END AS mileage_recorded,
             v.vrm AS registration, v.make, v.model
      FROM inspections i
      JOIN users u ON i.driver_id = u.id
@@ -207,7 +213,7 @@ async function getDriverForVehicleOnDate(companyId: number, registration: string
     [companyId, vrm, date]
   );
 
-  return { inspections, date, note: 'Checked inspection records for this vehicle on the given date.' };
+  return { inspections, date, note: 'Checked inspection records. mileage_at_inspection shows the odometer reading logged during the walkaround check. mileage_recorded=false means no odometer was entered.' };
 }
 
 async function getActiveDriverLocations(companyId: number, searchLocation?: string) {
@@ -398,6 +404,8 @@ async function getInspections(companyId: number, opts: {
 
   return q(
     `SELECT i.id, i.type, i.status, i.started_at, i.completed_at,
+            i.odometer AS mileage_at_inspection,
+            CASE WHEN i.odometer IS NULL OR i.odometer = 0 THEN false ELSE true END AS mileage_recorded,
             v.vrm AS registration, v.make, v.model,
             u.name AS driver_name
      FROM inspections i
