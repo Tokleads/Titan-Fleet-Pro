@@ -6,8 +6,8 @@ const slides = [
   {
     panel: "PANEL Q1",
     question: "Tell me about a time you worked effectively as part of a team.",
-    screenshot: "/interview-q1.png",
-    screenshotCaption: "The manager dashboard Robert uses daily — data flows directly from the driver's check into this view",
+    screenshot: "/screenshot-vehicle-vor.png",
+    screenshotCaption: "Chris submits a failed safety check on BT71TVM → the vehicle is auto-flagged Off Road (VOR) and an open defect is raised — Robert sees it without a phone call",
     star: {
       situation: "TitanFleet required balancing Thomas (Owner), Robert (Transport Manager), mechanics, and drivers like Chris — all with conflicting priorities and no shared language for what \"good\" looked like.",
       task: "Create a unified workflow where data flows seamlessly from a driver's phone check through to the mechanic's defect queue and the manager's compliance dashboard.",
@@ -38,13 +38,13 @@ const slides = [
   {
     panel: "PANEL Q3",
     question: "How have you used research to inform your designs?",
-    screenshot: "/interview-q3.png",
-    screenshotCaption: "The driver check app — large targets for gloved hands, one-per-screen flow, and live DVSA status — all born from field research",
+    screenshot: "/screenshot-mileage-prefill.png",
+    screenshotCaption: "Mileage pre-filled from last inspection — the app eliminates redundant entry (WCAG 2.2, criterion 3.3.7). Research revealed drivers were re-entering the same number every morning",
     star: {
       situation: "Initial assumptions suggested drivers just needed a digital version of their paper form. The client expected a straightforward digitisation — no one thought to question the form itself.",
       task: "Validate whether a digitised form would actually solve the compliance failure problem — or whether the problem was something else entirely.",
-      action: "Contextual inquiry at 6 AM — shadowing Chris during live shift starts. Observed oily hands, direct sun glare, and a critical gap: drivers didn't know if the MOT was actually current. They assumed it was fine. That assumption was the real compliance failure.",
-      result: "Research led directly to the DVSA MOT API integration. The design now informs the driver — showing live status — rather than asking them to know something they can't know. Zero DVSA compliance failures since go-live.",
+      action: "Contextual inquiry at 6 AM — shadowing Chris during live shift starts. Observed oily hands, direct sun glare, and two critical gaps: drivers didn't know if the MOT was current (they assumed it was fine), and every morning they re-typed the same mileage figure they'd entered the day before.",
+      result: "Research led to two direct design changes: the DVSA MOT API integration (the app shows live status instead of asking drivers to know it), and mileage pre-filled from the previous inspection — eliminating redundant entry every single shift. Zero DVSA compliance failures since go-live.",
     },
     improvements: {
       label: "Research-driven WCAG changes",
