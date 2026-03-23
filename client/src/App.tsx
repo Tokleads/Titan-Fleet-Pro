@@ -12,6 +12,7 @@ import { FleetCopilot } from "@/components/manager/FleetCopilot";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const InterviewPresentation = lazy(() => import("@/pages/InterviewPresentation"));
+const FullStack = lazy(() => import("@/pages/FullStack"));
 const SEOLanding = lazy(() => import("@/pages/SEOLanding"));
 const Guides = lazy(() => import("@/pages/Guides"));
 const Resources = lazy(() => import("@/pages/Resources"));
@@ -105,6 +106,7 @@ function Router() {
       <Switch>
         <Route path="/" component={TitanFleetLandingPage} />
         <Route path="/presentation" component={InterviewPresentation} />
+        <Route path="/stack" component={FullStack} />
         <Route path="/app" component={Landing} />
         <Route path="/driver" component={DriverDashboard} />
         <Route path="/driver/vehicle/:id" component={VehicleDetail} />
