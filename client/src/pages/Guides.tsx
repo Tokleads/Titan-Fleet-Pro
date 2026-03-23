@@ -1147,6 +1147,310 @@ const guides: Guide[] = [
       { title: "DVSA Walkaround Check App", href: "/solutions/dvsa-walkaround-check-app", type: "product" },
     ],
   },
+  {
+    slug: "dvsa-earned-recognition-guide",
+    title: "DVSA Earned Recognition: The Complete Guide for Fleet Operators",
+    metaTitle: "DVSA Earned Recognition Guide 2026 | How to Get Accredited | TitanFleet",
+    metaDescription: "The complete guide to DVSA Earned Recognition for UK HGV and PSV operators. Covers eligibility, the 5-step accreditation process, KPI requirements, and how fleet management software helps you achieve and maintain ER status.",
+    excerpt: "DVSA Earned Recognition is the gold standard for UK transport operators — and the key to winning high-value contracts, reducing roadside stops, and proving exemplary compliance. This guide explains exactly how to achieve and maintain ER status.",
+    readingTime: "14 min read",
+    lastUpdated: "March 2026",
+    tableOfContents: [
+      "What Is DVSA Earned Recognition?",
+      "Why Earned Recognition Exists",
+      "The Benefits of Accreditation",
+      "How to Get Accredited: Step-by-Step",
+      "Understanding the KPIs",
+      "Vehicle Maintenance KPIs",
+      "Drivers' Hours KPIs",
+      "How TitanFleet Supports ER Status",
+      "Standard vs Earned Recognition Operator",
+    ],
+    sections: [
+      {
+        id: "what-is-dvsa-earned-recognition",
+        title: "What Is DVSA Earned Recognition?",
+        content: `<p>DVSA Earned Recognition (ER) is a voluntary compliance scheme launched by the Driver and Vehicle Standards Agency that allows HGV and PSV operators to prove they meet the highest standards of driver and vehicle compliance — not through periodic visits, but through continuous, automated data sharing.</p>
+
+<p>Instead of being subject to random roadside checks or intensive site visits, ER-accredited operators use DVSA-validated IT systems to monitor their own compliance. These systems track a defined set of Key Performance Indicators (KPIs) and automatically notify the DVSA every four weeks. If KPIs are consistently met, the operator remains on the DVSA's list of exemplary operators and benefits from a significantly reduced enforcement footprint.</p>
+
+<p>The scheme is open to operators holding a valid HGV or PSV operator's licence. It is administered by the DVSA and recognised by Traffic Commissioners, the police, HMRC, and enforcement bodies across the UK. For operators aiming to scale and compete for high-value government and infrastructure contracts, Earned Recognition status is increasingly a prerequisite rather than a differentiator.</p>
+
+<div class="bg-blue-50 border border-blue-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-blue-900 mb-2">Official Scheme</p>
+<p class="text-blue-800">Earned Recognition is administered by the DVSA under powers derived from the Goods Vehicles (Licensing of Operators) Act 1995. Participation is voluntary, but once enrolled, operators must maintain KPI standards continuously or risk removal from the scheme and referral to the Traffic Commissioner.</p>
+</div>`
+      },
+      {
+        id: "why-earned-recognition-exists",
+        title: "Why Earned Recognition Exists",
+        content: `<p>The DVSA's core mandate is road safety. With limited enforcement resources and over 50,000 licensed HGV operators in the UK, the agency cannot intensively monitor every fleet. The Earned Recognition scheme is a strategic solution to this resource problem — it allows the DVSA to concentrate enforcement where the risk is highest.</p>
+
+<p>By offering compliant operators a "lighter touch" in exchange for transparent data sharing, the DVSA creates a self-regulating tier of operators at the top of the compliance spectrum. These operators use validated digital systems to monitor themselves. The DVSA receives automated reports every four weeks. If the data shows consistent compliance, the operator is left to operate efficiently. If KPIs slip, the DVSA is alerted immediately — and so is the operator, who has the opportunity to self-correct before enforcement action begins.</p>
+
+<p>The result is a system that rewards genuine compliance with operational freedom, while creating stronger accountability than periodic audits ever could. It is a fundamentally different relationship between operator and regulator — one based on evidence rather than inspection.</p>
+
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-amber-900 mb-2">Key Point</p>
+<p class="text-amber-800">Earned Recognition is not simply about avoiding enforcement. It is a public signal of operational excellence. The DVSA publishes the list of ER-accredited operators on GOV.UK, making it visible to potential clients, procurement teams, and the public.</p>
+</div>`
+      },
+      {
+        id: "benefits-of-accreditation",
+        title: "The Benefits of Accreditation",
+        content: `<p>Achieving Earned Recognition status delivers tangible operational, commercial, and reputational advantages that compound over time. The benefits fall into three categories: enforcement relief, market access, and operational efficiency.</p>
+
+<h3>Enforcement Relief</h3>
+<p><strong>Reduced roadside interruptions.</strong> ER-accredited vehicles are flagged in the DVSA's system. When an officer checks the VRM, the system indicates the operator's ER status. While this is not an absolute exemption, in practice ER operators experience significantly fewer targeted stops — meaning better delivery reliability and fewer driver delays.</p>
+
+<p><strong>Exemption from frequent site visits.</strong> DVSA enforcement staff are instructed to deprioritise ER operators for routine site visits and audits. Your team can focus on operations rather than preparing for unannounced inspections.</p>
+
+<h3>Commercial and Market Access</h3>
+<p><strong>The Earned Recognition marque.</strong> Accredited operators receive the official ER marque, which can be used on websites, marketing materials, tenders, and business correspondence (though not on vehicles themselves). This is a DVSA-endorsed quality signal that carries significant weight with sophisticated procurement teams.</p>
+
+<p><strong>Competitive advantage in tendering.</strong> High-value contracts — particularly in government, infrastructure, and regulated industries — increasingly require or strongly prefer ER-accredited operators. Projects such as HS2, London Power Tunnels, Thames Tideway, and major local authority contracts have all included ER as a tender evaluation criterion. Accreditation opens doors that are closed to non-accredited operators.</p>
+
+<p><strong>Direct DVSA access.</strong> ER operators are assigned a dedicated DVSA Business Manager — a named individual who provides direct support and compliance advice. This relationship is invaluable when navigating complex regulatory questions or managing isolated compliance issues before they escalate.</p>
+
+<h3>Operational Efficiency</h3>
+<p>The data infrastructure required for Earned Recognition — validated digital maintenance records, automated KPI tracking, real-time defect management — also makes your operation measurably more efficient. Operators who pursue ER typically report reduced vehicle downtime, faster defect resolution, and improved driver accountability as by-products of the accreditation process.</p>
+
+<div class="bg-green-50 border border-green-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-green-900 mb-2">TitanFleet Insight</p>
+<p class="text-green-800">Operators using TitanFleet's Earned Recognition Dashboard report that the accreditation process identified process gaps they were unaware of — gaps that, if found during a DVSA audit, could have put their O-licence at risk. The preparation is as valuable as the accreditation itself.</p>
+</div>`
+      },
+      {
+        id: "how-to-get-accredited",
+        title: "How to Get Accredited: Step-by-Step",
+        content: `<p>The path to Earned Recognition is structured and sequential. Each step builds on the last, and the DVSA expects operators to demonstrate a genuine track record of compliance rather than a compliance exercise conducted purely for the application. The five steps below reflect the actual process as described by the DVSA on GOV.UK.</p>
+
+<h3>Step 1: Eligibility Check</h3>
+<p>Before applying, you must confirm that your operation meets the baseline eligibility requirements:</p>
+<ul>
+<li>You hold a valid HGV or PSV operator's licence and have held it for <strong>at least 2 years</strong>.</li>
+<li>The Traffic Commissioner has not taken any regulatory action against your licence beyond a formal warning in the <strong>last 2 years</strong>. This includes licence curtailment, suspension, revocation, or a public inquiry finding against you.</li>
+<li>You have — or are prepared to implement — a <strong>DVSA-validated IT system</strong> for vehicle maintenance and drivers' hours monitoring. Not all software qualifies. The system must meet the DVSA's data specification requirements.</li>
+</ul>
+
+<h3>Step 2: The Self-Assessment</h3>
+<p>Before submission, you must complete the self-assessment checklist available on GOV.UK. This assessment covers the DVSA's <strong>10 core audit standards</strong>, which include:</p>
+<ul>
+<li>Documented maintenance schedules and safety inspection frequencies</li>
+<li>Defect reporting and rectification procedures</li>
+<li>Driver licence and CPC checking procedures</li>
+<li>Tachograph management (downloads, calibration, analysis)</li>
+<li>Driver briefing and training records</li>
+<li>Load security procedures</li>
+<li>Sub-contractor management (where applicable)</li>
+</ul>
+<p>The self-assessment is not just a form — it is a genuine review of your systems. Operators who rush it typically fail the subsequent audit. Use the process to identify and close genuine gaps before applying.</p>
+
+<h3>Step 3: Application Submission</h3>
+<p>Once confident in your compliance position, submit form <strong>DVSAER01</strong> through GOV.UK. You will need to provide:</p>
+<ul>
+<li>Entity details and all operator licence numbers to be included in the scheme.</li>
+<li><strong>Three reporting periods</strong> (12 weeks) of KPI reports generated by your validated IT system, demonstrating consistent performance against the M1–M5 vehicle maintenance KPIs and the drivers' hours KPIs.</li>
+<li>Raw drivers' hours data for the same periods, in the format specified by the DVSA.</li>
+</ul>
+<p>The DVSA will review your submission and determine whether to proceed to the formal audit stage. Applications with inconsistent KPI data or gaps in record-keeping are typically rejected at this stage.</p>
+
+<h3>Step 4: The Formal Audit</h3>
+<p>If your application is accepted, you must book an audit with a <strong>DVSA-accredited third-party auditor</strong> within three months of receiving approval to proceed. The auditor will:</p>
+<ul>
+<li>Verify your documented maintenance processes against the 10 audit standards.</li>
+<li>Check a sample of vehicles in your fleet for roadworthiness.</li>
+<li>Confirm that your digital systems are recording data accurately and in the required format.</li>
+<li>Review driver records, including licence checks, CPC records, and tachograph downloads.</li>
+</ul>
+<p>Auditors issue a report to the DVSA. If the audit is passed, the DVSA will formally notify you of your Earned Recognition status and add your business to the published operator list.</p>
+
+<h3>Step 5: Continuous Monitoring</h3>
+<p>Earned Recognition is not a one-time achievement — it is a continuous commitment. Once accredited, your validated IT system reports to the DVSA automatically <strong>every four weeks</strong>. The DVSA reviews these reports and classifies your status as:</p>
+<ul>
+<li><strong>Green:</strong> KPIs consistently met. Minimal enforcement attention.</li>
+<li><strong>Amber:</strong> KPI thresholds close to breach. The DVSA may make contact. The operator should self-correct.</li>
+<li><strong>Red:</strong> KPI thresholds breached. The DVSA will investigate. Repeated red ratings risk removal from the scheme.</li>
+</ul>
+
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-amber-900 mb-2">Important</p>
+<p class="text-amber-800">Earned Recognition status can be withdrawn at any time if KPIs are not maintained or if a serious compliance event occurs (such as a DVSA prohibition or Traffic Commissioner action). Withdrawal is not just a loss of the accreditation — it is a flag to enforcement agencies that the operator's self-assessment was inaccurate, which can trigger increased scrutiny.</p>
+</div>`
+      },
+      {
+        id: "understanding-the-kpis",
+        title: "Understanding the KPIs",
+        content: `<p>The DVSA Earned Recognition scheme monitors two categories of Key Performance Indicators: vehicle maintenance KPIs and drivers' hours KPIs. These are not aspirational targets — they are minimum performance thresholds. Breaching them puts your ER status at risk.</p>
+
+<p>The KPIs are calculated over 13 reporting periods per year (four-weekly), using data exported automatically from your validated IT system. The DVSA does not accept manually compiled reports — the data must come directly from a system that meets the DVSA's technical specification.</p>
+
+<p>Understanding each KPI in detail — and knowing what operational failures cause them to slip — is essential both for achieving accreditation and for maintaining it long-term.</p>`
+      },
+      {
+        id: "vehicle-maintenance-kpis",
+        title: "Vehicle Maintenance KPIs",
+        content: `<p>The DVSA monitors five vehicle maintenance KPIs, designated M1 through M5. Each measures a different aspect of your maintenance system's effectiveness.</p>
+
+<h3>M1 — Safety Inspections Completed on Time</h3>
+<p>Measures the percentage of scheduled safety inspections completed within the ISO week in which they fall due. A safety inspection is due when the vehicle reaches the interval specified in your maintenance schedule (typically every 6–8 weeks for HGVs). Late inspections — even by one day into the following ISO week — count as a failure against M1.</p>
+<p><strong>Why it matters:</strong> M1 is the primary indicator of maintenance discipline. Operators who consistently miss inspection windows are, by definition, operating vehicles whose roadworthiness has not been verified for longer than their own schedule requires.</p>
+
+<h3>M2 — Safety-Related Defects Addressed Immediately</h3>
+<p>Measures the percentage of safety-related defects identified during inspections or walkaround checks that are addressed (repaired or the vehicle taken off-road) without delay. A safety-related defect is any defect that affects the vehicle's roadworthiness — brake failure, tyre damage, steering defects, and lighting failures are common examples.</p>
+<p><strong>Why it matters:</strong> Delayed resolution of safety-related defects is the DVSA's single greatest concern. A vehicle with a known safety defect continuing in service is not just an M2 failure — it is a potential prohibition offence and, in the event of an accident, evidence of negligence.</p>
+
+<h3>M3 — Inspections Completed Within Tolerance</h3>
+<p>Similar to M1, but measures inspections completed within a defined tolerance window around the due date. M3 catches operators who are consistently running late on inspections but not so late as to breach the ISO week threshold. It is a leading indicator that M1 is likely to deteriorate without intervention.</p>
+
+<h3>M4 — Driver-Reported Defects Tracked and Resolved</h3>
+<p>Measures the percentage of defects reported by drivers during walkaround checks that are properly logged in the maintenance system and resolved within the required timescale. This KPI specifically validates the integrity of the driver-to-maintenance feedback loop. If drivers report defects verbally or on paper but these are not transferred to the digital system, M4 will slip.</p>
+<p><strong>Why it matters:</strong> The DVSA views driver-reported defect management as a fundamental maintenance system requirement. An operator who cannot demonstrate that driver-reported defects are systematically captured and resolved does not have a robust maintenance system — regardless of how well the scheduled inspections score.</p>
+
+<h3>M5 — MOT First-Time Pass Rate</h3>
+<p>Measures the percentage of vehicles in your fleet that pass their Annual Test (MOT) on the first attempt. Vehicles that require a retest — due to defects identified at the test station — count as failures against M5. A high M5 rate demonstrates that your maintenance system is effective at identifying and resolving defects before they are found by a tester.</p>
+<p><strong>Why it matters:</strong> An MOT failure is evidence that a vehicle had a defect that should have been identified and corrected during routine maintenance. High retest rates signal systematic maintenance failures, not isolated incidents.</p>
+
+<div class="bg-blue-50 border border-blue-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-blue-900 mb-2">TitanFleet Tracks All Five KPIs Automatically</p>
+<p class="text-blue-800">TitanFleet's Earned Recognition Dashboard calculates M1–M5 in real time from your inspection and defect data. Each reporting period's performance is displayed in a traffic-light format so you can identify deterioration weeks before the four-weekly DVSA report is generated. <a href="/solutions/fleet-compliance-software" class="underline font-medium">Learn more about TitanFleet's compliance features</a>.</p>
+</div>`
+      },
+      {
+        id: "drivers-hours-kpis",
+        title: "Drivers' Hours KPIs",
+        content: `<p>The drivers' hours KPIs measure compliance with EU drivers' hours rules (EC 561/2006, retained in UK law), Working Time Regulations, and tachograph management requirements. These KPIs are calculated from tachograph data downloaded from vehicle units and driver cards.</p>
+
+<h3>Driving Time Compliance</h3>
+<p>Measures the percentage of journeys where drivers do not exceed the maximum daily driving time (9 hours, extendable to 10 hours twice per week) and the maximum weekly driving time (56 hours, with a two-week limit of 90 hours). Infringements — recorded by the tachograph and analysed by the system — count against this KPI.</p>
+
+<h3>Rest Period Compliance</h3>
+<p>Measures adherence to minimum daily rest requirements (11 hours, reducible to 9 hours no more than three times between weekly rests) and weekly rest requirements (45 hours, reducible to 24 hours with compensatory rest). Split daily rest rules are also tracked.</p>
+
+<h3>Break Compliance</h3>
+<p>Measures adherence to the mandatory 45-minute break after 4.5 hours of driving (which may be split into 15 minutes followed by 30 minutes). Violations of the break requirement are "Most Serious Infringements" (MSIs) under EU rules and carry the highest weighting in the KPI calculation.</p>
+
+<h3>Most Serious Infringements (MSIs)</h3>
+<p>The DVSA specifically tracks MSIs — the most severe category of drivers' hours violations — as a separate metric within the drivers' hours KPIs. An excessive number of MSIs, even if the operator is technically meeting the headline KPI thresholds, can trigger DVSA attention. MSIs include: exceeding maximum driving time by more than 25%, insufficient daily rest, and falsification of records.</p>
+
+<h3>Unaccounted Mileage</h3>
+<p>Measures the gap between vehicle odometer readings and the mileage accounted for in tachograph records. Significant unaccounted mileage suggests that the vehicle is being driven in modes that are not being properly recorded — either accidentally (incorrect mode selection) or deliberately (attempting to circumvent hours rules).</p>
+
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-amber-900 mb-2">Tachograph Downloads</p>
+<p class="text-amber-800">Drivers' hours KPIs can only be calculated accurately if tachograph data is downloaded on schedule — vehicle units every 90 days, driver cards every 28 days. Gaps in download data create gaps in KPI calculations, which the DVSA treats as a process failure, not a data issue. Automated download reminders are essential.</p>
+</div>`
+      },
+      {
+        id: "how-titanfleet-supports-er",
+        title: "How TitanFleet Supports Earned Recognition Status",
+        content: `<p>TitanFleet is designed to bridge the gap between standard O-licence compliance and Earned Recognition excellence. The platform automates the data collection, KPI calculation, and reporting processes that are the most time-consuming aspects of maintaining ER status.</p>
+
+<h3>1. Automated KPI Tracking</h3>
+<p>TitanFleet's <strong>Earned Recognition Dashboard</strong> provides a real-time, traffic-light view of your M1–M5 vehicle maintenance KPIs and drivers' hours KPIs. The dashboard tracks all 13 four-weekly reporting periods annually, calculating performance automatically from your inspection and tachograph data. You see your KPI position today — not in four weeks when the DVSA report is generated.</p>
+
+<h3>2. Paperless Maintenance Records</h3>
+<p>The system digitises walkaround checks and safety inspections. When a driver identifies a defect on the TitanFleet mobile app, it is instantly logged with a timestamp, GPS coordinates, photo evidence, and the driver's digital signature. This creates the precise audit trail the DVSA demands — immutable, time-stamped, and immediately visible to the transport manager.</p>
+<p>Auto-VOR (Vehicle Off Road) triggers automatically when a safety check fails, removing the vehicle from service without requiring a manual management decision. This directly supports M2 KPI performance by eliminating the risk of a safety-related defect being overlooked while the vehicle continues operating.</p>
+
+<h3>3. Proactive Alerts and Reminders</h3>
+<p>TitanFleet monitors every compliance deadline and sends automated alerts before thresholds are breached. MOT due dates, safety inspection windows, tachograph download deadlines, and CPC training requirements all generate proactive notifications. You receive the alert in time to act — not after the breach has been recorded. This is the operational difference between consistently green KPIs and the amber alerts that bring the DVSA's Business Manager to your inbox.</p>
+
+<h3>4. Seamless Data Reporting</h3>
+<p>When it is time to report to the DVSA, TitanFleet generates the required KPI reports in the pre-configured format specified by the scheme. This eliminates manual data entry, eliminates the risk of transcription errors, and ensures you never miss a reporting deadline. The data is extracted directly from the operational system — the same data your team uses daily — so there is no discrepancy between what you report and what your operation actually achieves.</p>
+
+<h3>5. Drivers' Hours Compliance Engine</h3>
+<p>TitanFleet's rules engine calculates daily driving time, rest periods, breaks, and MSIs for every driver in your fleet. Infringements are flagged immediately when tachograph data is processed — giving transport managers the opportunity to investigate and address patterns before they accumulate into a KPI breach. The 14-hour spread-over warning is surfaced to drivers in real time during their shift.</p>
+
+<h3>6. Support for High-Value Contract Modules</h3>
+<p>TitanFleet is built to handle the additional module requirements for operators competing for HS2, TfL, Network Rail, and other major infrastructure contracts. These contracts require extended compliance reporting, enhanced driver vetting records, and specific documentation formats — all of which can be configured within the platform.</p>
+
+<div class="bg-green-50 border border-green-200 rounded-xl p-6 my-6">
+<p class="font-semibold text-green-900 mb-2">Built for Earned Recognition</p>
+<p class="text-green-800">TitanFleet's data architecture was designed with DVSA Earned Recognition in mind. The system captures every data point required for ER reporting as a by-product of normal operations — no additional data entry, no separate compliance process. <a href="/solutions/fleet-compliance-software" class="underline font-medium">See how TitanFleet supports ER accreditation</a>.</p>
+</div>`
+      },
+      {
+        id: "standard-vs-earned-recognition",
+        title: "Standard vs Earned Recognition Operator",
+        content: `<p>The table below summarises the practical differences between operating as a standard O-licence holder and operating as a DVSA Earned Recognition operator. The differences are not marginal — they represent a fundamentally different relationship with the regulator and the market.</p>
+
+<div class="overflow-x-auto my-6">
+<table class="w-full text-sm border-collapse">
+<thead>
+<tr class="bg-[#0f172a] text-white">
+<th class="text-left px-4 py-3 rounded-tl-lg">Feature</th>
+<th class="text-left px-4 py-3">Standard Operator</th>
+<th class="text-left px-4 py-3 rounded-tr-lg">Earned Recognition Operator</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-slate-100">
+<td class="px-4 py-3 font-medium text-slate-900">Roadside checks</td>
+<td class="px-4 py-3 text-slate-600">Random, high frequency</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Very low frequency — deprioritised by DVSA</td>
+</tr>
+<tr class="border-b border-slate-100 bg-slate-50">
+<td class="px-4 py-3 font-medium text-slate-900">DVSA site visits</td>
+<td class="px-4 py-3 text-slate-600">Periodic or targeted</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Exceptionally rare</td>
+</tr>
+<tr class="border-b border-slate-100">
+<td class="px-4 py-3 font-medium text-slate-900">Compliance reporting</td>
+<td class="px-4 py-3 text-slate-600">Manual, on-demand</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Automated every 4 weeks</td>
+</tr>
+<tr class="border-b border-slate-100 bg-slate-50">
+<td class="px-4 py-3 font-medium text-slate-900">IT systems required</td>
+<td class="px-4 py-3 text-slate-600">Paper or basic digital</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">DVSA-validated digital system</td>
+</tr>
+<tr class="border-b border-slate-100">
+<td class="px-4 py-3 font-medium text-slate-900">Market status</td>
+<td class="px-4 py-3 text-slate-600">General operator</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Exemplary / preferred contractor</td>
+</tr>
+<tr class="border-b border-slate-100 bg-slate-50">
+<td class="px-4 py-3 font-medium text-slate-900">DVSA relationship</td>
+<td class="px-4 py-3 text-slate-600">Enforcement-based</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Dedicated Business Manager</td>
+</tr>
+<tr class="border-b border-slate-100">
+<td class="px-4 py-3 font-medium text-slate-900">High-value contracts</td>
+<td class="px-4 py-3 text-slate-600">Often excluded or deprioritised</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">ER status frequently required (HS2, TfL, etc.)</td>
+</tr>
+<tr class="bg-slate-50">
+<td class="px-4 py-3 font-medium text-slate-900">Published status</td>
+<td class="px-4 py-3 text-slate-600">No public listing</td>
+<td class="px-4 py-3 text-emerald-700 font-medium">Listed on GOV.UK as an exemplary operator</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p>Earned Recognition is not simply a compliance exercise — it is a strategic business decision. The operators who achieve ER status are not doing so to reduce roadside stops alone. They are doing it because it signals to every client, every procurement team, and every enforcement officer that their operation meets the highest standards the DVSA can certify.</p>
+
+<p>For operators with ambitions to grow — whether into new geographic markets, larger contract values, or regulated sectors — Earned Recognition is the foundation on which that growth should be built.</p>
+
+<div class="bg-[#0f172a] text-white rounded-xl p-6 my-6">
+<p class="font-semibold text-white mb-2">Ready to Start Your Earned Recognition Journey?</p>
+<p class="text-slate-300 mb-4">TitanFleet is built to support every step of the Earned Recognition process — from the self-assessment through to continuous four-weekly reporting. Book a demonstration to see the Earned Recognition Dashboard in action.</p>
+<a href="/manager/login" class="inline-block bg-[#2563eb] text-white font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-blue-600 transition-colors">See TitanFleet in Action</a>
+</div>`
+      },
+    ],
+    relatedArticles: [
+      { title: "Complete DVSA Compliance Guide", href: "/guides/dvsa-compliance-guide", type: "guide" },
+      { title: "Fleet Maintenance Best Practices", href: "/guides/fleet-maintenance-guide", type: "guide" },
+      { title: "Transport Manager Responsibilities", href: "/resources/transport-manager-responsibilities", type: "article" },
+    ],
+    relatedProducts: [
+      { title: "Fleet Compliance Software", href: "/solutions/fleet-compliance-software", type: "product" },
+      { title: "Fleet Management Software UK", href: "/solutions/fleet-management-software-uk", type: "product" },
+      { title: "DVSA Walkaround Check App", href: "/solutions/dvsa-walkaround-check-app", type: "product" },
+    ],
+  },
 ];
 
 function GuideContent({ guide }: { guide: Guide }) {
