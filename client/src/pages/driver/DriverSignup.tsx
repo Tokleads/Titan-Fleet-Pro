@@ -92,7 +92,7 @@ export default function DriverSignup() {
             </div>
           </div>
           <a
-            href="/app"
+            href={`/app?code=${encodeURIComponent(result.companyCode)}`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
             data-testid="link-go-to-app"
           >
@@ -127,6 +127,7 @@ export default function DriverSignup() {
                 placeholder="e.g. John Smith"
                 className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
                 required
+                autoComplete="name"
                 data-testid="input-driver-name"
               />
             </div>
@@ -142,6 +143,7 @@ export default function DriverSignup() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john@example.com"
                 className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoComplete="email"
                 data-testid="input-driver-email"
               />
             </div>
@@ -157,6 +159,7 @@ export default function DriverSignup() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="07123 456789"
                 className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoComplete="tel"
                 data-testid="input-driver-phone"
               />
             </div>

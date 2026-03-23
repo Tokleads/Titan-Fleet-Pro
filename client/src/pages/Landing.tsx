@@ -23,7 +23,9 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { refreshCompany } = useBrand();
   const { toast } = useToast();
-  const [companyCode, setCompanyCode] = useState("");
+
+  const prefilledCode = new URLSearchParams(window.location.search).get("code") ?? "";
+  const [companyCode, setCompanyCode] = useState(prefilledCode.toUpperCase());
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<"driver" | "manager">("driver");
@@ -137,6 +139,11 @@ export default function Landing() {
                                     icon={<ShieldCheck className="h-5 w-5" />}
                                     data-testid="input-company-code"
                                 />
+                                {prefilledCode && (
+                                    <p className="text-xs text-emerald-600 ml-1 flex items-center gap-1">
+                                        <span>✓</span> Company code filled in from your registration
+                                    </p>
+                                )}
                             </div>
 
                             {/* Company Announcements */}

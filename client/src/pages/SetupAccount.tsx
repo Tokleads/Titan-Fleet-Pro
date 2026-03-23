@@ -182,6 +182,7 @@ export default function SetupAccount() {
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="e.g. Apex Logistics"
                   required
+                  autoComplete="organization"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   data-testid="input-company-name"
                 />
@@ -195,6 +196,7 @@ export default function SetupAccount() {
                   onChange={(e) => setContactName(e.target.value)}
                   placeholder="e.g. John Smith"
                   required
+                  autoComplete="name"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   data-testid="input-contact-name"
                 />
@@ -209,6 +211,7 @@ export default function SetupAccount() {
                   placeholder="Minimum 8 characters"
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   data-testid="input-setup-password"
                 />
@@ -223,6 +226,7 @@ export default function SetupAccount() {
                   placeholder="Re-enter password"
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   data-testid="input-setup-confirm-password"
                 />
