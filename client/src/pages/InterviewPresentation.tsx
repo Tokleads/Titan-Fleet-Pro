@@ -57,8 +57,8 @@ const slides = [
   {
     panel: "PANEL Q4",
     question: "Tell me about a time you led a team through a difficult challenge to help deliver a positive outcome.",
-    screenshot: "/interview-q4.png",
-    screenshotCaption: "The defect panel on the manager dashboard — each card now includes photo evidence, location, and severity, added after the mechanic conflict",
+    screenshot: "/screenshot-defect-photo.png",
+    screenshotCaption: "Defect #18 — BT71TVM tyre condition / wear, severity HIGH. Photo taken by the driver at the roadside. AI re-analysis on demand. The mechanic could no longer claim it 'wasn't there'",
     star: {
       situation: "After go-live, mechanics found the defect reports from drivers too vague to act on — no photos, no location, just text. This created an \"us vs them\" dynamic threatening the safety feedback loop at the heart of the product.",
       task: "Resolve the conflict between drivers and mechanics before it eroded trust in the system, without slipping the broader roadmap.",
