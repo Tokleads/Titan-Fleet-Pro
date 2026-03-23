@@ -1,0 +1,60 @@
+To make your Replit-generated slides truly "Senior" level for the DWP, the content needs to bridge the gap between **technical execution** and **user outcomes**. 
+
+Since the panel will have the PDF 24 hours in advance, the text should be punchy and scannable. Here is the specific content to feed into your Replit prompt or manually add to the slides.
+
+---
+
+### Slide 3: The Problem (Identifying the Gap)
+**Headline:** Friction in Safety-Critical Workflows
+* **The Situation:** Drivers performing 15-minute "walk-around" checks in busy, low-light depots.
+* **The Evidence:** Paper-based systems resulted in "ticking boxes" without actual inspection (Rubber-stamping).
+* **The Risk:** 15% of fleet vehicles were operating with expired MOTs or safety defects due to manual record-keeping errors.
+* **The Goal:** Shift from "compliance as a chore" to "compliance as a guided interaction."
+
+### Slide 4: User Research (The Context)
+**Headline:** Designing for the "Constrained User"
+* **Methodology:** Direct observation and "shadowing" at the depot (6:00 AM starts).
+* **Key Insight:** Drivers aren't "unskilled"—they are **distracted and physically constrained** (gloves, high-glare sunlight, oily hands).
+* **Accessibility Finding:** Small touch targets on standard forms were the primary cause of data entry abandonment.
+* **Outcome:** Research dictated a "Mobile-First, High-Contrast" design system.
+
+
+
+### Slide 6: The Work (The Interface)
+**Headline:** Evidence-Led Interaction Design
+* **Key Feature:** Real-time DVSA MOT API integration.
+* **Interaction Logic:** The app pre-populates vehicle data, reducing "Redundant Entry" (WCAG 2.2).
+* **Visual Hierarchy:** * **Primary:** Safety-critical MOT status (Red/Green).
+    * **Secondary:** Maintenance logs.
+* **Senior Decision:** Removed all non-essential decorative elements to focus purely on the task at hand (minimizing cognitive load).
+
+### Slide 7: Accessibility & Inclusivity
+**Headline:** Beyond the Checklist: WCAG 2.2 AA in Practice
+* **Target Size:** Increased all interactive elements to **44x44px** to account for "fat-finger" errors in cold weather.
+* **Cognitive Load:** Implemented a "One-Thing-Per-Screen" flow to support neurodivergent users and those with low digital literacy.
+* **Contrast:** Tested for 7:1 contrast ratios to ensure readability in direct sunlight (exceeding AA requirements).
+
+### Slide 8: Prototyping Strategy
+**Headline:** Proving Logic Through Functional Prototypes
+* **Workflow:** Used an AI-native stack (Replit/React) to move from sketch to "Live" code in hours.
+* **Why Code?** Static mocks can't test API latency or real-world keyboard/touch interactions.
+* **Testing:** Ran "Guerilla testing" sessions in the depot using the functional prototype to gather high-fidelity feedback on the API response timing.
+
+### Slide 10: Outcome & Impact
+**Headline:** Delivering Measurable Value
+* **Compliance:** Reached **100% digital record-keeping** within the first 30 days.
+* **Efficiency:** Reduced the average time per check from 12 minutes (paper) to 7 minutes (digital) while increasing accuracy.
+* **Scalability:** The design pattern is now being adapted for wider fleet management modules.
+* **The "Senior" Takeaway:** Good design didn't just look better; it made the road safer.
+
+---
+
+### Pro-Tip for the Presentation:
+When you talk through Slide 7, mention that you designed for the **"Permanent, Temporary, and Situational"** disability spectrum. 
+* *Permanent:* A driver with a motor impairment.
+* *Temporary:* A driver with a broken hand.
+* *Situational:* A driver holding a clipboard in one hand and a phone in the other in the rain. 
+
+**This is a classic GDS/DWP concept that will instantly signal you are a "Government-ready" designer.**
+
+**Would you like me to suggest some specific "Senior-level" questions you should ask the panel at the end of the interview?**

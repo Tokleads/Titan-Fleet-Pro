@@ -1,0 +1,39 @@
+Yes, **Replit** can absolutely help you create this. In early 2026, Replit introduced a specific feature called **"Slide Decks"** (part of their Replit Agent 4 / Artifacts system). 
+
+Instead of just writing code, the Replit Agent can now generate a full, professional presentation based on a prompt. It uses React under the hood to create "pixel-perfect" slides that you can then **export as a PDF** (which is exactly what the DWP requires).
+
+Here is a prompt you can copy and paste directly into the Replit Agent to build your presentation.
+
+---
+
+### The Replit Prompt
+
+> **I need to create a 10-slide presentation for a Senior Interaction Designer interview at the DWP. Please use the "Slide Decks" artifact type and follow this specific 12-minute structure:**
+>
+> **1. Theme & Style:** Professional, clean, and highly accessible. Use high-contrast colors (meeting WCAG 2.2 AA). 
+> **2. Content Structure:**
+> * **Slide 1: Title & Introduction:** "Senior Interaction Designer Presentation - [Your Name]"
+> * **Slide 2: The Project Context:** Overview of "TitanFleet" - solving HGV driver compliance and the legal "walk-around" check.
+> * **Slide 3: The Problem:** Highlighting the "Knowledge Gap" between paper-based checks and the high-pressure depot environment.
+> * **Slide 4: User Research:** Details on shadowing drivers, observing "constrained users" in low-light/high-glare conditions.
+> * **Slide 5: Design Approach:** Bridging the gap using a digital-first, API-driven (DVSA MOT API) interaction model.
+> * **Slide 6-7: The Work (Visuals):** Showcase a high-fidelity mobile UI. Highlight specific accessibility choices (large target sizes, clear hierarchy).
+> * **Slide 8: Prototyping:** Explain the AI-native workflow and how functional prototypes were used for "live" depot testing.
+> * **Slide 9: Collaboration:** Working with multidisciplinary teams and haulage stakeholders to ensure buy-in.
+> * **Slide 10: Outcome & Impact:** 100% digital compliance achieved and improved road safety.
+>
+> **3. Technical Requirements:** Include a section or "callout" on Slide 6 regarding **WCAG 2.2 AA** compliance. Once generated, I will need to export this as a **PDF**.
+
+---
+
+### How to use this in Replit:
+1.  Go to the Replit home screen.
+2.  In the prompt box, paste the text above.
+3.  Replit will automatically switch to the **"Slides"** stack.
+4.  Once the deck is generated, you can click **"Edit Visually"** to swap in any specific images of your work.
+5.  When finished, use the **Export** menu to download the **PDF**.
+
+### One "Senior" tip for the PDF:
+Since you are a Senior candidate, check the PDF after export to ensure it is **tagged for screen readers**. If Replit’s export is "flat," you might want to run it through an accessibility checker (like Acrobat or an online tool) to ensure it truly reflects your commitment to inclusive design.
+
+**Would you like me to refine the "bullet points" for any of these slides before you put them into Replit?**
