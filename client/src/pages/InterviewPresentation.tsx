@@ -19,8 +19,8 @@ const slides = [
   {
     panel: "PANEL Q2",
     question: "How do you communicate design decisions to non-design stakeholders?",
-    screenshot: "/interview-q2.png",
-    screenshotCaption: "Fleet Copilot — live AI assistant built into the manager dashboard. Used as a prototype Thomas could interact with, not just view",
+    screenshot: "/screenshot-copilot-defects.png",
+    screenshotCaption: "Robert asks \"Show me all open defects\" — the Copilot returns vehicle, defect type, severity, and reporter in seconds. This was the prototype I sat Thomas in front of instead of a Figma deck",
     star: {
       situation: "Debate arose about whether the driver app should include detailed mechanical jargon in its check items — Thomas (Owner) wanted specificity; my research showed it caused abandonment in the field.",
       task: "Communicate why a simplified, guided interface produces better compliance outcomes than a complex, jargon-heavy one — without it becoming a design lecture.",
@@ -70,8 +70,8 @@ const slides = [
   {
     panel: "BEFORE / AFTER",
     question: "Demonstrable WCAG 2.2 improvements made during development",
-    screenshot: null,
-    screenshotCaption: null,
+    screenshot: "/screenshot-mot-dates.png",
+    screenshotCaption: "Key compliance dates tracked automatically — MOT, Tax, Tachograph calibration. No more spreadsheets or manual reminders",
     star: null,
     improvements: null,
     isBeforeAfter: true,
@@ -308,59 +308,74 @@ function MainSlide({ slide }: { slide: typeof slides[0] }) {
 
 function BeforeAfterSlide({ slide }: { slide: typeof slides[0] }) {
   return (
-    <div className="flex-1 flex flex-col px-10 py-8 overflow-y-auto">
-      <div className="mb-8">
-        <span className="inline-block bg-[#5B6CFF] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wider mb-4">
-          {slide.panel}
-        </span>
-        <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight">
-          {slide.question}
-        </h1>
+    <div className="flex-1 grid lg:grid-cols-[3fr_2fr] overflow-hidden">
+      {/* Left: table */}
+      <div className="flex flex-col px-10 py-8 overflow-y-auto">
+        <div className="mb-6">
+          <span className="inline-block bg-[#5B6CFF] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wider mb-4">
+            {slide.panel}
+          </span>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight">
+            {slide.question}
+          </h1>
+        </div>
+
+        <div className="flex-1">
+          <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-3 px-1">
+            <p className="text-xs font-bold text-slate-400 tracking-wider">WCAG 2.2 CRITERION</p>
+            <p className="text-xs font-bold text-red-400 tracking-wider">BEFORE</p>
+            <p className="text-xs font-bold text-emerald-400 tracking-wider">AFTER</p>
+          </div>
+
+          <div className="space-y-2.5">
+            {slide.beforeAfterItems?.map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: i * 0.08 }}
+                className="grid grid-cols-[2fr_1fr_1fr] gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+              >
+                <p className="text-sm font-bold text-white leading-snug">{item.criterion}</p>
+                <div className="border-l border-red-400/20 pl-3">
+                  <span className="inline-block text-xs font-bold bg-red-400/10 text-red-400 px-2 py-0.5 rounded-full mb-1">
+                    {item.before.label}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.before.detail}</p>
+                </div>
+                <div className="border-l border-emerald-400/20 pl-3">
+                  <span className="inline-block text-xs font-bold bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded-full mb-1">
+                    {item.after.label}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.after.detail}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-5 p-4 rounded-xl bg-[#5B6CFF]/10 border border-[#5B6CFF]/30">
+            <p className="text-sm text-slate-300 leading-relaxed">
+              <span className="font-bold text-white">Senior takeaway: </span>
+              These weren't retrofitted for compliance. Each came from a real user need observed in the field — oily hands, glare, drivers who couldn't zoom, a signup flow that made people re-type what they'd just been shown. WCAG 2.2 gave the framework; research gave the reason.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-0 flex-1">
-        {/* Column headers */}
-        <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 mb-3 px-1">
-          <p className="text-xs font-bold text-slate-400 tracking-wider">WCAG 2.2 CRITERION</p>
-          <p className="text-xs font-bold text-red-400 tracking-wider">BEFORE</p>
-          <p className="text-xs font-bold text-emerald-400 tracking-wider">AFTER (FIXED)</p>
+      {/* Right: supporting screenshot */}
+      <div className="bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-6">
+        <div className="w-full rounded-xl overflow-hidden shadow-2xl border border-white/10">
+          <img
+            src={slide.screenshot!}
+            alt="Key compliance dates"
+            className="w-full object-cover object-top"
+          />
         </div>
-
-        <div className="space-y-3">
-          {slide.beforeAfterItems?.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="grid grid-cols-[2fr_1fr_1fr] gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
-            >
-              <div>
-                <p className="text-sm font-bold text-white mb-0.5">{item.criterion}</p>
-              </div>
-              <div className="border-l border-red-400/20 pl-4">
-                <span className="inline-block text-xs font-bold bg-red-400/10 text-red-400 px-2 py-0.5 rounded-full mb-1.5">
-                  {item.before.label}
-                </span>
-                <p className="text-xs text-slate-400 leading-relaxed">{item.before.detail}</p>
-              </div>
-              <div className="border-l border-emerald-400/20 pl-4">
-                <span className="inline-block text-xs font-bold bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded-full mb-1.5">
-                  {item.after.label}
-                </span>
-                <p className="text-xs text-slate-400 leading-relaxed">{item.after.detail}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-6 p-5 rounded-xl bg-[#5B6CFF]/10 border border-[#5B6CFF]/30">
-          <p className="text-sm text-slate-300 leading-relaxed">
-            <span className="font-bold text-white">Senior takeaway: </span>
-            These weren't retrofitted for compliance. Each change came from a real user need observed in the field — oily hands, glare, drivers who couldn't zoom, and a registration flow that made people re-type what they'd just been shown.
-            WCAG 2.2 gave the framework; research gave the reason.
+        {slide.screenshotCaption && (
+          <p className="mt-3 text-xs text-slate-500 text-center italic max-w-xs">
+            {slide.screenshotCaption}
           </p>
-        </div>
+        )}
       </div>
     </div>
   );
