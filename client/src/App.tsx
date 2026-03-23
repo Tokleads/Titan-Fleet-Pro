@@ -14,6 +14,8 @@ const Landing = lazy(() => import("@/pages/Landing"));
 const InterviewPresentation = lazy(() => import("@/pages/InterviewPresentation"));
 const FullStack = lazy(() => import("@/pages/FullStack"));
 const VsSamsara = lazy(() => import("@/pages/VsSamsara"));
+const VsMotive = lazy(() => import("@/pages/VsMotive"));
+const VsQuartix = lazy(() => import("@/pages/VsQuartix"));
 const SEOLanding = lazy(() => import("@/pages/SEOLanding"));
 const Guides = lazy(() => import("@/pages/Guides"));
 const Resources = lazy(() => import("@/pages/Resources"));
@@ -109,6 +111,8 @@ function Router() {
         <Route path="/presentation" component={InterviewPresentation} />
         <Route path="/stack" component={FullStack} />
         <Route path="/vs/samsara" component={VsSamsara} />
+        <Route path="/vs/motive" component={VsMotive} />
+        <Route path="/vs/quartix" component={VsQuartix} />
         <Route path="/app" component={Landing} />
         <Route path="/driver" component={DriverDashboard} />
         <Route path="/driver/vehicle/:id" component={VehicleDetail} />
