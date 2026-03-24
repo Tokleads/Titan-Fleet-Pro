@@ -214,6 +214,7 @@ function OverviewTabContent({ data }: { data: any }) {
 
 function VehicleDetailsTabContent({ data, formData, setFormData, categories, costCentres, departments }: { data: any; formData: any; setFormData: (fn: (prev: any) => any) => void; categories?: any[]; costCentres?: any[]; departments?: any[] }) {
   const set = (key: string, value: any) => setFormData((prev: any) => ({ ...prev, [key]: value }));
+  const [editingVrm, setEditingVrm] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -229,13 +230,20 @@ function VehicleDetailsTabContent({ data, formData, setFormData, categories, cos
                 <input
                   type="text"
                   value={formData.vrm || ""}
-                  readOnly
-                  className="flex-1 h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-sm"
+                  readOnly={!editingVrm}
+                  onChange={(e) => editingVrm && set("vrm", e.target.value.toUpperCase())}
+                  className={`flex-1 h-10 px-3 border rounded-xl text-sm font-mono font-semibold uppercase tracking-wider ${editingVrm ? "bg-white border-blue-400 ring-2 ring-blue-100" : "bg-slate-100 border-slate-200"}`}
                   data-testid="input-registration"
                 />
-                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50" data-testid="button-edit-registration">Edit Registration</button>
-                <button className="px-3 h-10 text-xs font-medium bg-white border border-slate-200 rounded-xl hover:bg-slate-50" data-testid="button-view-history">View History</button>
+                <button
+                  onClick={() => setEditingVrm(!editingVrm)}
+                  className={`px-3 h-10 text-xs font-medium rounded-xl border transition-colors ${editingVrm ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+                  data-testid="button-edit-registration"
+                >
+                  {editingVrm ? "Done" : "Edit Registration"}
+                </button>
               </div>
+              {editingVrm && <p className="text-xs text-amber-600 mt-1">⚠ Changing the registration will update all records linked to this vehicle. Press Save to confirm.</p>}
             </div>
             <InputField label="Simplified Model" value={formData.simplifiedModel || ""} onChange={(v) => set("simplifiedModel", v)} />
             <InputField label="Make" value={formData.make || ""} onChange={(v) => set("make", v)} />
@@ -439,9 +447,50 @@ function VehicleDetailsTabContent({ data, formData, setFormData, categories, cos
 
 function KeyDatesTabContent({ data, formData, setFormData }: { data: any; formData: any; setFormData: (fn: (prev: any) => any) => void }) {
   const set = (key: string, value: any) => setFormData((prev: any) => ({ ...prev, [key]: value }));
+  const [motFetching, setMotFetching] = useState(false);
+  const [motFetchMsg, setMotFetchMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const fetchMotFromDvsa = async () => {
+    if (!data?.vrm) return;
+    setMotFetching(true);
+    setMotFetchMsg(null);
+    try {
+      const res = await fetch(`/api/dvsa/mot/${encodeURIComponent(data.vrm)}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("DVSA lookup failed");
+      const motData = await res.json();
+      const expiryDate = motData.expiryDate || motData.motExpiryDate || motData.motTestExpiryDate;
+      if (expiryDate) {
+        set("motDue", expiryDate.split("T")[0]);
+        setMotFetchMsg({ type: "ok", text: `MOT expiry pulled from DVSA: ${new Date(expiryDate).toLocaleDateString("en-GB")}` });
+      } else {
+        setMotFetchMsg({ type: "err", text: "DVSA returned data but no MOT expiry date found." });
+      }
+    } catch {
+      setMotFetchMsg({ type: "err", text: "Could not reach DVSA API. Check the registration and try again." });
+    } finally {
+      setMotFetching(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <CollapsibleSection title="Key Dates">
+        <div className="mb-4 flex items-center gap-3">
+          <button
+            onClick={fetchMotFromDvsa}
+            disabled={motFetching || !data?.vrm}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            data-testid="button-fetch-mot-dvsa"
+          >
+            {motFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {motFetching ? "Checking DVSA..." : "Fetch MOT from DVSA"}
+          </button>
+          {motFetchMsg && (
+            <span className={`text-xs font-medium ${motFetchMsg.type === "ok" ? "text-emerald-600" : "text-red-500"}`}>
+              {motFetchMsg.text}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <InputField label="MOT Due" value={formData.motDue || ""} onChange={(v) => set("motDue", v)} type="date" />
@@ -588,6 +637,183 @@ function VORHistoryTabContent({ data }: { data: any }) {
           <Ban className="h-12 w-12 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 text-sm">No VOR history for this vehicle</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+function OdometerTabContent({ data, vehicleId }: { data: any; vehicleId: number }) {
+  const [logValue, setLogValue] = useState("");
+  const [logDate, setLogDate] = useState(new Date().toISOString().split("T")[0]);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const odometerReadings = (data.inspections || [])
+    .filter((i: any) => i.odometer && i.odometer > 0)
+    .map((i: any) => ({ date: i.createdAt, value: i.odometer, driver: i.driverName, source: i.type }));
+
+  const handleLog = async () => {
+    const miles = parseInt(logValue);
+    if (!miles || miles <= 0) return;
+    setSaving(true);
+    try {
+      await fetch(`/api/manager/vehicles/${vehicleId}/mileage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ mileage: miles, date: logDate }),
+      });
+      setSavedMsg(`Odometer updated to ${miles.toLocaleString()} miles`);
+      setLogValue("");
+      queryClient.invalidateQueries({ queryKey: ["vehicle-full-profile", vehicleId] });
+    } catch {
+      setSavedMsg("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-sm font-semibold text-slate-800 mb-4">Log Odometer Reading</h3>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Mileage (miles)</label>
+            <input type="number" value={logValue} onChange={(e) => setLogValue(e.target.value)} placeholder="e.g. 125000" className="h-10 px-3 border border-slate-200 rounded-xl text-sm w-44 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+            <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} className="h-10 px-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" />
+          </div>
+          <button onClick={handleLog} disabled={saving || !logValue} className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {saving ? "Saving..." : "Log Reading"}
+          </button>
+          {savedMsg && <span className="text-xs text-emerald-600 font-medium">{savedMsg}</span>}
+        </div>
+      </div>
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-700">Odometer History (from safety checks)</h3>
+        </div>
+        {odometerReadings.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 text-sm">No odometer readings recorded yet</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-slate-100"><th className="text-left px-4 py-3 font-medium text-slate-600">Date</th><th className="text-left px-4 py-3 font-medium text-slate-600">Driver</th><th className="text-left px-4 py-3 font-medium text-slate-600">Reading (miles)</th><th className="text-left px-4 py-3 font-medium text-slate-600">Source</th></tr></thead>
+            <tbody>
+              {odometerReadings.map((r: any, i: number) => (
+                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-700">{new Date(r.date).toLocaleDateString("en-GB")}</td>
+                  <td className="px-4 py-3 text-slate-700">{r.driver || "—"}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">{r.value.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-slate-500">{r.source}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {data.currentMileage && (
+        <div className="text-xs text-slate-500 text-right">Current recorded mileage: <strong>{data.currentMileage.toLocaleString()} miles</strong></div>
+      )}
+    </div>
+  );
+}
+
+function DriversTabContent({ data }: { data: any }) {
+  const uniqueDrivers = Array.from(
+    new Map(
+      (data.inspections || [])
+        .filter((i: any) => i.driverId)
+        .map((i: any) => [i.driverId, { id: i.driverId, name: i.driverName, lastUsed: i.createdAt }])
+    ).values()
+  ) as { id: number; name: string; lastUsed: string }[];
+
+  return (
+    <div className="space-y-6">
+      {data.assignedDriver && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+            {data.assignedDriver.name?.charAt(0)?.toUpperCase() || "?"}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-0.5">Most Recent Driver</p>
+            <p className="font-semibold text-slate-900">{data.assignedDriver.name}</p>
+            <p className="text-xs text-slate-500">{data.assignedDriver.email}</p>
+          </div>
+        </div>
+      )}
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+          <h3 className="text-sm font-semibold text-slate-700">Drivers Who Have Used This Vehicle</h3>
+        </div>
+        {uniqueDrivers.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 text-sm">No driver history recorded</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-slate-100"><th className="text-left px-4 py-3 font-medium text-slate-600">Driver</th><th className="text-left px-4 py-3 font-medium text-slate-600">Last Used</th><th className="text-left px-4 py-3 font-medium text-slate-600">Checks Completed</th></tr></thead>
+            <tbody>
+              {uniqueDrivers.map((d) => {
+                const checkCount = (data.inspections || []).filter((i: any) => i.driverId === d.id).length;
+                return (
+                  <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{d.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{new Date(d.lastUsed).toLocaleDateString("en-GB")}</td>
+                    <td className="px-4 py-3 text-slate-600">{checkCount}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MaintenanceTabContent({ vehicleId }: { vehicleId: number }) {
+  const { data: history, isLoading } = useQuery({
+    queryKey: ["vehicle-service-history", vehicleId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/vehicles/${vehicleId}/service-history`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!vehicleId,
+  });
+
+  if (isLoading) return <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>;
+
+  const records = Array.isArray(history) ? history : [];
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">Service &amp; Maintenance History</h3>
+        <span className="text-xs text-slate-400">{records.length} record{records.length !== 1 ? "s" : ""}</span>
+      </div>
+      {records.length === 0 ? (
+        <div className="text-center py-12">
+          <Wrench className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">No maintenance records yet</p>
+          <p className="text-slate-400 text-xs mt-1">Add service records from the Service Intervals tab</p>
+        </div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead><tr className="border-b border-slate-100"><th className="text-left px-4 py-3 font-medium text-slate-600">Date</th><th className="text-left px-4 py-3 font-medium text-slate-600">Type</th><th className="text-left px-4 py-3 font-medium text-slate-600">Description</th><th className="text-left px-4 py-3 font-medium text-slate-600">Cost</th><th className="text-left px-4 py-3 font-medium text-slate-600">Mileage</th></tr></thead>
+          <tbody>
+            {records.map((r: any) => (
+              <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <td className="px-4 py-3 text-slate-700">{r.serviceDate ? new Date(r.serviceDate).toLocaleDateString("en-GB") : "—"}</td>
+                <td className="px-4 py-3 text-slate-700">{r.serviceType || "Service"}</td>
+                <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.description || "—"}</td>
+                <td className="px-4 py-3 text-slate-700">{r.cost ? `£${(r.cost / 100).toFixed(2)}` : "—"}</td>
+                <td className="px-4 py-3 text-slate-700">{r.mileage ? r.mileage.toLocaleString() : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
@@ -765,13 +991,13 @@ export function VehicleDetailModal({ vehicleId, onClose }: VehicleDetailModalPro
       case "hgv":
         return <PlaceholderTab label="HGV" />;
       case "odometer":
-        return <PlaceholderTab label="Odometer" />;
+        return <OdometerTabContent data={data} vehicleId={vehicleId} />;
       case "drivers":
-        return <PlaceholderTab label="Drivers" />;
+        return <DriversTabContent data={data} />;
       case "assets":
         return <PlaceholderTab label="Assets" />;
       case "maintenance":
-        return <PlaceholderTab label="Maintenance" />;
+        return <MaintenanceTabContent vehicleId={vehicleId} />;
       case "hgv-inspections":
         return <PlaceholderTab label="HGV Inspections" />;
       default:
