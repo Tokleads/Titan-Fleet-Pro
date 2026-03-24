@@ -620,7 +620,23 @@ export default function Drivers() {
       return Array.isArray(data) ? data : [];
     },
     enabled: !!companyId,
+    refetchInterval: 30_000,
   });
+
+  // Live on-shift status — same source as Live Tracking page, refreshes every 30s
+  const { data: onShiftDrivers } = useQuery<Array<{ driverId: number; driverName: string; depotName: string; arrivalTime: string }>>({
+    queryKey: ["on-shift-drivers", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/manager/on-shift/${companyId}`, { headers: authHeaders() });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!companyId,
+    refetchInterval: 30_000,
+  });
+
+  const onShiftIds = new Set((onShiftDrivers || []).map(d => d.driverId));
 
   // Add driver mutation
   const addDriverMutation = useMutation({
@@ -714,21 +730,15 @@ export default function Drivers() {
     setIsEditDialogOpen(true);
   };
 
-  // Determine driver status
+  // Determine driver status — uses live on-shift set for accuracy
   const getDriverStatus = (driver: Driver) => {
     if (!driver.active) {
       return { status: "inactive", label: "Inactive", color: "bg-red-400" };
     }
-    
-    if (!driver.currentShift) {
-      return { status: "off", label: "Off Shift", color: "bg-slate-400" };
+    if (onShiftIds.has(driver.id)) {
+      return { status: "active", label: "On Shift", color: "bg-emerald-500" };
     }
-
-    if (driver.currentShift.status === "COMPLETED") {
-      return { status: "off", label: "Off Shift", color: "bg-slate-400" };
-    }
-
-    return { status: "active", label: "On Shift", color: "bg-emerald-500" };
+    return { status: "off", label: "Off Shift", color: "bg-slate-400" };
   };
 
   // Filter drivers by search query
@@ -1110,16 +1120,20 @@ export default function Drivers() {
                       </div>
                     )}
 
-                    {/* Shift Time */}
-                    {driver.currentShift && status.status === "active" && (
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          Since: {new Date(driver.currentShift.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {driver.currentShift.depotName && driver.currentShift.depotName !== "GPS Location" && ` at ${driver.currentShift.depotName}`}
-                        </span>
-                      </div>
-                    )}
+                    {/* Shift Time — from live on-shift data */}
+                    {status.status === "active" && (() => {
+                      const liveShift = (onShiftDrivers || []).find(s => s.driverId === driver.id);
+                      if (!liveShift) return null;
+                      return (
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            Since: {new Date(liveShift.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {liveShift.depotName && liveShift.depotName !== "GPS Location" && ` at ${liveShift.depotName}`}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
