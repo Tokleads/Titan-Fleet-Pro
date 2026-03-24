@@ -288,12 +288,12 @@ function MainSlide({ slide }: { slide: typeof slides[0] }) {
       </div>
 
       {/* Right: screenshot */}
-      <div className="relative bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-6 overflow-y-auto">
-        <div className="w-full rounded-xl shadow-2xl border border-white/10 bg-black/20">
+      <div className="relative bg-slate-900/50 border-l border-white/10 flex flex-col items-center p-6 overflow-y-auto">
+        <div className="w-full rounded-xl shadow-2xl border border-white/10 bg-black/20 overflow-hidden">
           <img
             src={slide.screenshot!}
             alt={slide.panel}
-            className="w-full object-contain"
+            className="w-full object-contain block"
           />
         </div>
         {slide.screenshotCaption && (
@@ -363,12 +363,12 @@ function BeforeAfterSlide({ slide }: { slide: typeof slides[0] }) {
       </div>
 
       {/* Right: supporting screenshot */}
-      <div className="bg-slate-900/50 border-l border-white/10 flex flex-col items-center justify-center p-6 overflow-y-auto">
-        <div className="w-full rounded-xl shadow-2xl border border-white/10 bg-black/20">
+      <div className="bg-slate-900/50 border-l border-white/10 flex flex-col items-center p-6 overflow-y-auto">
+        <div className="w-full rounded-xl shadow-2xl border border-white/10 bg-black/20 overflow-hidden">
           <img
             src={slide.screenshot!}
             alt="Key compliance dates"
-            className="w-full object-contain"
+            className="w-full object-contain block"
           />
         </div>
         {slide.screenshotCaption && (
