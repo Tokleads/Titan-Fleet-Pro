@@ -17,6 +17,7 @@ import {
   checkServiceDue
 } from './notificationService';
 import { checkDefectEscalation, checkFuelAnomalies } from './notificationTriggers';
+import { checkOverdueInspections, sweepUntriagedDefects } from './inspectionChasingService';
 import { runPredictiveMaintenance } from './predictiveMaintenanceService';
 import { runAllHealthChecks } from './apiHealthService';
 import { db } from './db';
@@ -67,6 +68,8 @@ export async function runNotificationChecks(): Promise<{
     defectEscalation: { success: false, error: undefined as string | undefined },
     fuelAnomalies: { success: false, error: undefined as string | undefined },
     predictiveMaintenance: { success: false, error: undefined as string | undefined },
+    overdueInspections: { success: false, error: undefined as string | undefined },
+    untriagedDefects: { success: false, error: undefined as string | undefined },
   };
 
   // Check MOT expiry
@@ -136,6 +139,28 @@ export async function runNotificationChecks(): Promise<{
     results.predictiveMaintenance.success = false;
     results.predictiveMaintenance.error = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Scheduler] ✗ Predictive maintenance check failed:', error);
+  }
+
+  // Check overdue inspections
+  try {
+    await checkOverdueInspections();
+    results.overdueInspections.success = true;
+    console.log('[Scheduler] ✓ Overdue inspections check complete');
+  } catch (error) {
+    results.overdueInspections.success = false;
+    results.overdueInspections.error = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Scheduler] ✗ Overdue inspections check failed:', error);
+  }
+
+  // Sweep untriaged defects
+  try {
+    await sweepUntriagedDefects();
+    results.untriagedDefects.success = true;
+    console.log('[Scheduler] ✓ Untriaged defect sweep complete');
+  } catch (error) {
+    results.untriagedDefects.success = false;
+    results.untriagedDefects.error = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Scheduler] ✗ Untriaged defect sweep failed:', error);
   }
 
   // Note: License expiry check not implemented yet
@@ -231,10 +256,12 @@ export function startScheduler(): void {
   });
 
   cron.schedule('0 */4 * * *', async () => {
-    console.log('[Scheduler] Running defect escalation and fuel anomaly checks...');
+    console.log('[Scheduler] Running 4-hourly compliance checks...');
     try {
       await checkDefectEscalation();
       await checkFuelAnomalies();
+      await checkOverdueInspections();
+      await sweepUntriagedDefects();
     } catch (error) {
       console.error('[Scheduler] Error in 4-hourly checks:', error);
     }
@@ -251,7 +278,7 @@ export function startScheduler(): void {
   });
 
   isSchedulerRunning = true;
-  console.log('[Scheduler] ✓ Notification scheduler started (runs daily at 8:00 AM, defect/fuel checks every 4 hours, GPS purge at 3:00 AM)');
+  console.log('[Scheduler] ✓ Notification scheduler started (runs daily at 8:00 AM, defect/fuel/inspection/triage checks every 4 hours, GPS purge at 3:00 AM)');
 
   // Run once on startup for immediate check (optional)
   // Comment out if you don't want immediate execution on server start

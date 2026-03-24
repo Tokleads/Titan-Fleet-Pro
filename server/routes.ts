@@ -1428,6 +1428,33 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/manager/audit-report/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      if (req.user && companyId !== req.user.companyId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const { generateAuditReport } = await import("./auditReportService");
+      const report = await generateAuditReport(companyId);
+
+      // Log to agent feed
+      const { logAgentAction } = await import("./agentLogger");
+      await logAgentAction({
+        companyId,
+        actionType: "compliance_scan",
+        severity: report.overallGrade === "A" || report.overallGrade === "B" ? "info" : report.overallGrade === "C" ? "warning" : "critical",
+        title: `AI Audit Report generated — Grade ${report.overallGrade} (${report.overallScore}/100)`,
+        description: `Fleet-wide compliance assessed: ${report.vehiclesAnalysed} vehicles, ${report.driversAnalysed} drivers. Projected grade after fixes: ${report.projectedGrade}.`,
+        actionTaken: `Report generated with ${report.topPriorities.length} priority actions identified.`,
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Failed to generate audit report:", error);
+      res.status(500).json({ error: "Failed to generate audit report", detail: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.get("/api/manager/stats/:companyId", async (req, res) => {
     try {
       const requestedCompanyId = Number(req.params.companyId);
