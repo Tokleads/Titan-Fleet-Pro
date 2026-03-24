@@ -448,7 +448,7 @@ export default function EndOfShiftCheck() {
                         placeholder={item.label}
                         value={answer.text || ""}
                         onChange={(e) => updateAnswer(item.id, { text: e.target.value })}
-                        className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/50 placeholder:text-slate-400"
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-4 focus:ring-primary/25 focus:border-primary/50 placeholder:text-slate-400"
                         data-testid={`input-text-${item.id}`}
                       />
                     </div>

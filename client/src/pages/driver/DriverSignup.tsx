@@ -125,7 +125,7 @@ export default function DriverSignup() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. John Smith"
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
                 required
                 autoComplete="name"
                 data-testid="input-driver-name"
@@ -142,7 +142,7 @@ export default function DriverSignup() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john@example.com"
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 autoComplete="email"
                 data-testid="input-driver-email"
               />
@@ -158,7 +158,7 @@ export default function DriverSignup() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="07123 456789"
-                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 autoComplete="tel"
                 data-testid="input-driver-phone"
               />

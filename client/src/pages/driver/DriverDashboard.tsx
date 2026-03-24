@@ -409,7 +409,7 @@ export default function DriverDashboard() {
                 <div className="flex gap-3">
                     <input 
                         placeholder="Enter VRM (e.g. KX65ABC)" 
-                        className="flex-1 h-12 rounded-xl font-semibold tracking-wider border border-slate-300 px-4 uppercase focus:outline-none focus:ring-2 focus:ring-primary/25 titan-focus"
+                        className="flex-1 h-12 rounded-xl font-semibold tracking-wider border border-slate-300 px-4 uppercase focus:outline-none focus:ring-4 focus:ring-primary/25 titan-focus"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -633,7 +633,7 @@ export default function DriverDashboard() {
                 value={messageSubject}
                 onChange={(e) => setMessageSubject(e.target.value)}
                 placeholder="e.g. Vehicle issue, Schedule request..."
-                className="w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                className="w-full h-10 px-3 border rounded-lg focus:ring-4 focus:ring-primary focus:border-primary text-sm"
                 data-testid="input-message-subject"
               />
             </div>
@@ -725,7 +725,7 @@ export default function DriverDashboard() {
                 value={manualVrm}
                 onChange={(e) => setManualVrm(e.target.value.toUpperCase())}
                 placeholder="e.g. AB12 CDE"
-                className="w-full h-12 px-4 text-lg font-bold tracking-wider uppercase border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full h-12 px-4 text-lg font-bold tracking-wider uppercase border rounded-lg focus:ring-4 focus:ring-primary focus:border-primary"
                 maxLength={10}
               />
             </div>

@@ -351,7 +351,7 @@ export default function CompleteDelivery() {
                     const v = recentVehicles.find(rv => rv.id === Number(e.target.value));
                     if (v) setVehicle(v);
                   }}
-                  className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-4 focus:ring-primary/20"
                   data-testid="select-vehicle"
                 >
                   {recentVehicles.map(rv => (
@@ -451,7 +451,7 @@ export default function CompleteDelivery() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Enter customer name"
-                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-colors"
                   data-testid="input-customer-name"
                 />
               </div>
@@ -464,7 +464,7 @@ export default function CompleteDelivery() {
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="Enter delivery address"
-                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-colors"
                   data-testid="input-delivery-address"
                 />
               </div>
@@ -477,7 +477,7 @@ export default function CompleteDelivery() {
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
                   placeholder="Enter reference number"
-                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-colors"
                   data-testid="input-reference"
                 />
               </div>
@@ -491,7 +491,7 @@ export default function CompleteDelivery() {
               onChange={(e) => setDeliveryNotes(e.target.value)}
               placeholder="e.g. Left with receptionist, goods inspected OK"
               rows={3}
-              className="rounded-xl border-slate-200 text-sm resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="rounded-xl border-slate-200 text-sm resize-none focus:ring-4 focus:ring-primary/20 focus:border-primary"
               data-testid="input-delivery-notes"
             />
           </div>

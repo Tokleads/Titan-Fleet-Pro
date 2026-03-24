@@ -531,7 +531,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
                         <select
                           value={selectedDepotId || ''}
                           onChange={(e) => setSelectedDepotId(e.target.value ? Number(e.target.value) : null)}
-                          className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-blue-500"
                         >
                           <option value="">Select a depot...</option>
                           {geofences.filter(g => g.isActive).map(depot => (

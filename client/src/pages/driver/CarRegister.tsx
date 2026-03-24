@@ -194,7 +194,7 @@ export default function CarRegister() {
                   </label>
                   <input
                     placeholder="e.g. AB12 CDE"
-                    className="w-full h-12 rounded-xl font-semibold tracking-wider border border-slate-300 px-4 uppercase focus:outline-none focus:ring-2 focus:ring-primary/25 titan-focus text-lg"
+                    className="w-full h-12 rounded-xl font-semibold tracking-wider border border-slate-300 px-4 uppercase focus:outline-none focus:ring-4 focus:ring-primary/25 titan-focus text-lg"
                     value={numberPlate}
                     onChange={(e) => setNumberPlate(e.target.value.toUpperCase())}
                     maxLength={20}

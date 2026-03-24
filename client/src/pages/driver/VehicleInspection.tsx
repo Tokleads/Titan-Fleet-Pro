@@ -751,7 +751,7 @@ export default function VehicleInspection() {
                   placeholder={odometerPreFilled ? `Last: ${odometer} miles` : "Enter current mileage"}
                   value={odometer}
                   onChange={(e) => { const val = e.target.value; if (val.length <= 7) { setOdometer(val); setOdometerPreFilled(false); } }}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl px-4 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-xl px-4 font-mono text-lg focus:outline-none focus:ring-4 focus:ring-primary/30 focus:border-primary"
                   data-testid="input-odometer"
                 />
                 {odometerPreFilled && odometer && (
