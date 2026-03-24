@@ -874,67 +874,117 @@ export default function TitanFleetLandingPage() {
             </motion.p>
           </motion.div>
 
+          {/* 6-capability grid */}
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={staggerContainer}
-            className="grid md:grid-cols-3 gap-8"
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
           >
             {[
               {
-                icon: "\u{1F50D}",
-                title: "Auto-Triage Defects",
-                description: "Instantly recognises safety-critical issues from driver photos. A cracked windscreen or bald tyre gets escalated before your morning coffee — not buried in a spreadsheet.",
-                tag: "Real-Time",
+                icon: "🔍",
+                title: "AI Photo Triage",
+                description: "Every defect photo is analysed by GPT-4o Vision the moment a driver submits it. The AI classifies severity (Low → Critical), identifies the defect type, and cites the relevant DVSA roadworthiness section — all before a manager has opened their laptop.",
+                tag: "Real-Time · GPT-4o Vision",
+                tagColor: "bg-violet-100 text-violet-700",
+                stat: "< 3 seconds",
+                statLabel: "from photo to DVSA classification",
               },
               {
-                icon: "\u26A1",
-                title: "Predictive Maintenance",
-                description: "Flags patterns that lead to breakdowns before the VOR light hits the dash. Recurring defects, overdue services, and mileage trends are surfaced automatically.",
-                tag: "Proactive",
+                icon: "⚡",
+                title: "Auto Defect Escalation",
+                description: "If a defect is raised and nobody acts on it, the AI escalates it automatically every 4 hours — raising the severity and firing alerts to managers until it's resolved. Nothing sits ignored.",
+                tag: "Every 4 hours",
+                tagColor: "bg-orange-100 text-orange-700",
+                stat: "Zero",
+                statLabel: "defects fall through the cracks",
               },
               {
-                icon: "\u{1F6E1}\uFE0F",
-                title: "Active Compliance",
-                description: "It doesn't just record data — it hunts for gaps in your audit trail so you don't have to. Missing inspections, expiring MOTs, and unsigned checks are caught before DVSA asks.",
-                tag: "Always-On",
+                icon: "🔎",
+                title: "Inspection Chasing",
+                description: "Every vehicle is supposed to have a daily walkaround. The AI checks at regular intervals — if a vehicle hasn't been inspected in 24 hours, managers are alerted automatically. No spreadsheet required.",
+                tag: "Every 4 hours",
+                tagColor: "bg-blue-100 text-blue-700",
+                stat: "24h",
+                statLabel: "maximum gap before auto-alert fires",
+              },
+              {
+                icon: "⛽",
+                title: "Fuel Anomaly Detection",
+                description: "The agent compares every fuel entry against fleet averages. Unusually large fills or outliers are flagged immediately — catching misfuelling, data errors, and potential fraud before the month-end review.",
+                tag: "Every 4 hours",
+                tagColor: "bg-yellow-100 text-yellow-700",
+                stat: "Instant",
+                statLabel: "flag on anomalous fuel entry",
+              },
+              {
+                icon: "🛡️",
+                title: "MOT & Tax Monitoring",
+                description: "Every morning the AI checks every vehicle's MOT, road tax, and service dates. If anything is expiring — or already expired — managers are alerted. Operating with an expired MOT is a criminal offence. The AI makes sure it never happens.",
+                tag: "Daily at 08:00",
+                tagColor: "bg-red-100 text-red-700",
+                stat: "Daily",
+                statLabel: "automated compliance scan",
+              },
+              {
+                icon: "📋",
+                title: "One-Click AI Audit Report",
+                description: "Press one button. In under 30 seconds, the AI assesses your entire fleet across 6 compliance dimensions, assigns a letter grade (A–F), and tells you exactly what to fix to improve it — with a projected grade after actions. The kind of report that used to take a consultant half a day.",
+                tag: "On Demand",
+                tagColor: "bg-emerald-100 text-emerald-700",
+                stat: "A–F grade",
+                statLabel: "with projected uplift path",
               },
             ].map((item, index) => (
               <motion.div
                 key={index}
                 variants={fadeUp}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
-                className="relative bg-slate-50 rounded-2xl p-8 border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 group"
+                transition={{ duration: 0.5, delay: index * 0.08 }}
+                className="relative bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all duration-300 group flex flex-col"
                 data-testid={`ai-feature-${index}`}
               >
-                <div className="bg-white w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform duration-300">
+                <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                   {item.icon}
                 </div>
-                <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 bg-[#5B6CFF]/10 text-[#5B6CFF]">
+                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-3 w-fit ${item.tagColor}`}>
                   {item.tag}
                 </span>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{item.description}</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{item.title}</h3>
+                <p className="text-slate-600 leading-relaxed text-sm flex-1">{item.description}</p>
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <span className="text-2xl font-black text-[#5B6CFF]">{item.stat}</span>
+                  <p className="text-xs text-slate-500 mt-0.5">{item.statLabel}</p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
 
+          {/* Live agent status + CTA row */}
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-12 text-center"
+            transition={{ duration: 0.5 }}
+            className="bg-slate-900 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6"
           >
-            <div className="inline-flex items-center gap-3 bg-slate-900 text-white px-6 py-3.5 rounded-xl text-sm font-medium shadow-lg">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-              Your compliance agent is always working — even when you're not
+            <div className="flex items-center gap-4">
+              <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <div>
+                <p className="text-white font-bold text-lg">Your compliance agent is always working</p>
+                <p className="text-slate-400 text-sm">
+                  MOT · Tax · Defects · Inspections · Fuel · Driver Hours — monitored 24/7 with zero manual input
+                </p>
+              </div>
             </div>
+            <a
+              href="#pricing"
+              className="flex-shrink-0 bg-[#5B6CFF] hover:bg-[#4338ca] text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm whitespace-nowrap shadow-lg shadow-[#5B6CFF]/30"
+            >
+              See AI Pro pricing →
+            </a>
           </motion.div>
         </div>
       </section>

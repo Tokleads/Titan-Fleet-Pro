@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Check, Truck, MapPin, Shield, Flame } from "lucide-react";
+import { Check, Truck, Shield, Zap, Bot, Star, ArrowRight } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 const fadeUp = {
@@ -16,104 +16,114 @@ const staggerContainer = {
   },
 };
 
-interface PricingTier {
+interface Plan {
   name: string;
-  price: number;
-  annualPrice: number;
-  maxVehicles: number;
-  popular?: boolean;
-  foundingPrice?: number;
-  foundingAnnualPrice?: number;
+  pricePerVehicle: number;          // monthly
+  annualPricePerVehicle: number;    // monthly billed annually (~17% off)
+  tagline: string;
+  icon: React.ElementType;
+  highlight?: boolean;
+  badge?: string;
+  features: string[];
+  aiFeatures?: string[];
 }
 
-const pricingTiers: PricingTier[] = [
-  { name: "Starter", price: 59, annualPrice: 47, maxVehicles: 10, foundingPrice: 29.50, foundingAnnualPrice: 23.50 },
-  { name: "Growth", price: 129, annualPrice: 103, maxVehicles: 25, popular: true },
-  { name: "Pro", price: 249, annualPrice: 199, maxVehicles: 50 },
-  { name: "Scale", price: 399, annualPrice: 319, maxVehicles: 100 },
+const plans: Plan[] = [
+  {
+    name: "Core",
+    pricePerVehicle: 12,
+    annualPricePerVehicle: 10,
+    tagline: "Full DVSA compliance, zero paper",
+    icon: Shield,
+    features: [
+      "DVSA-compliant daily walkarounds",
+      "Photo defect reporting & tracking",
+      "Fuel & AdBlue logging",
+      "Driver PIN authentication",
+      "MOT / Tax / Service auto-alerts",
+      "Auto-VOR on failed inspections",
+      "Driver-to-manager messaging",
+      "PDF & CSV export",
+      "14-day free trial",
+    ],
+  },
+  {
+    name: "Professional",
+    pricePerVehicle: 18,
+    annualPricePerVehicle: 15,
+    tagline: "Operations command centre",
+    icon: Zap,
+    badge: "Most Popular",
+    features: [
+      "Everything in Core",
+      "Live GPS tracking",
+      "Driver clock-in / timesheets",
+      "Geofence auto clock-in",
+      "Proof of Delivery (POD)",
+      "Digital signatures & photos",
+      "Fleet analytics & reports",
+      "White-label branding",
+      "Operator licence management",
+    ],
+  },
+  {
+    name: "AI Pro",
+    pricePerVehicle: 25,
+    annualPricePerVehicle: 21,
+    tagline: "Autonomous compliance — 24/7 AI",
+    icon: Bot,
+    highlight: true,
+    badge: "AI-Powered",
+    features: [
+      "Everything in Professional",
+      "AI photo triage (GPT-4o Vision)",
+      "Autonomous compliance agent",
+      "One-click AI Audit Report",
+      "Inspection chasing — auto-alerts",
+      "Fuel anomaly detection",
+      "Predictive maintenance alerts",
+      "Defect auto-escalation",
+      "DVSA-referenced AI analysis",
+    ],
+    aiFeatures: [
+      "AI photo triage (GPT-4o Vision)",
+      "One-click AI Audit Report",
+      "Predictive maintenance alerts",
+    ],
+  },
 ];
 
-const allFeatures = [
-  "DVSA-compliant daily checks",
-  "Photo defect reporting",
-  "Defect tracking & management",
-  "Fuel & AdBlue logging",
-  "Driver PIN authentication",
-  "Unlimited drivers",
-  "Live GPS tracking",
-  "Driver clock in/out & timesheets",
-  "Geofence auto clock",
-  "Proof of Delivery (POD)",
-  "Digital signatures & photos",
-  "Driver-to-manager messaging",
-  "Compliance score dashboard",
-  "Auto-VOR on failed inspections",
-  "Fleet analytics & reports",
-  "Automated defect escalation",
-  "Fuel anomaly detection",
-  "MOT/Tax/Service auto-alerts",
-  "CSV & PDF export",
-  "White-label branding",
-  "Email notifications",
-];
-
-function calculateOveragePrice(vehicles: number): number {
-  const basePrice = 59;
-  const baseVehicles = 10;
-  const overageRate = 6;
-
-  if (vehicles <= baseVehicles) {
-    return basePrice;
-  }
-  return basePrice + (vehicles - baseVehicles) * overageRate;
-}
-
-function getBestValueTier(vehicles: number): string {
-  if (vehicles <= 10) return "Starter";
-  if (vehicles <= 25) return "Growth";
-  if (vehicles <= 50) return "Pro";
-  return "Scale";
-}
+const MIN_VEHICLES = 5;
+const MAX_VEHICLES = 150;
 
 export default function PricingSection({ referralCode }: { referralCode?: string } = {}) {
   const [vehicleCount, setVehicleCount] = useState<number>(10);
   const [isAnnual, setIsAnnual] = useState<boolean>(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const calculatedPrice = useMemo(() => calculateOveragePrice(vehicleCount), [vehicleCount]);
-  const bestValueTier = useMemo(() => getBestValueTier(vehicleCount), [vehicleCount]);
-  const overageVehicles = vehicleCount > 10 ? vehicleCount - 10 : 0;
-
-  const handleCheckout = async (tierName: string) => {
-    setCheckoutLoading(tierName);
+  const handleCheckout = async (planName: string) => {
+    setCheckoutLoading(planName);
     try {
       const productsRes = await fetch('/api/stripe/products');
       const { products } = await productsRes.json();
-      
-      const product = products?.find((p: any) => 
-        p.name?.toLowerCase() === tierName.toLowerCase() ||
-        p.metadata?.tier === tierName.toLowerCase()
+      const product = products?.find((p: any) =>
+        p.name?.toLowerCase() === planName.toLowerCase() ||
+        p.metadata?.tier === planName.toLowerCase()
       );
-      
       if (!product || !product.prices?.length) {
-        alert('This plan is not yet available. Please contact us.');
+        alert('This plan is not yet available. Please contact support@titanfleet.co.uk');
         return;
       }
-      
       const priceId = product.prices[0].id;
       const checkoutRes = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, referralCode }),
+        body: JSON.stringify({ priceId, referralCode, vehicleCount }),
       });
-      
       const { url } = await checkoutRes.json();
-      if (url) {
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Something went wrong. Please try again.');
+      if (url) window.location.href = url;
+    } catch {
+      alert('Something went wrong. Please try again or email support@titanfleet.co.uk');
     } finally {
       setCheckoutLoading(null);
     }
@@ -122,6 +132,8 @@ export default function PricingSection({ referralCode }: { referralCode?: string
   return (
     <section id="pricing" className="py-20 lg:py-28 bg-[#0f172a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -129,33 +141,44 @@ export default function PricingSection({ referralCode }: { referralCode?: string
           variants={staggerContainer}
           className="text-center mb-12"
         >
+          <motion.div
+            variants={fadeUp}
+            className="inline-flex items-center gap-2 bg-white/5 text-slate-300 text-sm font-semibold px-4 py-2 rounded-full mb-5 border border-white/10"
+          >
+            <Truck className="h-4 w-4 text-emerald-400" />
+            Per-vehicle pricing — pay for what you use
+          </motion.div>
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.5 }}
             className="text-3xl sm:text-4xl font-bold text-white mb-4"
           >
-            Simple, Transparent Pricing
+            Transparent Pricing.<br className="hidden sm:block" />
+            <span className="text-emerald-400">Scales with your fleet.</span>
           </motion.h2>
           <motion.p
             variants={fadeUp}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-300 max-w-2xl mx-auto mb-8"
+            className="text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Every plan includes all features. The only difference is the number of vehicles.
+            No flat tiers. No hidden limits. You pay per vehicle — and every vehicle gets the full plan.
           </motion.p>
+        </motion.div>
 
-          <motion.div
-            variants={fadeUp}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="inline-flex items-center gap-4 bg-slate-800/80 rounded-full p-1.5 border border-slate-700"
-            data-testid="toggle-billing-period"
-          >
+        {/* Billing toggle */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          className="flex justify-center mb-10"
+          data-testid="toggle-billing-period"
+        >
+          <div className="inline-flex items-center gap-4 bg-slate-800/80 rounded-full p-1.5 border border-slate-700">
             <button
               onClick={() => setIsAnnual(false)}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
-                !isAnnual
-                  ? "bg-white text-slate-900 shadow-md"
-                  : "text-slate-400 hover:text-white"
+                !isAnnual ? "bg-white text-slate-900 shadow-md" : "text-slate-400 hover:text-white"
               }`}
             >
               Monthly
@@ -163,37 +186,33 @@ export default function PricingSection({ referralCode }: { referralCode?: string
             <button
               onClick={() => setIsAnnual(true)}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
-                isAnnual
-                  ? "bg-white text-slate-900 shadow-md"
-                  : "text-slate-400 hover:text-white"
+                isAnnual ? "bg-white text-slate-900 shadow-md" : "text-slate-400 hover:text-white"
               }`}
             >
               Annual
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                isAnnual
-                  ? "bg-[#22c55e] text-white"
-                  : "bg-[#22c55e]/20 text-[#22c55e]"
+                isAnnual ? "bg-emerald-500 text-white" : "bg-emerald-500/20 text-emerald-400"
               }`}>
-                Save 20%
+                2 months free
               </span>
             </button>
-          </motion.div>
+          </div>
         </motion.div>
 
+        {/* Vehicle slider */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          transition={{ duration: 0.5 }}
           className="bg-slate-800/50 rounded-2xl p-6 sm:p-8 mb-10 border border-slate-700"
         >
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <Truck className="h-6 w-6 text-[#22c55e]" />
-                <h3 className="text-lg sm:text-xl font-semibold text-white">
-                  How many vehicles are in your fleet?
+                <Truck className="h-5 w-5 text-emerald-400" />
+                <h3 className="text-base sm:text-lg font-semibold text-white">
+                  How many vehicles in your fleet?
                 </h3>
               </div>
               <motion.div
@@ -201,217 +220,206 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.2 }}
-                className="bg-[#22c55e] text-[#0f172a] font-bold text-lg sm:text-xl px-4 py-2 rounded-lg min-w-[80px] text-center"
+                className="bg-emerald-500 text-slate-900 font-bold text-lg sm:text-xl px-4 py-2 rounded-lg min-w-[60px] text-center"
               >
                 {vehicleCount}
               </motion.div>
             </div>
-
-            <div className="pricing-slider mb-6">
+            <div className="pricing-slider mb-4">
               <Slider
                 value={[vehicleCount]}
-                onValueChange={(value) => setVehicleCount(value[0])}
-                min={1}
-                max={150}
+                onValueChange={(v) => setVehicleCount(Math.max(MIN_VEHICLES, v[0]))}
+                min={MIN_VEHICLES}
+                max={MAX_VEHICLES}
                 step={1}
                 data-testid="slider-vehicle-count"
               />
             </div>
-
-            <div className="flex justify-between text-sm text-slate-400 mb-6">
-              <span>1 vehicle</span>
-              <span>150 vehicles</span>
-            </div>
-
-            <motion.div
-              key={calculatedPrice}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#0f172a] rounded-xl p-4 sm:p-6 border border-slate-600"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Your estimated price</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl sm:text-4xl font-bold text-white">
-                      £{calculatedPrice.toFixed(2)}
-                    </span>
-                    <span className="text-slate-400">/month</span>
-                  </div>
-                  {overageVehicles > 0 && (
-                    <p className="text-sm text-slate-400 mt-1">
-                      £59 base + £{(overageVehicles * 6).toFixed(2)} ({overageVehicles} extra vehicles x £6)
-                    </p>
-                  )}
-                </div>
-                <div className="text-left sm:text-right">
-                  <p className="text-sm text-slate-400 mb-1">Best value plan</p>
-                  <span className="inline-flex items-center gap-2 bg-[#22c55e]/20 text-[#22c55e] font-semibold px-4 py-2 rounded-lg">
-                    <Check className="h-4 w-4" />
-                    {bestValueTier}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          transition={{ duration: 0.5 }}
-          className="bg-gradient-to-r from-[#22c55e]/10 to-[#22c55e]/5 rounded-xl p-4 sm:p-6 mb-10 border border-[#22c55e]/30"
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-center">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#22c55e]/20 flex items-center justify-center">
-                <Check className="h-5 w-5 text-[#22c55e]" />
-              </div>
-              <div className="text-left">
-                <p className="text-white font-semibold">TitanFleet</p>
-                <p className="text-[#22c55e] font-bold">£0 Setup Fee</p>
-              </div>
-            </div>
-            <div className="text-slate-400 font-medium">vs.</div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-slate-400" />
-              </div>
-              <div className="text-left">
-                <p className="text-slate-400 font-semibold">Hardware Trackers</p>
-                <p className="text-red-400 font-bold">£300+ Setup Fee</p>
-              </div>
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>{MIN_VEHICLES} vehicles (minimum)</span>
+              <span>{MAX_VEHICLES} vehicles</span>
             </div>
           </div>
         </motion.div>
 
+        {/* Plan cards */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={staggerContainer}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"
         >
-          {pricingTiers.map((tier, index) => {
-            const isHighlighted = tier.name === bestValueTier;
-            const isPopular = tier.popular;
-            const isStarter = tier.name === "Starter";
-            const hasFoundingPrice = tier.foundingPrice !== undefined;
-            const displayPrice = hasFoundingPrice
-              ? (isAnnual ? (tier.foundingAnnualPrice ?? tier.annualPrice) : tier.foundingPrice!)
-              : (isAnnual ? tier.annualPrice : tier.price);
-            const originalPrice = isAnnual ? tier.annualPrice : tier.price;
-            const monthlySaving = tier.price - tier.annualPrice;
+          {plans.map((plan, index) => {
+            const rate = isAnnual ? plan.annualPricePerVehicle : plan.pricePerVehicle;
+            const monthlyTotal = rate * vehicleCount;
+            const annualTotal = plan.annualPricePerVehicle * vehicleCount * 12;
+            const monthlyAnnualisedTotal = plan.pricePerVehicle * vehicleCount * 12;
+            const annualSaving = monthlyAnnualisedTotal - annualTotal;
+            const Icon = plan.icon;
+
             return (
               <motion.div
-                key={tier.name}
+                key={plan.name}
                 variants={fadeUp}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`relative rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center transition-all duration-300 ${
-                  isStarter
-                    ? "bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500 shadow-2xl shadow-amber-500/30 scale-[1.05] ring-2 ring-amber-400/50 z-10"
-                    : isPopular
-                      ? "bg-gradient-to-b from-[#22c55e] to-[#16a34a] shadow-2xl shadow-[#22c55e]/30 scale-[1.02] ring-2 ring-[#22c55e]/50"
-                      : isHighlighted
-                        ? "bg-[#22c55e] shadow-xl shadow-[#22c55e]/20 scale-[1.02] ring-2 ring-[#22c55e]"
-                        : "bg-slate-800 border border-slate-700"
+                className={`relative rounded-2xl flex flex-col ${
+                  plan.highlight
+                    ? "bg-gradient-to-b from-[#5B6CFF] to-[#4338ca] ring-2 ring-[#5B6CFF]/60 shadow-2xl shadow-[#5B6CFF]/30 scale-[1.02]"
+                    : "bg-slate-800 border border-slate-700"
                 }`}
-                data-testid={`pricing-card-${tier.name.toLowerCase()}`}
+                data-testid={`pricing-card-${plan.name.toLowerCase().replace(" ", "-")}`}
               >
-                {isStarter && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-slate-900 text-amber-400 text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg border border-amber-400/30 whitespace-nowrap">
-                    Limited Offer
-                  </div>
-                )}
-                {isPopular && !isStarter && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-white text-[#0f172a] text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg">
-                    Most Popular
+                {plan.badge && (
+                  <div className={`absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-extrabold tracking-wider uppercase px-5 py-2 rounded-full shadow-lg whitespace-nowrap ${
+                    plan.highlight
+                      ? "bg-white text-[#5B6CFF]"
+                      : "bg-emerald-500 text-slate-900"
+                  }`}>
+                    {plan.highlight && <Star className="inline h-3 w-3 mr-1" />}
+                    {plan.badge}
                   </div>
                 )}
 
-                <h3 className={`text-lg font-bold mb-1 ${isStarter ? "text-slate-900" : isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
-                  {tier.name}
-                  {isStarter && <span className="block text-xs font-semibold text-slate-700 mt-0.5">Founding Partner</span>}
-                </h3>
-                <p className={`text-sm mb-4 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}`}>
-                  Up to {tier.maxVehicles} vehicles
-                </p>
-
-                <div className="mb-1">
-                  {hasFoundingPrice && (
-                    <span className={`text-lg line-through mr-2 ${isStarter ? "text-slate-600" : isHighlighted || isPopular ? "text-[#0f172a]/50" : "text-slate-500"}`}>
-                      £{originalPrice}
-                    </span>
-                  )}
-                  <span className={`text-4xl font-bold ${isStarter ? "text-slate-900" : isHighlighted || isPopular ? "text-[#0f172a]" : "text-white"}`}>
-                    £{displayPrice % 1 === 0 ? displayPrice : displayPrice.toFixed(2)}
-                  </span>
-                  <span className={isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/70" : "text-slate-400"}>/month</span>
-                </div>
-                <p className={`text-sm font-semibold mb-1 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-slate-300"}`}>
-                  £{(displayPrice / tier.maxVehicles).toFixed(2)}/vehicle
-                </p>
-                {isAnnual && (
-                  <p className={`text-xs font-semibold mb-1 ${isStarter ? "text-slate-700" : isHighlighted || isPopular ? "text-[#0f172a]/80" : "text-[#22c55e]"}`}>
-                    Save £{monthlySaving}/mo (£{monthlySaving * 12}/yr)
+                <div className={`p-6 sm:p-8 flex-1 flex flex-col ${plan.badge ? "pt-10" : ""}`}>
+                  {/* Plan name & icon */}
+                  <div className={`h-11 w-11 rounded-xl flex items-center justify-center mb-4 ${
+                    plan.highlight ? "bg-white/20" : "bg-slate-700"
+                  }`}>
+                    <Icon className={`h-6 w-6 ${plan.highlight ? "text-white" : "text-emerald-400"}`} />
+                  </div>
+                  <h3 className={`text-xl font-bold mb-1 ${plan.highlight ? "text-white" : "text-white"}`}>
+                    {plan.name}
+                  </h3>
+                  <p className={`text-sm mb-6 ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>
+                    {plan.tagline}
                   </p>
-                )}
 
-                {isStarter && (
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Flame className="h-4 w-4 text-red-600" />
-                    <p className="text-xs font-bold text-slate-800">
-                      First 10 operators only · 7/10 spots remaining
+                  {/* Price */}
+                  <div className="mb-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-4xl sm:text-5xl font-black ${plan.highlight ? "text-white" : "text-white"}`}>
+                        £{monthlyTotal.toFixed(0)}
+                      </span>
+                      <span className={`text-sm ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>/month</span>
+                    </div>
+                    <p className={`text-sm mt-1 font-semibold ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>
+                      £{rate}/vehicle · {vehicleCount} vehicle{vehicleCount !== 1 ? "s" : ""}
                     </p>
+                    {isAnnual && (
+                      <p className={`text-xs mt-1 font-bold ${plan.highlight ? "text-emerald-300" : "text-emerald-400"}`}>
+                        Save £{annualSaving.toFixed(0)}/year vs monthly
+                      </p>
+                    )}
+                    {!isAnnual && (
+                      <p className={`text-xs mt-1 ${plan.highlight ? "text-indigo-300" : "text-slate-500"}`}>
+                        Switch to annual — save £{(plan.pricePerVehicle - plan.annualPricePerVehicle) * vehicleCount * 12}/yr
+                      </p>
+                    )}
                   </div>
-                )}
 
-                <p className={`text-xs mb-6 ${isStarter ? "text-slate-600" : isHighlighted || isPopular ? "text-[#0f172a]/60" : "text-slate-500"}`}>
-                  {isAnnual ? "Billed annually" : "Billed monthly"} · Prices exclude VAT
-                </p>
+                  <p className={`text-xs mt-2 mb-6 ${plan.highlight ? "text-indigo-300" : "text-slate-500"}`}>
+                    {isAnnual ? "Billed annually" : "Billed monthly"} · Prices exclude VAT
+                  </p>
 
-                <div className="mt-auto w-full">
+                  {/* CTA */}
                   <button
-                    onClick={() => handleCheckout(tier.name)}
-                    disabled={checkoutLoading === tier.name}
-                    className={`w-full h-12 font-semibold rounded-xl transition-all ${
-                      isStarter
-                        ? "bg-slate-900 text-amber-400 hover:bg-slate-800 shadow-lg"
-                        : isPopular
-                          ? "bg-[#0f172a] text-white hover:bg-slate-800 shadow-lg"
-                          : isHighlighted
-                            ? "bg-[#0f172a] text-white hover:bg-slate-800"
-                            : "bg-[#22c55e] text-[#0f172a] hover:bg-[#16a34a]"
+                    onClick={() => handleCheckout(plan.name)}
+                    disabled={checkoutLoading === plan.name}
+                    className={`w-full h-12 font-semibold rounded-xl transition-all mb-6 ${
+                      plan.highlight
+                        ? "bg-white text-[#5B6CFF] hover:bg-indigo-50 shadow-lg"
+                        : "bg-emerald-500 text-slate-900 hover:bg-emerald-400"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    data-testid={`button-${tier.name.toLowerCase()}-subscribe`}
+                    data-testid={`button-${plan.name.toLowerCase().replace(" ", "-")}-subscribe`}
                   >
-                    {checkoutLoading === tier.name ? 'Loading...' : 'Start 14-Day Free Trial'}
+                    {checkoutLoading === plan.name ? "Loading…" : "Start 14-Day Free Trial"}
                   </button>
-                  <p className="text-xs text-white/70 mt-2 text-center">No credit card required</p>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5">
+                    {plan.features.map((feature) => {
+                      const isAI = plan.aiFeatures?.includes(feature);
+                      return (
+                        <li key={feature} className="flex items-start gap-2.5">
+                          {isAI ? (
+                            <Bot className={`h-4 w-4 flex-shrink-0 mt-0.5 ${plan.highlight ? "text-emerald-300" : "text-[#5B6CFF]"}`} />
+                          ) : (
+                            <Check className={`h-4 w-4 flex-shrink-0 mt-0.5 ${plan.highlight ? "text-emerald-300" : "text-emerald-400"}`} />
+                          )}
+                          <span className={`text-sm ${plan.highlight ? "text-indigo-100" : "text-slate-300"}`}>
+                            {feature}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </motion.div>
             );
           })}
         </motion.div>
 
-        {referralCode && (
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            transition={{ duration: 0.5 }}
-            className="mt-6 text-center"
-            data-testid="text-referral-applied"
-          >
-            <p className="text-[#22c55e] font-medium text-sm">
-              Referral code applied — you'll both earn rewards!
-            </p>
-          </motion.div>
-        )}
+        {/* Value comparison */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          className="bg-slate-800/50 rounded-2xl p-6 sm:p-8 mb-10 border border-slate-700"
+        >
+          <h3 className="text-center text-lg font-bold text-white mb-6">
+            How TitanFleet AI Pro compares at {vehicleCount} vehicles
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-slate-400 border-b border-slate-700">
+                  <th className="text-left pb-3 font-medium">Platform</th>
+                  <th className="text-center pb-3 font-medium">Monthly cost</th>
+                  <th className="text-center pb-3 font-medium">AI built-in</th>
+                  <th className="text-center pb-3 font-medium">DVSA audit trail</th>
+                  <th className="text-center pb-3 font-medium">Setup fee</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                <tr className="bg-[#5B6CFF]/10">
+                  <td className="py-3 font-bold text-white flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-[#5B6CFF]" /> TitanFleet AI Pro
+                  </td>
+                  <td className="py-3 text-center font-bold text-emerald-400">
+                    £{(25 * vehicleCount).toFixed(0)}/mo
+                  </td>
+                  <td className="py-3 text-center text-emerald-400 font-bold">✓ Full AI</td>
+                  <td className="py-3 text-center text-emerald-400 font-bold">✓ DVSA-graded</td>
+                  <td className="py-3 text-center text-emerald-400 font-bold">£0</td>
+                </tr>
+                <tr>
+                  <td className="py-3 text-slate-300">Samsara</td>
+                  <td className="py-3 text-center text-slate-300">~£{(32 * vehicleCount).toFixed(0)}/mo</td>
+                  <td className="py-3 text-center text-slate-500">Basic only</td>
+                  <td className="py-3 text-center text-slate-500">Partial</td>
+                  <td className="py-3 text-center text-red-400">£500–2,000</td>
+                </tr>
+                <tr>
+                  <td className="py-3 text-slate-300">Quartix</td>
+                  <td className="py-3 text-center text-slate-300">~£{(14 * vehicleCount).toFixed(0)}/mo</td>
+                  <td className="py-3 text-center text-slate-500">None</td>
+                  <td className="py-3 text-center text-slate-500">None</td>
+                  <td className="py-3 text-center text-red-400">Hardware req.</td>
+                </tr>
+                <tr>
+                  <td className="py-3 text-slate-300">FleetCheck</td>
+                  <td className="py-3 text-center text-slate-300">~£{(15 * vehicleCount).toFixed(0)}/mo</td>
+                  <td className="py-3 text-center text-slate-500">None</td>
+                  <td className="py-3 text-center text-slate-400">✓ Basic</td>
+                  <td className="py-3 text-center text-slate-400">£0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-500 text-center mt-4">Competitor prices are estimates based on publicly available information. VAT excluded.</p>
+        </motion.div>
 
         {/* Guarantee */}
         <motion.div
@@ -419,65 +427,44 @@ export default function PricingSection({ referralCode }: { referralCode?: string
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          transition={{ duration: 0.5 }}
-          className="mt-10 mb-10"
+          className="mb-10"
         >
           <div className="bg-slate-800/60 rounded-2xl p-6 sm:p-8 border border-slate-700 text-center max-w-2xl mx-auto">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <Shield className="h-8 w-8 text-[#22c55e]" />
+              <Shield className="h-8 w-8 text-emerald-400" />
               <h3 className="text-xl font-bold text-white">30-Day "Save Time or Refund" Guarantee</h3>
             </div>
             <p className="text-slate-300 leading-relaxed">
-              If TitanFleet doesn't simplify your workflow, I'll refund you personally. No questions.
+              If TitanFleet doesn't simplify your compliance workflow, we'll refund you personally. No questions asked.
             </p>
           </div>
         </motion.div>
 
+        {/* Bottom note */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          transition={{ duration: 0.5 }}
+          className="text-center"
         >
-          <div className="bg-slate-800/50 rounded-2xl p-6 sm:p-10 border border-slate-700">
-            <div className="text-center mb-8">
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
-                Everything included in every plan
-              </h3>
-              <p className="text-slate-400 text-sm">
-                No feature gates. No upsells. Every plan gets everything.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
-              {allFeatures.map((feature) => (
-                <div key={feature} className="flex items-center gap-2.5 py-1.5">
-                  <Check className="h-5 w-5 shrink-0 text-[#22c55e]" />
-                  <span className="text-sm text-slate-300">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          transition={{ duration: 0.5 }}
-          className="text-center mt-10"
-        >
-          <p className="text-sm text-[#22c55e] font-medium mb-6">
-            Pay monthly. Cancel anytime. Full data export available.
+          <p className="text-sm text-emerald-400 font-medium mb-4">
+            No credit card required for trial · Cancel anytime · Full data export available
           </p>
-          <p className="text-slate-400 text-sm mb-3">Pay securely by card or mobile wallet</p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <ArrowRight className="h-4 w-4 text-slate-500" />
+            <p className="text-slate-400 text-sm">
+              Need more than 150 vehicles or a custom contract?{" "}
+              <a href="mailto:support@titanfleet.co.uk" className="text-emerald-400 hover:underline font-medium">
+                Talk to us
+              </a>
+            </p>
+          </div>
+          <p className="text-slate-500 text-sm mb-3">Pay securely by card or mobile wallet</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">VISA</div>
-            <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">Mastercard</div>
-            <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">Apple Pay</div>
-            <div className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">GPay</div>
+            {["VISA", "Mastercard", "Apple Pay", "GPay"].map(m => (
+              <div key={m} className="bg-slate-800 rounded px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">{m}</div>
+            ))}
           </div>
         </motion.div>
       </div>
