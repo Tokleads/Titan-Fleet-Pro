@@ -1520,3 +1520,24 @@ export const earnedRecognitionKpis = pgTable("earned_recognition_kpis", {
 export const insertEarnedRecognitionKpiSchema = createInsertSchema(earnedRecognitionKpis).omit({ id: true, createdAt: true });
 export type EarnedRecognitionKpi = typeof earnedRecognitionKpis.$inferSelect;
 export type InsertEarnedRecognitionKpi = z.infer<typeof insertEarnedRecognitionKpiSchema>;
+
+// Agent Actions — persistent log of what the autonomous Compliance Agent does 24/7
+export const agentActions = pgTable("agent_actions", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(),
+  actionType: varchar("action_type", { length: 50 }).notNull(),
+  // 'mot_flagged' | 'tax_flagged' | 'service_due' | 'defect_escalated' | 'fuel_anomaly' | 'predictive_alert' | 'compliance_scan' | 'vor_auto'
+  severity: varchar("severity", { length: 20 }).notNull().default("info"),
+  // 'critical' | 'warning' | 'info'
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  vehicleVrm: varchar("vehicle_vrm", { length: 20 }),
+  driverName: varchar("driver_name", { length: 100 }),
+  actionTaken: text("action_taken"),
+  referenceId: integer("reference_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAgentActionSchema = createInsertSchema(agentActions).omit({ id: true, createdAt: true });
+export type AgentAction = typeof agentActions.$inferSelect;
+export type InsertAgentAction = z.infer<typeof insertAgentActionSchema>;

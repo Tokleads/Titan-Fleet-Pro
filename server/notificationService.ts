@@ -7,6 +7,7 @@
 
 import { db } from "./db";
 import { storage } from "./storage";
+import { logAgentAction } from "./agentLogger";
 import { notificationHistory, notificationPreferences, notificationTemplates } from "../shared/notificationSchema";
 import { vehicles, users } from "../shared/schema";
 import { eq, and, lte, gte, isNull } from "drizzle-orm";
@@ -246,6 +247,17 @@ export async function checkMOTExpiry(): Promise<void> {
             }
           });
         }
+        // Log to agent activity feed
+        await logAgentAction({
+          companyId: company.id,
+          actionType: 'mot_flagged',
+          severity: daysUntilExpiry <= 7 ? 'critical' : 'warning',
+          title: `MOT expiry detected — ${vehicle.vrm}`,
+          description: `${vehicle.vrm} (${vehicle.make} ${vehicle.model}) MOT expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} on ${vehicle.motDue.toLocaleDateString('en-GB')}.`,
+          vehicleVrm: vehicle.vrm,
+          actionTaken: `Managers notified. Book MOT before ${vehicle.motDue.toLocaleDateString('en-GB')}.`,
+          referenceId: vehicle.id,
+        });
       }
     }
   } catch (error) {

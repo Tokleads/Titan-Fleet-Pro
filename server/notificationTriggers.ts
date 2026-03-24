@@ -2,6 +2,7 @@ import { db } from "./db";
 import { users, vehicles, notifications, defects, fuelEntries } from "@shared/schema";
 import { eq, and, lte, gte, sql, desc } from "drizzle-orm";
 import { storage } from "./storage";
+import { logAgentAction } from "./agentLogger";
 
 type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
@@ -269,6 +270,17 @@ export async function checkDefectEscalation(): Promise<{ checked: number; escala
             priority: newSeverity === 'CRITICAL' ? 'URGENT' : 'HIGH',
           });
         }
+        // Log to agent activity feed
+        await logAgentAction({
+          companyId: defect.companyId,
+          actionType: 'defect_escalated',
+          severity: newSeverity === 'CRITICAL' ? 'critical' : 'warning',
+          title: `Defect auto-escalated to ${newSeverity} — ${vrm}`,
+          description: `"${defect.description}" has been open for ${hoursOpen} hours without resolution. Severity automatically raised from ${defect.severity} to ${newSeverity}.`,
+          vehicleVrm: vrm,
+          actionTaken: `Severity escalated: ${defect.severity} → ${newSeverity}. Managers notified.`,
+          referenceId: defect.id,
+        });
       }
     }
     
@@ -328,6 +340,18 @@ export async function checkFuelAnomalies(): Promise<{ checked: number; flagged: 
             priority: 'HIGH',
           });
         }
+        // Log to agent activity feed
+        await logAgentAction({
+          companyId: entry.companyId,
+          actionType: 'fuel_anomaly',
+          severity: 'warning',
+          title: `Fuel anomaly flagged — ${vrm}`,
+          description: `${driverName} logged ${entry.litres}L of ${entry.fuelType}. This is ${(Number(entry.litres) / avg * 100).toFixed(0)}% of the fleet average (${avg.toFixed(0)}L). Possible misfuel, data error, or theft.`,
+          vehicleVrm: vrm,
+          driverName,
+          actionTaken: 'Transport managers notified. Entry flagged for review.',
+          referenceId: entry.id,
+        });
       }
     }
     

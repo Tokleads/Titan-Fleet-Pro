@@ -1413,6 +1413,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/manager/agent-activity/:companyId", async (req, res) => {
+    try {
+      const companyId = Number(req.params.companyId);
+      if (req.user && companyId !== req.user.companyId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const { getAgentActions } = await import("./agentLogger");
+      const actions = await getAgentActions(companyId, 100);
+      res.json(actions);
+    } catch (error) {
+      console.error("Failed to fetch agent activity:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/manager/stats/:companyId", async (req, res) => {
     try {
       const requestedCompanyId = Number(req.params.companyId);

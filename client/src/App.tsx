@@ -64,6 +64,7 @@ const VehicleManagement = lazy(() => import("@/pages/manager/VehicleManagement")
 const OperatorLicence = lazy(() => import("@/pages/manager/OperatorLicence"));
 const AIInsights = lazy(() => import("@/pages/manager/AIInsights"));
 const ComplianceCopilot = lazy(() => import("@/pages/manager/ComplianceCopilot"));
+const ComplianceAgent = lazy(() => import("@/pages/manager/ComplianceAgent"));
 const ApiHealth = lazy(() => import("@/pages/manager/ApiHealth"));
 const BulkUpload = lazy(() => import("@/pages/manager/BulkUpload"));
 const DriverCPC = lazy(() => import("@/pages/manager/DriverCPC"));
@@ -157,6 +158,7 @@ function Router() {
         <Route path="/manager/ai-insights" component={AIInsights} />
         <Route path="/manager/predictive-analytics" component={PredictiveAnalytics} />
         <Route path="/manager/compliance-copilot" component={ComplianceCopilot} />
+        <Route path="/manager/compliance-agent" component={ComplianceAgent} />
         <Route path="/manager/api-health" component={ApiHealth} />
         <Route path="/manager/bulk-upload" component={BulkUpload} />
         <Route path="/manager/cpc" component={DriverCPC} />

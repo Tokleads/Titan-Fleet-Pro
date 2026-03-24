@@ -35,7 +35,8 @@ import {
   GraduationCap,
   Timer,
   Award,
-  CalendarClock
+  CalendarClock,
+  Bot
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
@@ -58,6 +59,7 @@ const navItems = [
   { path: "/manager/ai-insights", icon: Brain, label: "AI Insights", permissionKey: "ai-insights" },
   { path: "/manager/predictive-analytics", icon: TrendingUp, label: "Predictive Analytics", permissionKey: "predictive-analytics" },
   { path: "/manager/compliance-copilot", icon: ShieldCheck, label: "Compliance Copilot", permissionKey: "compliance-copilot" },
+  { path: "/manager/compliance-agent", icon: Bot, label: "Compliance Agent", permissionKey: "compliance-agent" },
   { path: "/manager/fuel", icon: Fuel, label: "Fuel Log", permissionKey: "fuel-log" },
   { path: "/manager/operator-licence", icon: ScrollText, label: "O Licence", permissionKey: "o-licence" },
   { path: "/manager/fleet", icon: Truck, label: "Fleet", permissionKey: "fleet" },

@@ -66,11 +66,11 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_active_driver_locations',
-      description: 'Get current GPS locations of all recently active drivers. Returns driver names, coordinates, and speed.',
+      description: 'Get current GPS locations of all active drivers, including their shift hours, hours remaining before the 10-hour driving limit, and capacity status (AVAILABLE/LOW/NEAR_LIMIT). Use this for questions like "Who is near Sheffield with capacity?" or "Which drivers have hours left today?"',
       parameters: {
         type: 'object',
         properties: {
-          search_location: { type: 'string', description: 'Optional city to find nearby drivers e.g. Sheffield, Leeds, Doncaster' },
+          search_location: { type: 'string', description: 'Optional city to find nearby drivers e.g. Sheffield, Leeds, Doncaster, Manchester' },
         },
       },
     },
@@ -218,10 +218,17 @@ async function getDriverForVehicleOnDate(companyId: number, registration: string
 
 async function getActiveDriverLocations(companyId: number, searchLocation?: string) {
   const drivers = await q(
-    `SELECT u.name AS driver_name, dl.latitude, dl.longitude, dl.speed,
-            dl.timestamp AS last_seen, dl.heading
+    `SELECT u.name AS driver_name, u.id AS driver_id, dl.latitude, dl.longitude, dl.speed,
+            dl.timestamp AS last_seen, dl.heading,
+            t.arrival_time, t.depot_name,
+            ROUND(EXTRACT(EPOCH FROM (NOW() - t.arrival_time)) / 3600.0, 1) AS hours_on_shift,
+            GREATEST(0, ROUND(10.0 - EXTRACT(EPOCH FROM (NOW() - t.arrival_time)) / 3600.0, 1)) AS hours_remaining_before_10h_limit,
+            CASE WHEN EXTRACT(EPOCH FROM (NOW() - t.arrival_time)) / 3600.0 >= 9 THEN 'NEAR_LIMIT'
+                 WHEN EXTRACT(EPOCH FROM (NOW() - t.arrival_time)) / 3600.0 >= 7 THEN 'LOW'
+                 ELSE 'AVAILABLE' END AS capacity_status
      FROM driver_locations dl
      JOIN users u ON dl.driver_id = u.id
+     LEFT JOIN timesheets t ON t.driver_id = u.id AND t.status = 'ACTIVE' AND t.departure_time IS NULL
      WHERE dl.company_id = $1
        AND dl.timestamp > NOW() - INTERVAL '4 hours'
      ORDER BY dl.timestamp DESC`,
