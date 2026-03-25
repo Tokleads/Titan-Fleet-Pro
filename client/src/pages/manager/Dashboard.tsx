@@ -113,12 +113,15 @@ export default function ManagerDashboard() {
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("tourSeen_manager"));
 
   const gettingStartedDismissKey = companyId ? `gettingStarted_dismissed_${companyId}` : null;
-  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(false);
+  // Default to true (hidden) until localStorage is read — avoids flash for dismissed users
+  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(true);
 
-  // Sync dismiss state when companyId becomes defined (handles deferred auth resolution)
+  // Sync dismiss state when companyId resolves; session.getCompany() is sync so this fires before paint
   useEffect(() => {
     if (gettingStartedDismissKey) {
       setGettingStartedDismissed(!!localStorage.getItem(gettingStartedDismissKey));
+    } else {
+      setGettingStartedDismissed(false);
     }
   }, [gettingStartedDismissKey]);
 
@@ -324,6 +327,8 @@ export default function ManagerDashboard() {
   const attentionItemsCount = missedInspections.length + criticalDefects.length + highDefects.length + unreadCount + expiringVehicles.length + overdueMOTVehicles.length + driversNear14Hr.length;
 
   const gettingStartedSteps = [
+    // "Account set up" is always true for authenticated users — SetupAccount.tsx must have been
+    // completed to create the session/company, so there is no false-positive scenario here.
     { id: 'setup', label: 'Account set up', done: true, link: null as string | null, hint: null as string | null },
     { id: 'vehicle', label: 'Add your first vehicle', done: vehiclesList.length > 0, link: '/manager/fleet', hint: null as string | null },
     { id: 'driver', label: 'Invite a driver', done: totalDrivers > 0, link: '/manager/drivers', hint: null as string | null },
