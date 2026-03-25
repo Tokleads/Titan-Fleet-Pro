@@ -227,7 +227,7 @@ export interface IStorage {
   // Beta Feedback operations
   createFeedback(feedback: InsertBetaFeedback): Promise<BetaFeedback>;
   getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string; companyId?: number }): Promise<{ items: BetaFeedback[]; total: number }>;
-  updateFeedbackStatus(id: number, status: string, adminNote?: string): Promise<BetaFeedback | undefined>;
+  updateFeedbackStatus(id: number, status: string, adminNote?: string, companyId?: number): Promise<BetaFeedback | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2145,10 +2145,13 @@ export class DatabaseStorage implements IStorage {
     return { items, total: Number(total) };
   }
 
-  async updateFeedbackStatus(id: number, status: string, adminNote?: string): Promise<BetaFeedback | undefined> {
+  async updateFeedbackStatus(id: number, status: string, adminNote?: string, companyId?: number): Promise<BetaFeedback | undefined> {
     const updates: Partial<BetaFeedback> = { status };
     if (adminNote !== undefined) updates.adminNote = adminNote;
-    const [updated] = await db.update(betaFeedback).set(updates).where(eq(betaFeedback.id, id)).returning();
+    const whereClause = companyId
+      ? and(eq(betaFeedback.id, id), eq(betaFeedback.companyId, companyId))
+      : eq(betaFeedback.id, id);
+    const [updated] = await db.update(betaFeedback).set(updates).where(whereClause).returning();
     return updated || undefined;
   }
 }

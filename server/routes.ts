@@ -322,6 +322,13 @@ export async function registerRoutes(
     }
   });
 
+  // Public config endpoint — exposes safe server-side feature flags to the frontend
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      betaMode: process.env.BETA_MODE === "true",
+    });
+  });
+
   // Beta Feedback: Authenticated endpoints (company-scoped)
   app.post("/api/beta-feedback", async (req, res) => {
     try {
@@ -340,18 +347,18 @@ export async function registerRoutes(
       }
       const data = validation.data;
       const message = sanitizeInput(data.message);
-      const user = req.user as any;
-      const company = await storage.getCompanyById(user.companyId);
-      console.log(`[BETA-FEEDBACK] ${data.type}${data.rating ? ` (${data.rating}★)` : ''}: ${message.substring(0, 100)} (${user.name} @ ${company?.name})`);
+      const { userId, companyId, name: userName, email: userEmail } = req.user;
+      const company = await storage.getCompanyById(companyId);
+      console.log(`[BETA-FEEDBACK] ${data.type}${data.rating ? ` (${data.rating}★)` : ''}: ${message.substring(0, 100)} (${userName} @ ${company?.name})`);
       const saved = await storage.createFeedback({
         type: data.type,
         message,
         rating: data.rating,
         page: data.page,
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name,
-        companyId: user.companyId,
+        userId,
+        userEmail,
+        userName,
+        companyId,
         companyName: company?.name,
         userAgent: req.headers['user-agent'],
         status: 'new',
@@ -363,12 +370,12 @@ export async function registerRoutes(
           const { sendEmail } = await import('./emailService');
           await sendEmail({
             to: BETA_FEEDBACK_EMAIL,
-            subject: `[Beta Feedback] ${data.type.toUpperCase()} from ${user.name} @ ${company?.name || 'Unknown'}`,
+            subject: `[Beta Feedback] ${data.type.toUpperCase()} from ${userName} @ ${company?.name || 'Unknown'}`,
             html: `
               <h2>New Beta Feedback Submission</h2>
               <p><strong>Type:</strong> ${data.type}</p>
               ${data.rating ? `<p><strong>Rating:</strong> ${'★'.repeat(data.rating)}${'☆'.repeat(5 - data.rating)} (${data.rating}/5)</p>` : ''}
-              <p><strong>From:</strong> ${user.name} (${user.email})</p>
+              <p><strong>From:</strong> ${userName} (${userEmail})</p>
               <p><strong>Company:</strong> ${company?.name || 'Unknown'}</p>
               <p><strong>Page:</strong> ${data.page || 'Not specified'}</p>
               <hr />
@@ -377,7 +384,7 @@ export async function registerRoutes(
               <hr />
               <p style="color: #6b7280; font-size: 12px;">Review at: ${req.protocol}://${req.get('host')}/admin/feedback | Feedback ID: ${saved.id}</p>
             `,
-            text: `Beta Feedback (${data.type}) from ${user.name} @ ${company?.name}\n\n${message}`,
+            text: `Beta Feedback (${data.type}) from ${userName} @ ${company?.name}\n\n${message}`,
           });
         } catch (emailErr) {
           console.error('[BETA-FEEDBACK] Email notification failed (non-fatal):', emailErr);
@@ -396,18 +403,17 @@ export async function registerRoutes(
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const user = req.user as any;
-      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(user.role)) {
+      const { role, companyId } = req.user;
+      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(role)) {
         return res.status(403).json({ error: "Manager access required" });
       }
       const { limit = '50', offset = '0', type, status } = req.query;
-      // Scope to company for non-platform-admin managers
       const result = await storage.getAllFeedback({
         limit: Number(limit),
         offset: Number(offset),
         type: type as string | undefined,
         status: status as string | undefined,
-        companyId: user.companyId,
+        companyId,
       });
       res.json(result);
     } catch (error) {
@@ -416,14 +422,14 @@ export async function registerRoutes(
     }
   });
 
-  // Beta Feedback: Update status (manager ADMIN)
+  // Beta Feedback: Update status (manager ADMIN, company-scoped)
   app.patch("/api/beta-feedback/:id", async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const user = req.user as any;
-      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(user.role)) {
+      const { role, companyId } = req.user;
+      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(role)) {
         return res.status(403).json({ error: "Manager access required" });
       }
       const updateSchema = z.object({ status: z.string(), adminNote: z.string().optional() });
@@ -434,9 +440,10 @@ export async function registerRoutes(
       const updated = await storage.updateFeedbackStatus(
         Number(req.params.id),
         validation.data.status,
-        validation.data.adminNote
+        validation.data.adminNote,
+        companyId
       );
-      if (!updated) return res.status(404).json({ error: "Feedback not found" });
+      if (!updated) return res.status(404).json({ error: "Feedback not found or access denied" });
       res.json(updated);
     } catch (error) {
       console.error("Failed to update feedback:", error);

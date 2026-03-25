@@ -44,8 +44,7 @@ import { session } from "@/lib/session";
 import { TitanIntelligenceSidebar } from "@/components/TitanIntelligenceSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { FeedbackButton } from "@/components/FeedbackButton";
-
-const BETA_MODE = import.meta.env.VITE_BETA_MODE === "true" || import.meta.env.DEV;
+import { useConfig } from "@/hooks/use-config";
 
 const navItems = [
   { path: "/manager", icon: LayoutDashboard, label: "Dashboard", permissionKey: "dashboard" },
@@ -89,6 +88,7 @@ interface SearchResults {
 export function ManagerLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const config = useConfig();
   const user = session.getUser();
   const company = session.getCompany();
   const companySettings = (company?.settings || {}) as Record<string, any>;
@@ -268,7 +268,7 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          {BETA_MODE && user?.role === 'ADMIN' && (
+          {config.betaMode && user?.role === 'ADMIN' && (
             <Link
               href="/manager/beta-feedback"
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
@@ -421,7 +421,7 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
       <TitanIntelligenceSidebar />
 
       {/* Beta feedback floating button - bottom right, manager portal */}
-      {BETA_MODE && <FeedbackButton variant="floating" />}
+      {config.betaMode && <FeedbackButton variant="floating" />}
       </div>
     </div>
   );
