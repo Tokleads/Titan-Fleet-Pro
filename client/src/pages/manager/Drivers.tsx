@@ -996,13 +996,27 @@ export default function Drivers() {
         {isLoading ? (
           <div className="text-center py-12 text-slate-400">Loading drivers...</div>
         ) : sortedDrivers.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200/60">
+          <div className="text-center py-16 bg-white rounded-xl border border-slate-200/60">
             <UserPlus className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-            <p className="text-slate-500 mb-4">No drivers found</p>
-            <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-first-driver">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Your First Driver
-            </Button>
+            {searchQuery ? (
+              <>
+                <p className="text-slate-700 font-semibold">No drivers match your search</p>
+                <p className="text-sm text-slate-400 mt-1">Try a different name or email address</p>
+              </>
+            ) : (
+              <>
+                <p className="text-slate-900 font-semibold text-lg mb-1">Add your first driver</p>
+                <p className="text-sm text-slate-500 mb-5 max-w-xs mx-auto">
+                  Add drivers manually or share a self-registration invite link — drivers create their own account and receive a PIN.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-first-driver">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Driver Manually
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

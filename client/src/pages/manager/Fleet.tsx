@@ -107,22 +107,36 @@ export default function ManagerFleet() {
     };
   }, [openMenuId]);
 
-  // MOT lookup function
+  // DVSA auto-populate: fetches make, model and MOT expiry from the DVSA API.
+  // The API returns `expiryDate` (not `motDue`), and also carries make/model.
   const lookupMot = async () => {
-    if (!addFormData.vrm || addFormData.vrm.length < 5) return;
+    const vrm = addFormData.vrm.replace(/\s/g, '');
+    if (!vrm || vrm.length < 5) return;
     setIsLookingUpMot(true);
     setMotLookupResult(null);
     try {
-      const res = await fetch(`/api/dvsa/mot/${addFormData.vrm.replace(/\s/g, '')}`, { headers: authHeaders() });
+      const res = await fetch(`/api/dvsa/mot/${vrm}`, { headers: authHeaders() });
       const data = await res.json();
-      if (res.ok && data.motDue) {
-        setMotLookupResult({ motDue: data.motDue, status: data.status });
-        setAddFormData(d => ({ ...d, motDue: data.motDue }));
+      if (res.ok) {
+        // API returns expiryDate (not motDue) and also make/model
+        const autoMake = data.make || '';
+        const autoModel = data.model || '';
+        const autoMotDue = data.expiryDate || '';
+        setAddFormData(d => ({
+          ...d,
+          motDue: autoMotDue || d.motDue,
+          make: d.make || autoMake,
+          model: d.model || autoModel,
+        }));
+        setMotLookupResult({
+          motDue: autoMotDue,
+          status: data.valid ? 'Valid' : autoMotDue ? 'Expired' : 'No MOT found',
+        });
       } else {
         setMotLookupResult({ error: data.error || 'Vehicle not found in DVSA database' });
       }
     } catch (err) {
-      setMotLookupResult({ error: 'Failed to lookup MOT status' });
+      setMotLookupResult({ error: 'DVSA lookup failed — enter details manually' });
     } finally {
       setIsLookingUpMot(false);
     }
@@ -358,17 +372,43 @@ export default function ManagerFleet() {
               <h3 className="text-lg font-semibold text-slate-900">Add New Vehicle</h3>
               <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600">×</button>
             </div>
+            {/* DVSA hint */}
+            <p className="text-xs text-slate-500">
+              Enter the VRM then click <strong>Look up</strong> to auto-fill details from the DVSA database.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Registration (VRM) *</label>
-                <input
-                  type="text"
-                  value={addFormData.vrm}
-                  onChange={(e) => setAddFormData(d => ({ ...d, vrm: e.target.value.toUpperCase() }))}
-                  placeholder="e.g. AB12 CDE"
-                  className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  data-testid="input-add-vrm"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={addFormData.vrm}
+                    onChange={(e) => {
+                      setAddFormData(d => ({ ...d, vrm: e.target.value.toUpperCase() }));
+                      setMotLookupResult(null);
+                    }}
+                    placeholder="e.g. AB12 CDE"
+                    className="flex-1 h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    data-testid="input-add-vrm"
+                  />
+                  <button
+                    type="button"
+                    onClick={lookupMot}
+                    disabled={isLookingUpMot || addFormData.vrm.replace(/\s/g,'').length < 5}
+                    className="h-11 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-colors"
+                    data-testid="button-dvsa-lookup"
+                    title="Look up vehicle in DVSA database"
+                  >
+                    {isLookingUpMot ? '...' : 'Look up'}
+                  </button>
+                </div>
+                {motLookupResult && (
+                  <p className={`mt-1 text-xs ${motLookupResult.error ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {motLookupResult.error
+                      ? motLookupResult.error
+                      : `MOT: ${motLookupResult.status}${motLookupResult.motDue ? ` (${new Date(motLookupResult.motDue).toLocaleDateString('en-GB')})` : ''} — details auto-filled`}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Make *</label>
@@ -417,7 +457,7 @@ export default function ManagerFleet() {
               </div>
             </div>
             {addError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{addError}</div>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" data-testid="text-add-vehicle-error">{addError}</div>
             )}
             <div className="flex gap-3">
               <button

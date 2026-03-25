@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
-import { Truck, User, Mail, Phone, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Truck, User, Mail, Phone, CheckCircle2, AlertTriangle, Loader2, Copy, Check } from "lucide-react";
 
 export default function DriverSignup() {
   const [, params] = useRoute("/join/:token");
@@ -14,6 +14,7 @@ export default function DriverSignup() {
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ pin: string; companyCode: string } | null>(null);
+  const [pinCopied, setPinCopied] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -34,6 +35,7 @@ export default function DriverSignup() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+    setError("");
     setSubmitting(true);
     try {
       const res = await fetch(`/api/drivers/invite/${token}/register`, {
@@ -52,6 +54,14 @@ export default function DriverSignup() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function copyPin() {
+    if (!result) return;
+    navigator.clipboard.writeText(result.pin).then(() => {
+      setPinCopied(true);
+      setTimeout(() => setPinCopied(false), 2500);
+    });
   }
 
   if (loading) {
@@ -79,21 +89,41 @@ export default function DriverSignup() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center" data-testid="signup-success">
           <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome Aboard!</h1>
-          <p className="text-slate-600 mb-6">You've been registered as a driver. Save these details:</p>
-          <div className="bg-slate-50 rounded-xl p-6 space-y-4 mb-6">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Company Code</p>
-              <p className="text-2xl font-bold text-slate-900 font-mono" data-testid="text-company-code">{result.companyCode}</p>
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">Welcome Aboard!</h1>
+          <p className="text-slate-600 mb-5">You're registered. Save your details below — you'll need them to log in.</p>
+
+          <div className="bg-slate-50 rounded-xl p-5 space-y-4 mb-4 text-left">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Company Code</p>
+                <p className="text-xl font-bold text-slate-900 font-mono" data-testid="text-company-code">{result.companyCode}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wide">Your PIN</p>
-              <p className="text-4xl font-bold text-blue-600 font-mono tracking-widest" data-testid="text-driver-pin">{result.pin}</p>
+            <div className="border-t border-slate-200 pt-4">
+              <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Your PIN</p>
+              <div className="flex items-center justify-between">
+                <p className="text-5xl font-bold text-blue-600 font-mono tracking-[0.25em]" data-testid="text-driver-pin">{result.pin}</p>
+                <button
+                  onClick={copyPin}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium transition-colors"
+                  data-testid="button-copy-pin"
+                >
+                  {pinCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {pinCopied ? 'Copied!' : 'Copy PIN'}
+                </button>
+              </div>
             </div>
           </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5 text-left">
+            <p className="text-xs font-semibold text-amber-800">
+              Screenshot or note your PIN now — it cannot be recovered once you leave this page.
+            </p>
+          </div>
+
           <a
             href={`/app?code=${encodeURIComponent(result.companyCode)}`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
             data-testid="link-go-to-app"
           >
             <Truck className="h-5 w-5" />
