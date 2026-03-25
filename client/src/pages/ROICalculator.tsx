@@ -141,10 +141,13 @@ export default function ROICalculator() {
     const adminHoursSavedWeekly = weeklyAdminHours * 0.6;
     const adminSavingAnnual = adminHoursSavedWeekly * 52 * adminHourlyRate;
 
+    // Compliance fine risk: DVSA prohibition avg £300 × estimated defect rate reduction
+    // Without a proactive system: ~1.2 prohibitions per 10 vehicles per year
+    // TitanFleet defect detection reduces prohibition risk by ~70%
     const prohibitionsPerYearWithout = (fleetSize / 10) * 1.2;
-    const prohibitionsAverted = prohibitionsPerYearWithout * 0.75;
-    const avgProhibitionCost = 850;
-    const complianceSavingAnnual = prohibitionsAverted * avgProhibitionCost;
+    const prohibitionsAverted = prohibitionsPerYearWithout * 0.7;
+    const avgProhibitionFine = 300;
+    const complianceSavingAnnual = prohibitionsAverted * avgProhibitionFine;
 
     const dailyVehicleRevenue = 450;
     const vorDaysAvoidedPerVehicle = 0.45;
@@ -257,7 +260,7 @@ export default function ROICalculator() {
                   label="Fleet size"
                   value={fleetSize}
                   min={2}
-                  max={200}
+                  max={500}
                   step={1}
                   onChange={setFleetSize}
                   format={(v) => `${v} vehicle${v === 1 ? "" : "s"}`}
@@ -317,15 +320,15 @@ export default function ROICalculator() {
                 />
                 <ResultCard
                   icon={<Shield className="w-4 h-4" />}
-                  label="Compliance risk avoided"
+                  label="Compliance fine risk reduction"
                   value={formatCurrencyFull(results.complianceSavingAnnual)}
-                  sub={`≈ ${results.prohibitionsAverted} fewer DVSA prohibitions/year · avg £850 each`}
+                  sub={`≈ ${results.prohibitionsAverted} fewer DVSA prohibitions/yr · avg £300 fine`}
                 />
                 <ResultCard
                   icon={<AlertTriangle className="w-4 h-4" />}
-                  label="VOR days avoided"
+                  label="Defect-to-VOR cost avoidance"
                   value={`${results.vorDaysAvoided} days`}
-                  sub={`Worth ${formatCurrencyFull(results.vorSavingAnnual)}/year in lost vehicle revenue`}
+                  sub={`Worth ${formatCurrencyFull(results.vorSavingAnnual)}/year in avoided VOR downtime`}
                 />
                 <ResultCard
                   icon={<Fuel className="w-4 h-4" />}
@@ -397,7 +400,7 @@ export default function ROICalculator() {
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <p className="font-semibold text-slate-700 mb-1">DVSA compliance</p>
-              <p>Avg DVSA prohibition costs £300–£1,400 per vehicle. DVSA publishes ~120k roadside prohibitions/year for UK HGVs. AI triage and automated checks reduce risk by ~75%.</p>
+              <p>DVSA avg prohibition fine: £300. Fleets without proactive defect management average ~1.2 prohibitions per 10 vehicles/year. AI triage and walkaround enforcement reduce defect rate by ~70%, cutting fine exposure accordingly.</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <p className="font-semibold text-slate-700 mb-1">VOR days</p>
