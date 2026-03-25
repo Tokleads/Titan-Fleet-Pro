@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -87,7 +87,7 @@ function ResultCard({
   sub,
   highlight,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
   sub: string;
