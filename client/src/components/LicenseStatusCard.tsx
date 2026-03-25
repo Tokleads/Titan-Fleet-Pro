@@ -226,41 +226,35 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
           {getStatusBadge(license.licenseStatus)}
         </div>
 
-        {/* License Details */}
+        {/* License Details — manual record */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">License Number</p>
-            <p className="font-mono font-medium">{license.licenseNumber}</p>
+            <p className="font-mono font-medium">{license.licenseNumber || "Not recorded"}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Type</p>
-            <p className="font-medium">{license.licenseType}</p>
+            <p className="font-medium">{license.licenseType || "Not recorded"}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Expiry Date</p>
             <p className="font-medium">{formatDate(license.expiryDate)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Penalty Points</p>
-            <p className={`font-medium ${license.totalPenaltyPoints >= 9 ? 'text-red-500' : ''}`}>
-              {license.totalPenaltyPoints || 0}
+            <p className="text-muted-foreground">Penalty Points / Endorsements</p>
+            <p className="text-xs text-muted-foreground italic">
+              Check via{" "}
+              <a
+                href="https://www.gov.uk/check-driving-information"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-blue-600"
+              >
+                DVLA
+              </a>
             </p>
           </div>
         </div>
-
-        {/* Driving Categories */}
-        {license.entitlements && license.entitlements.length > 0 && (
-          <div>
-            <p className="text-sm text-muted-foreground mb-2">Driving Categories</p>
-            <div className="flex flex-wrap gap-2">
-              {license.entitlements.map((ent: any, idx: number) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {ent.categoryCode}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Alerts */}
         {alerts.length > 0 && (

@@ -663,18 +663,21 @@ export default function PayRates() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-slate-500" /> Unpaid Break Deduction (mins)
+                      <Clock className="h-4 w-4 text-slate-500" /> Unpaid Break Deduction
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="5"
+                    <select
                       value={defaultRate.unpaidBreakMinutes ?? 0}
                       onChange={e => setDefaultRate({ ...defaultRate, unpaidBreakMinutes: Number(e.target.value) })}
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      data-testid="input-default-break-mins"
-                    />
-                    <p className="text-xs text-slate-400">Deducted from each shift before overtime calculation. Set 0 to disable.</p>
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      data-testid="select-default-break-mins"
+                    >
+                      <option value={0}>0 min — no deduction</option>
+                      <option value={15}>15 min</option>
+                      <option value={30}>30 min (standard)</option>
+                      <option value={45}>45 min</option>
+                      <option value={60}>60 min (1 hour)</option>
+                    </select>
+                    <p className="text-xs text-slate-400">Deducted from each shift before overtime calculation. Must match your employment contracts.</p>
                   </div>
                 </div>
               </div>

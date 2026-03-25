@@ -1,20 +1,7 @@
-import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, AlertTriangle, Shield, Crown, Lock } from "lucide-react";
-import { session } from "@/lib/session";
-
-function authHeaders(): Record<string, string> {
-  const token = session.getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// Premium feature flag - DVLA API costs £0.60 per lookup
-const DVLA_LICENSE_VERIFICATION_ENABLED = false;
+import { AlertTriangle, Shield, Crown, Lock } from "lucide-react";
 
 interface LicenseVerificationDialogProps {
   open: boolean;
@@ -28,323 +15,82 @@ interface LicenseVerificationDialogProps {
 export function LicenseVerificationDialog({
   open,
   onOpenChange,
-  driverId,
   driverName,
-  companyId,
-  managerId
 }: LicenseVerificationDialogProps) {
-  const [licenseNumber, setLicenseNumber] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Show premium feature message if not enabled
-  if (!DVLA_LICENSE_VERIFICATION_ENABLED) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              <DialogTitle>DVLA License Verification</DialogTitle>
-            </div>
-            <DialogDescription>
-              Verify driver licenses against the official DVLA database
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col items-center py-8 text-center">
-            <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-              <Crown className="h-8 w-8 text-amber-600" />
-            </div>
-            <Badge variant="secondary" className="mb-3 bg-amber-100 text-amber-700">
-              Premium Feature
-            </Badge>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Coming Soon
-            </h3>
-            <p className="text-sm text-slate-600 max-w-xs">
-              Real-time DVLA license verification will be available in premium plans. 
-              This feature verifies driver licenses, penalty points, and entitlements 
-              directly with the government database.
-            </p>
-            <div className="mt-6 p-4 bg-slate-50 rounded-lg w-full">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Lock className="h-4 w-4" />
-                <span>Requires Premium or Enterprise plan</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  const handleVerify = async () => {
-    if (!licenseNumber || licenseNumber.length !== 16) {
-      setError("Please enter a valid 16-character UK driving license number");
-      return;
-    }
-
-    setIsVerifying(true);
-    setError(null);
-    setVerificationResult(null);
-
-    try {
-      const response = await fetch(`/api/manager/drivers/${driverId}/verify-license`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          licenseNumber: licenseNumber.toUpperCase(),
-          companyId,
-          initiatedBy: managerId
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Verification failed");
-      }
-
-      setVerificationResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to verify license");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleClose = () => {
-    setLicenseNumber("");
-    setVerificationResult(null);
-    setError(null);
-    onOpenChange(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-500" />
-            Verify Driver License
-          </DialogTitle>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            <DialogTitle>License Verification — {driverName}</DialogTitle>
+          </div>
           <DialogDescription>
-            Verify {driverName}'s UK driving license with DVLA
+            Manual verification required. Live DVLA lookup not yet active.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* License Number Input */}
-          <div className="space-y-2">
-            <Label htmlFor="licenseNumber">UK Driving License Number</Label>
-            <Input
-              id="licenseNumber"
-              placeholder="e.g., TCAEU610267NO9EK"
-              value={licenseNumber}
-              onChange={(e) => setLicenseNumber(e.target.value.toUpperCase())}
-              maxLength={16}
-              disabled={isVerifying}
-              className="font-mono"
-            />
-            <p className="text-sm text-muted-foreground">
-              Enter the 16-character license number (format: 5 letters + 6 digits + 2 letters + 2 digits + 1 letter)
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm text-amber-900">
+              <strong>Live DVLA lookup is not yet active.</strong> You must verify this
+              driver&apos;s licence manually using the official DVLA service.
+            </AlertDescription>
+          </Alert>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-600" />
+              How to verify manually
+            </p>
+            <ol className="text-sm text-slate-700 space-y-2 list-decimal list-inside">
+              <li>
+                Ask the driver to share their licence check code via{" "}
+                <a
+                  href="https://www.gov.uk/view-driving-licence"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline font-medium"
+                >
+                  gov.uk/view-driving-licence
+                </a>
+              </li>
+              <li>
+                Use the code at{" "}
+                <a
+                  href="https://www.gov.uk/check-driving-information"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline font-medium"
+                >
+                  gov.uk/check-driving-information
+                </a>
+              </li>
+              <li>
+                Record the outcome in the driver&apos;s file and update their record in the
+                driver profile
+              </li>
+            </ol>
+          </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-2">
+            <p className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Live verification coming soon
+            </p>
+            <p className="text-xs text-blue-700">
+              Automated DVLA lookup with penalty points, endorsements, and entitlement data
+              will be available in a future release. Licence records can be recorded manually
+              in the driver profile in the meantime.
             </p>
           </div>
+        </div>
 
-          {/* Error Message */}
-          {error && (
-            <Alert variant="destructive">
-              <XCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Verification Result */}
-          {verificationResult && (
-            <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
-              {verificationResult.success ? (
-                <>
-                  {/* Success Header */}
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <h3 className="font-semibold">License Verified Successfully</h3>
-                  </div>
-
-                  {/* Driver Information */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Full Name</Label>
-                      <p className="font-medium">
-                        {verificationResult.dvlaData?.driver.firstNames} {verificationResult.dvlaData?.driver.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                      <p className="font-medium">
-                        {formatDate(verificationResult.dvlaData?.driver.dateOfBirth)}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">License Type</Label>
-                      <p className="font-medium">{verificationResult.dvlaData?.licence.type}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">License Status</Label>
-                      <Badge
-                        variant={
-                          verificationResult.dvlaData?.licence.status === 'Valid'
-                            ? 'default'
-                            : 'destructive'
-                        }
-                      >
-                        {verificationResult.dvlaData?.licence.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Valid From</Label>
-                      <p className="font-medium">
-                        {formatDate(verificationResult.dvlaData?.licence.validFrom)}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Expires</Label>
-                      <p className="font-medium">
-                        {formatDate(verificationResult.dvlaData?.licence.validTo)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Entitlements */}
-                  {verificationResult.dvlaData?.entitlements && verificationResult.dvlaData.entitlements.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Driving Categories</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {verificationResult.dvlaData.entitlements.map((ent: any, idx: number) => (
-                          <Badge key={idx} variant="outline">
-                            {ent.categoryCode}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Endorsements */}
-                  {verificationResult.dvlaData?.endorsements && verificationResult.dvlaData.endorsements.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Endorsements</Label>
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="space-y-2">
-                            {verificationResult.dvlaData.endorsements.map((end: any, idx: number) => (
-                              <div key={idx} className="text-sm">
-                                <strong>{end.offenceCode}</strong> - {end.offenceLiteral}
-                                <br />
-                                <span className="text-xs">
-                                  {end.penaltyPoints} points | {formatDate(end.offenceDate)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  )}
-
-                  {/* Disqualifications */}
-                  {verificationResult.dvlaData?.disqualifications && verificationResult.dvlaData.disqualifications.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Disqualifications</Label>
-                      <Alert variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="space-y-2">
-                            {verificationResult.dvlaData.disqualifications.map((dis: any, idx: number) => (
-                              <div key={idx} className="text-sm">
-                                <strong>Disqualified</strong> - {dis.reason}
-                                <br />
-                                <span className="text-xs">
-                                  From {formatDate(dis.disqualificationDate)} to {formatDate(dis.disqualificationEndDate)} ({dis.disqualificationPeriod} months)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  )}
-
-                  {/* CPC */}
-                  {verificationResult.dvlaData?.cpc && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">CPC Number</Label>
-                        <p className="font-medium">{verificationResult.dvlaData.cpc.certificateNumber}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">CPC Expiry</Label>
-                        <p className="font-medium">{formatDate(verificationResult.dvlaData.cpc.expiryDate)}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tachograph */}
-                  {verificationResult.dvlaData?.tachograph && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Tachograph Card</Label>
-                        <p className="font-medium">{verificationResult.dvlaData.tachograph.cardNumber}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Tachograph Expiry</Label>
-                        <p className="font-medium">{formatDate(verificationResult.dvlaData.tachograph.expiryDate)}</p>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  {/* Failure Header */}
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-5 w-5 text-red-500" />
-                    <h3 className="font-semibold">Verification Failed</h3>
-                  </div>
-                  <Alert variant="destructive">
-                    <AlertDescription>{verificationResult.error}</AlertDescription>
-                  </Alert>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose} disabled={isVerifying}>
-              Close
-            </Button>
-            {!verificationResult && (
-              <Button onClick={handleVerify} disabled={isVerifying || !licenseNumber}>
-                {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify License
-              </Button>
-            )}
-          </div>
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

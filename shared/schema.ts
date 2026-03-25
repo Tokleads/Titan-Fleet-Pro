@@ -289,6 +289,7 @@ export const defects = pgTable("defects", {
   aiCategory: varchar("ai_category", { length: 50 }), // AI-suggested category
   aiConfidence: integer("ai_confidence"), // 0-100 confidence score
   aiAnalysis: text("ai_analysis"), // AI analysis text explanation
+  aiNote: text("ai_note"), // System-set guardrail notes (e.g. low-confidence CRITICAL suppression)
   aiTriaged: boolean("ai_triaged").default(false), // Whether AI has analyzed this defect
   aiTriagedAt: timestamp("ai_triaged_at"), // When AI analysis was performed
 

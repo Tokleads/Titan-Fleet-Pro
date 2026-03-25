@@ -208,24 +208,23 @@ export async function triageDefect(defectId: number, baseUrl?: string): Promise<
       result = await triageDefectTextOnly(defect.description, complianceContext || undefined);
     }
 
-    // Safety guardrail: CRITICAL severity with low confidence must be downgraded
-    // to HIGH for human review rather than triggering automated prohibition actions
-    let finalSeverity = result.severity;
-    let finalAnalysis = result.analysis;
+    // Safety guardrail: CRITICAL with low confidence → set status=MONITOR + aiNote, preserve aiSeverity
+    // This prevents automated prohibition actions firing on uncertain AI assessments
+    const guardrailTriggered =
+      result.severity === "CRITICAL" && result.confidence < CRITICAL_CONFIDENCE_THRESHOLD;
 
-    if (result.severity === "CRITICAL" && result.confidence < CRITICAL_CONFIDENCE_THRESHOLD) {
-      finalSeverity = "HIGH";
-      finalAnalysis = `[AI GUARDRAIL — REQUIRES MANUAL REVIEW] Confidence ${result.confidence}% is below the ${CRITICAL_CONFIDENCE_THRESHOLD}% threshold required for CRITICAL classification. Original AI assessment: ${result.analysis}`;
-      console.warn(`[AI Triage] Guardrail triggered for defect ${defectId}: CRITICAL downgraded to HIGH (confidence ${result.confidence}%)`);
-
+    if (guardrailTriggered) {
+      console.warn(
+        `[AI Triage] Guardrail triggered for defect ${defectId}: CRITICAL at ${result.confidence}% confidence — set status=MONITOR, aiNote written`
+      );
       try {
         await logAgentAction({
           companyId: defect.companyId,
           actionType: "defect_escalated",
           severity: "warning",
-          title: "AI Guardrail: Low-Confidence CRITICAL Suppressed",
-          description: `Defect ID ${defectId} was assessed as CRITICAL with only ${result.confidence}% confidence. Severity downgraded to HIGH pending manual inspection. Description: "${defect.description}".`,
-          actionTaken: "Severity downgraded CRITICAL → HIGH. Manual review flagged.",
+          title: "AI Guardrail: Low-Confidence CRITICAL — Manual Review Required",
+          description: `Defect ID ${defectId} assessed CRITICAL at ${result.confidence}% confidence (threshold: ${CRITICAL_CONFIDENCE_THRESHOLD}%). Status set to MONITOR. Manual inspection required before any prohibition action. Description: "${defect.description}".`,
+          actionTaken: "status=MONITOR set. aiNote written. No automated VOR/prohibition triggered.",
           referenceId: defectId,
         });
       } catch (logErr) {
@@ -234,10 +233,14 @@ export async function triageDefect(defectId: number, baseUrl?: string): Promise<
     }
 
     await db.update(defects).set({
-      aiSeverity: finalSeverity,
+      aiSeverity: result.severity,
       aiCategory: result.category,
       aiConfidence: result.confidence,
-      aiAnalysis: finalAnalysis,
+      aiAnalysis: result.analysis,
+      aiNote: guardrailTriggered
+        ? `AI GUARDRAIL ACTIVE: Confidence ${result.confidence}% is below the ${CRITICAL_CONFIDENCE_THRESHOLD}% threshold required for automated CRITICAL action. Status set to MONITOR — a qualified inspector must physically verify this defect before any prohibition or VOR action is taken.`
+        : null,
+      ...(guardrailTriggered ? { status: "MONITOR" } : {}),
       aiTriaged: true,
       aiTriagedAt: new Date()
     }).where(eq(defects.id, defectId));
