@@ -1,0 +1,87 @@
+🚀 You Are Now Ready for Founders Club Beta
+Phase
+Status
+Technical Debt
+✅ Cleared
+Legal Liability
+✅ Mitigated
+Core Features
+✅ Working
+AI Features
+✅ Guardrailed
+Beta Launch
+🟢 GO
+📋 Pre-Launch Checklist (Final 5 Items)
+Before you invite customer #1, confirm these are done:
+#
+Task
+Owner
+Status
+1
+Terms of Service — Add liability clauses for payroll, GPS, DVLA
+Legal/You
+⏳
+2
+Privacy Policy — GDPR-compliant, data retention stated
+Legal/You
+⏳
+3
+Onboarding Flow — Test full signup → vehicle add → driver invite → first inspection
+You
+⏳
+4
+Support Channel — Set up dedicated email/Slack for beta customers
+You
+⏳
+5
+Feedback Loop — Create simple form for beta users to report bugs/request features
+You
+⏳
+🎯 Recommended Next Steps
+1. Draft Terms of Service Liability Clauses
+Add these three specific clauses to your T&Cs:
+1234567891011
+2. Founders Club Beta Invitation Email
+Here's a draft you can adapt:
+123456789101112131415161718192021222324
+3. ROI Calculator for Sales Conversations
+Build a simple page on your site:
+123456789101112
+4. Beta Onboarding Workflow
+Day
+Action
+Day 0
+Signup + company setup
+Day 1
+Import vehicles (CSV or manual)
+Day 2
+Invite drivers (SMS/email link)
+Day 3
+Driver training (5-min video + PDF guide)
+Day 4
+First live inspections
+Day 7
+Check-in call: "What's broken? What's missing?"
+Day 30
+Feedback call + case study discussion
+5. Support & Feedback System
+Email: beta@titanfleet.co.uk (or equivalent)
+Response SLA: 4 hours during business days (beta promise)
+Feedback Form: Simple Typeform/Google Form → tagged in your project tracker
+Bug Tracking: Public changelog or private Slack channel for beta users
+💰 Pricing Confirmation
+Tier
+Beta Price (Locked)
+Public Price (Month 4+)
+Core
+£15/vehicle/month
+£19/vehicle/month
+Pro
+£22/vehicle/month
+£29/vehicle/month
+Minimum
+£99/month (to avoid tiny accounts)
+£99/month
+Why the minimum? A 3-vehicle fleet at £19 = £57/month. That account will cost more in support than it generates in revenue. The £99 minimum protects your unit economics.
+🎬 Final Question Before Launch
+How many beta customers do you want to onboard in Month 1?
