@@ -2,44 +2,88 @@ import { getUncachableStripeClient } from './stripeClient';
 
 async function seedProducts() {
   const stripe = await getUncachableStripeClient();
-  
-  const tiers = [
-    { name: 'Starter', description: 'Up to 10 vehicles — All features included', amount: 5900, vehicles: '10' },
-    { name: 'Growth', description: 'Up to 25 vehicles — All features included', amount: 12900, vehicles: '25' },
-    { name: 'Pro', description: 'Up to 50 vehicles — All features included', amount: 24900, vehicles: '50' },
-    { name: 'Scale', description: 'Up to 100 vehicles — All features included', amount: 39900, vehicles: '100' },
+
+  // Archive old flat-fee products
+  const oldNames = ['Starter', 'Growth', 'Pro', 'Scale'];
+  for (const name of oldNames) {
+    const existing = await stripe.products.search({ query: `name:'${name}'` });
+    for (const product of existing.data) {
+      if (product.active) {
+        await stripe.products.update(product.id, { active: false });
+        console.log(`Archived old product: ${name} (${product.id})`);
+      }
+    }
+  }
+
+  // New per-vehicle plans
+  const plans = [
+    {
+      name: 'TitanFleet Core',
+      description: 'DVSA-compliant walkarounds, defect management, fuel logging, driver app — everything you need for full compliance',
+      tier: 'core',
+      monthlyPence: 1200,      // £12/vehicle/month
+      annualPencePerYear: 12000, // £10/vehicle/month equiv = £120/vehicle/year
+    },
+    {
+      name: 'TitanFleet Professional',
+      description: 'Core + live GPS tracking, driver timesheets, geofencing, Proof of Delivery, fleet analytics, white-label branding',
+      tier: 'professional',
+      monthlyPence: 1800,      // £18/vehicle/month
+      annualPencePerYear: 18000, // £15/vehicle/month equiv = £180/vehicle/year
+    },
+    {
+      name: 'TitanFleet AI Pro',
+      description: 'Professional + AI photo defect triage, autonomous compliance agent, predictive maintenance, one-click AI audit reports',
+      tier: 'ai_pro',
+      monthlyPence: 2500,      // £25/vehicle/month
+      annualPencePerYear: 25200, // £21/vehicle/month equiv = £252/vehicle/year
+    },
   ];
-  
-  for (const tier of tiers) {
-    const existing = await stripe.products.search({ query: `name:'${tier.name}'` });
+
+  for (const plan of plans) {
+    const existing = await stripe.products.search({ query: `name:'${plan.name}'` });
     if (existing.data.length > 0) {
-      console.log(`${tier.name} already exists (${existing.data[0].id}), skipping`);
+      console.log(`${plan.name} already exists (${existing.data[0].id}), skipping`);
       continue;
     }
-    
+
     const product = await stripe.products.create({
-      name: tier.name,
-      description: tier.description,
+      name: plan.name,
+      description: plan.description,
       metadata: {
-        tier: tier.name.toLowerCase(),
-        maxVehicles: tier.vehicles,
+        tier: plan.tier,
+        perVehicle: 'true',
       },
     });
-    
-    const price = await stripe.prices.create({
+
+    const monthlyPrice = await stripe.prices.create({
       product: product.id,
-      unit_amount: tier.amount,
+      unit_amount: plan.monthlyPence,
       currency: 'gbp',
       recurring: { interval: 'month' },
       metadata: {
-        tier: tier.name.toLowerCase(),
+        tier: plan.tier,
+        billing: 'monthly',
       },
     });
-    
-    console.log(`Created ${tier.name}: product=${product.id}, price=${price.id}`);
+
+    const annualPrice = await stripe.prices.create({
+      product: product.id,
+      unit_amount: plan.annualPencePerYear,
+      currency: 'gbp',
+      recurring: { interval: 'year' },
+      metadata: {
+        tier: plan.tier,
+        billing: 'annual',
+      },
+    });
+
+    console.log(`Created ${plan.name}: product=${product.id}`);
+    console.log(`  Monthly: ${monthlyPrice.id}  (£${plan.monthlyPence / 100}/vehicle/mo)`);
+    console.log(`  Annual:  ${annualPrice.id}  (£${plan.annualPencePerYear / 100}/vehicle/year)`);
   }
-  
-  console.log('Done seeding Stripe products');
+
+  console.log('\nDone seeding Stripe products');
 }
 
 seedProducts().catch(console.error);

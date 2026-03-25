@@ -106,15 +106,21 @@ export default function PricingSection({ referralCode }: { referralCode?: string
     try {
       const productsRes = await fetch('/api/stripe/products');
       const { products } = await productsRes.json();
+      // Convert plan name to tier key: "AI Pro" → "ai_pro", "Core" → "core"
+      const tierKey = planName.toLowerCase().replace(/\s+/g, '_');
       const product = products?.find((p: any) =>
-        p.name?.toLowerCase() === planName.toLowerCase() ||
-        p.metadata?.tier === planName.toLowerCase()
+        p.metadata?.tier === tierKey ||
+        p.name?.toLowerCase().includes(planName.toLowerCase())
       );
       if (!product || !product.prices?.length) {
         alert('This plan is not yet available. Please contact support@titanfleet.co.uk');
         return;
       }
-      const priceId = product.prices[0].id;
+      // Match price by billing interval: annual = year, monthly = month
+      const targetInterval = isAnnual ? 'year' : 'month';
+      const price = product.prices.find((p: any) => p.recurring?.interval === targetInterval)
+        ?? product.prices[0];
+      const priceId = price.id;
       const checkoutRes = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

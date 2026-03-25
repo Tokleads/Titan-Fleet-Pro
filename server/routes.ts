@@ -183,29 +183,35 @@ export async function registerRoutes(
 
   app.post('/api/stripe/checkout', async (req, res) => {
     try {
-      const checkoutSchema = z.object({ priceId: z.string(), companyName: z.string().optional(), companyEmail: z.string().optional(), referralCode: z.string().optional() });
+      const checkoutSchema = z.object({
+        priceId: z.string(),
+        vehicleCount: z.number().int().min(1).max(500).optional().default(1),
+        companyName: z.string().optional(),
+        companyEmail: z.string().optional(),
+        referralCode: z.string().optional(),
+      });
       const validation = checkoutSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
       const { getUncachableStripeClient } = await import('./stripeClient');
       const stripe = await getUncachableStripeClient();
-      const { priceId, companyName, companyEmail, referralCode } = validation.data;
+      const { priceId, vehicleCount, companyName, companyEmail, referralCode } = validation.data;
       
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       
       const sessionParams: any = {
         payment_method_types: ['card'],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: vehicleCount }],
         mode: 'subscription',
         success_url: `${baseUrl}/?checkout=success`,
         cancel_url: `${baseUrl}/?checkout=cancelled`,
         allow_promotion_codes: true,
         subscription_data: {
           trial_period_days: 14,
-          metadata: {},
+          metadata: { vehicleCount: String(vehicleCount) },
         },
-        metadata: {},
+        metadata: { vehicleCount: String(vehicleCount) },
         custom_text: {
           submit: {
             message: 'Cancel anytime — no lock-in contracts. Your 14-day free trial starts today.',

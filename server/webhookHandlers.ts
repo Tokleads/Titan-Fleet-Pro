@@ -50,19 +50,28 @@ export async function handlePostCheckout(payload: Buffer, signature: string): Pr
     return;
   }
   
-  let tier = 'starter';
-  let maxVehicles = 10;
+  let tier = 'core';
+  let maxVehicles = 1;
   
   if (session.subscription) {
     try {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string, {
         expand: ['items.data.price.product']
       });
-      const product = subscription.items.data[0]?.price?.product as any;
+      const item = subscription.items.data[0];
+      const product = item?.price?.product as any;
+      // Tier from product metadata
       if (product?.metadata?.tier) {
         tier = product.metadata.tier;
       }
-      if (product?.metadata?.maxVehicles) {
+      // Vehicle count from subscription item quantity (per-vehicle model)
+      if (item?.quantity && item.quantity > 0) {
+        maxVehicles = item.quantity;
+      } else if (session.metadata?.vehicleCount) {
+        // Fallback: read from session metadata
+        maxVehicles = parseInt(session.metadata.vehicleCount) || 1;
+      } else if (product?.metadata?.maxVehicles) {
+        // Legacy fallback for old flat-fee products
         maxVehicles = parseInt(product.metadata.maxVehicles) || 10;
       }
     } catch (e) {
