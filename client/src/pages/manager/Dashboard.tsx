@@ -22,7 +22,9 @@ import {
   FileWarning,
   Package,
   MapPin,
-  HelpCircle
+  HelpCircle,
+  X,
+  Rocket
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { SkeletonCard, SkeletonComplianceScore } from "@/components/titan-ui/Skeleton";
@@ -109,6 +111,16 @@ export default function ManagerDashboard() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [showMissedInspections, setShowMissedInspections] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("tourSeen_manager"));
+
+  const gettingStartedDismissKey = `gettingStarted_dismissed_${companyId}`;
+  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(
+    () => !!localStorage.getItem(`gettingStarted_dismissed_${companyId}`)
+  );
+
+  function handleDismissGettingStarted() {
+    localStorage.setItem(gettingStartedDismissKey, '1');
+    setGettingStartedDismissed(true);
+  }
 
   const managerTourSteps: TourStep[] = [
     { target: '[data-testid="header-greeting"]', title: "Welcome to Your Dashboard", description: "This is your command centre. Get a real-time overview of your fleet's status, compliance, and driver activity — all in one place.", placement: "bottom" },
@@ -304,6 +316,15 @@ export default function ManagerDashboard() {
 
   const attentionItemsCount = missedInspections.length + criticalDefects.length + highDefects.length + unreadCount + expiringVehicles.length + overdueMOTVehicles.length + driversNear14Hr.length;
 
+  const gettingStartedSteps = [
+    { id: 'setup', label: 'Account set up', done: true, link: null as string | null, hint: null as string | null },
+    { id: 'vehicle', label: 'Add your first vehicle', done: vehiclesList.length > 0, link: '/manager/fleet', hint: null as string | null },
+    { id: 'driver', label: 'Invite a driver', done: totalDrivers > 0, link: '/manager/drivers', hint: null as string | null },
+    { id: 'inspection', label: 'Complete first inspection', done: inspectionsList.length > 0, link: null as string | null, hint: 'Drivers run checks from the mobile app' },
+  ];
+  const gettingStartedAllDone = gettingStartedSteps.every(s => s.done);
+  const showGettingStarted = !gettingStartedDismissed && !gettingStartedAllDone;
+
   return (
     <ManagerLayout>
       <div className="space-y-6 titan-page-enter">
@@ -434,6 +455,70 @@ export default function ManagerDashboard() {
           </div>
         )}
 
+
+        {/* Getting Started Checklist */}
+        {showGettingStarted && (
+          <div
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-2xl p-5"
+            data-testid="widget-getting-started"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Rocket className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-blue-900">Getting Started</h2>
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    {gettingStartedSteps.filter(s => s.done).length} of {gettingStartedSteps.length} steps complete
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleDismissGettingStarted}
+                className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-400 hover:text-blue-700 transition-colors"
+                data-testid="button-dismiss-getting-started"
+                title="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {gettingStartedSteps.map((step, idx) => (
+                <div
+                  key={step.id}
+                  className={`flex items-start gap-3 p-3 rounded-xl bg-white/80 border transition-all ${step.done ? 'border-emerald-200' : 'border-blue-200 hover:border-blue-300 hover:shadow-sm'}`}
+                  data-testid={`checklist-step-${step.id}`}
+                >
+                  <div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-emerald-500' : 'bg-white border-2 border-blue-300'}`}>
+                    {step.done ? (
+                      <Check className="h-3 w-3 text-white" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-blue-500">{idx + 1}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium leading-tight ${step.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                      {step.label}
+                    </p>
+                    {!step.done && step.link && (
+                      <Link
+                        href={step.link}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold mt-1 inline-flex items-center gap-0.5"
+                        data-testid={`checklist-link-${step.id}`}
+                      >
+                        Go now <ArrowUpRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                    {!step.done && step.hint && (
+                      <p className="text-xs text-slate-400 mt-1 leading-tight">{step.hint}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Attention Required Section */}
         {attentionItemsCount > 0 && (

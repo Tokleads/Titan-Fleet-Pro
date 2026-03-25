@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Truck, Users, ClipboardCheck } from "lucide-react";
 
 export default function SetupAccount() {
   const [, setLocation] = useLocation();
@@ -118,12 +118,33 @@ export default function SetupAccount() {
               </div>
             </div>
 
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-left" data-testid="section-whats-next">
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">After you log in</p>
+              <div className="space-y-3">
+                {[
+                  { icon: Truck, label: "Add your first vehicle", hint: "Enter the VRM to auto-populate MOT data" },
+                  { icon: Users, label: "Invite a driver", hint: "Generate an invite link they can self-register with" },
+                  { icon: ClipboardCheck, label: "Run your first inspection", hint: "Drivers complete walk-around checks on mobile" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <item.icon className="h-3.5 w-3.5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">{item.label}</p>
+                      <p className="text-xs text-blue-600/80">{item.hint}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={() => setLocation("/manager/login")}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               data-testid="button-go-to-login"
             >
-              Go to Login
+              Log In and Get Started
             </button>
           </div>
         </motion.div>

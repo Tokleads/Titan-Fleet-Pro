@@ -490,9 +490,31 @@ export default function ManagerFleet() {
                 </div>
               ))
             ) : filteredVehicles.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <Truck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500">No vehicles found</p>
+              <div className="col-span-full text-center py-16">
+                <div className="h-16 w-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+                  <Truck className="h-8 w-8 text-blue-400" />
+                </div>
+                {searchQuery || oLicenceFilter !== "all" ? (
+                  <>
+                    <p className="text-slate-700 font-semibold">No vehicles match your search</p>
+                    <p className="text-sm text-slate-400 mt-1">Try a different registration or clear your filters</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-slate-900 font-semibold text-lg">Add your first vehicle</p>
+                    <p className="text-sm text-slate-500 mt-1 mb-5 max-w-xs mx-auto">
+                      Get started by adding a vehicle to your fleet. Drivers can then complete walk-around inspections.
+                    </p>
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+                      data-testid="button-add-first-vehicle"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Vehicle
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               filteredVehicles.map((vehicle: any) => (
