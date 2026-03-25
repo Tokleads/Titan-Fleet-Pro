@@ -543,7 +543,7 @@ export default function TitanFleetLandingPage() {
                   >
                     <span className="flex flex-col">
                       <span>Start 14-Day Free Trial &rarr;</span>
-                      <span className="text-xs font-normal opacity-90">Founding Rate: £29.50/mo</span>
+                      <span className="text-xs font-normal opacity-90">Founders deal — from £12/vehicle</span>
                     </span>
                   </button>
                   <p className="text-xs text-amber-500 font-semibold mt-2 text-center">🔥 7/10 spots remaining</p>

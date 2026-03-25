@@ -93,11 +93,11 @@ const plans: Plan[] = [
   },
 ];
 
-const MIN_VEHICLES = 5;
+const MIN_VEHICLES = 1;
 const MAX_VEHICLES = 150;
 
 export default function PricingSection({ referralCode }: { referralCode?: string } = {}) {
-  const [vehicleCount, setVehicleCount] = useState<number>(10);
+  const [vehicleCount, setVehicleCount] = useState<number>(1);
   const [isAnnual, setIsAnnual] = useState<boolean>(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -236,7 +236,7 @@ export default function PricingSection({ referralCode }: { referralCode?: string
               />
             </div>
             <div className="flex justify-between text-xs text-slate-500">
-              <span>{MIN_VEHICLES} vehicles (minimum)</span>
+              <span>1 vehicle</span>
               <span>{MAX_VEHICLES} vehicles</span>
             </div>
           </div>
@@ -299,12 +299,12 @@ export default function PricingSection({ referralCode }: { referralCode?: string
                   <div className="mb-1">
                     <div className="flex items-baseline gap-1">
                       <span className={`text-4xl sm:text-5xl font-black ${plan.highlight ? "text-white" : "text-white"}`}>
-                        £{monthlyTotal.toFixed(0)}
+                        £{rate}
                       </span>
-                      <span className={`text-sm ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>/month</span>
+                      <span className={`text-sm ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>/vehicle/mo</span>
                     </div>
                     <p className={`text-sm mt-1 font-semibold ${plan.highlight ? "text-indigo-200" : "text-slate-400"}`}>
-                      £{rate}/vehicle · {vehicleCount} vehicle{vehicleCount !== 1 ? "s" : ""}
+                      £{monthlyTotal.toFixed(0)}/mo · {vehicleCount} vehicle{vehicleCount !== 1 ? "s" : ""}
                     </p>
                     {isAnnual && (
                       <p className={`text-xs mt-1 font-bold ${plan.highlight ? "text-emerald-300" : "text-emerald-400"}`}>
