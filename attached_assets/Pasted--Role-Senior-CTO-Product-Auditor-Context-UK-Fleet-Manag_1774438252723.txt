@@ -1,0 +1,51 @@
+# Role: Senior CTO & Product Auditor
+# Context: UK Fleet Management SaaS ("Titan Fleet")
+# Goal: Audit current codebase for Market Readiness, Risk, and Scalability
+
+I am preparing to launch "Titan Fleet," a UK-based fleet management platform competing with Samsara/FleetCheck. 
+I need you to audit the current codebase against the provided Feature Spec and identify critical gaps, risks, and technical debt.
+
+## 📂 Reference Feature Spec
+[Insert the full feature list from our previous conversation here, or attach the spec document if available in the project]
+
+## 🔍 Audit Focus Areas
+
+Please analyze the codebase and provide a detailed report on the following 5 dimensions:
+
+### 1. Critical Risk Assessment (High Priority)
+- **Payroll Liability:** Locate the timesheet/wage calculation logic. Are there hard-coded disclaimers? Is the logic robust enough to handle UK overtime rules? Flag any potential calculation errors that could lead to legal liability.
+- **GPS Reliability:** Review the background location services implementation (iOS/Android). Does the code handle app kills, battery optimization, and offline syncing gracefully? Is there a fallback mechanism if GPS drifts?
+- **AI Guardrails:** Review the AI Compliance Agent code. Are there safeguards against hallucination? Does the system cite specific DVSA rules when flagging defects? Is there a human-in-the-loop override for critical defects?
+
+### 2. Driver Adoption & UX Friction
+- Analyze the Driver Mobile App flow (Walkaround → Clock In → POD).
+- Count the number of taps required to complete a daily compliance cycle.
+- Identify any blocking UI elements (e.g., mandatory fields that could frustrate drivers).
+- Check offline queue logic: Will data sync correctly when connectivity returns without duplicates?
+
+### 3. Security & Multi-Tenancy
+- Verify data isolation between tenants (companies). Are there any queries that could leak data between fleets?
+- Check GDPR compliance: Is PII (driver names, locations) encrypted at rest and in transit?
+- Review Admin Impersonation logic: Is this properly audited and restricted?
+
+### 4. Feature Completeness vs. Spec
+- Compare the current codebase against the "Core Platform Features" and "AI Pro Plan" lists.
+- List any features that are marked as "complete" in the UI but have stubbed/missing backend logic.
+- Identify any "Zombie Code" (features built but not connected).
+
+### 5. Scalability & Performance
+- Review database schema for indexing on high-frequency tables (e.g., GPS logs, Inspection records).
+- Check background job queues (e.g., MOT chasing, AI triage). Will these bottleneck at 1,000+ vehicles?
+
+## 📝 Output Format
+Please provide your verdict in this structure:
+
+1.  **Executive Summary:** (Go/No-Go for Beta Launch)
+2.  **🚨 Red Flags:** (Critical bugs, security risks, or legal liabilities that must be fixed before launch)
+3.  **⚠️ Yellow Flags:** (UX friction points or technical debt that should be addressed in V1.1)
+4.  **✅ Green Lights:** (Features that are robust and ready)
+5.  **Missing Critical Logic:** (Specific functions or endpoints that are missing based on the spec)
+6.  **Code Quality Score:** (1-10 based on maintainability and structure)
+
+## ⚠️ Constraint
+Be brutally honest. If a feature looks complete but relies on insecure logic, flag it. I need to know where the bodies are buried before I sell this to UK fleet owners.

@@ -1,0 +1,51 @@
+🛑 Phase 1: The "Stop Ship" List (Fix Immediately)
+These three issues are legal and trust killers. Fix them before your beta trial starts.
+1. Payroll Liability (Critical)
+Problem: You are calculating net pay with hardcoded break deductions and missing weekly overtime.
+Fix:
+UI Change: Add a prominent banner on all timesheet/wage pages: "⚠️ These figures are indicative only. Please verify with your payroll provider before processing payments."
+Logic Change: Remove the hardcoded 30-minute deduction. Make break deductions configurable per company in settings (e.g., "Unpaid Break Duration: 0, 30, 60 mins").
+Logic Change: Implement the weekly overtime check.
+typescript
+12345678910
+2. The Fake DVLA Integration (Critical)
+Problem: Showing fake endorsement data is dangerous. A manager might let a disqualified driver on the road because your system said "Clear."
+Fix:
+Option A (Recommended): Remove the feature entirely from the UI until you have the official DVLA API integration (which requires employer registration).
+Option B (Stopgap): Replace the data with a manual upload field. "Upload Licence Photo" → Store in document storage → Manager manually verifies. Label it "Manual Verification Required."
+Do not show "Endorsements: 0" based on a hash. That is a lawsuit waiting to happen.
+3. AI Confidence Threshold (Critical)
+Problem: Low-confidence AI predictions triggering "CRITICAL" defects.
+Fix: Add a guardrail in your AI service logic.
+typescript // In your AI triage service if (result.severity === 'CRITICAL' && result.confidence < 0.60) { // Downgrade status to require human review defect.status = 'PENDING_REVIEW'; defect.aiNote = "AI flagged as Critical but low confidence. Manager review required."; } else { defect.status = 'OPEN'; }
+⚠️ Phase 2: The "Stability" Sprint (Fix Before Public Launch)
+These affect user experience and scale. Fix them during your closed beta.
+4. GPS iOS Limitation (Product Strategy)
+Problem: PWAs cannot track background GPS on iOS reliably.
+Decision: You have two choices.
+Choice A (Fast): Be transparent. Update your marketing: "Best experienced on Android devices. iOS users please keep app open during shifts."
+Choice B (Strategic): Wrap your PWA in a Capacitor or React Native shell. This allows you to use native background geolocation plugins while keeping 90% of your web codebase. Recommendation: Do this before public launch if GPS tracking is a core selling point.
+5. GPS Offline Persistence
+Problem: Location data lost if browser kills the tab.
+Fix: Move the offlineQueue from memory to IndexedDB.
+typescript // Use a library like idb-keyval or direct IndexedDB API await db.put('gps_queue', locationData); // Sync loop reads from DB, not memory array
+6. Database Indexes
+Problem: Performance will crash at 500+ vehicles.
+Fix: Run this migration immediately.
+prisma // schema.prisma model Inspection { @@index([companyId, createdAt]) } model Defect { @@index([companyId, status]) } model GpsLocation { @@index([driverId, createdAt]) } model Timesheet { @@index([driverId, status]) }
+🚀 Phase 3: Revised Launch Strategy
+Given these findings, adjust your Go-to-Market slightly to protect yourself.
+1. Rename the Beta
+Call it the "Founders Club Beta".
+Price: £15/vehicle (discounted) for the first 3 months.
+Condition: They must agree to provide feedback and acknowledge that "Payroll features are indicative only."
+Benefit: They get locked in at a lower rate for life; you get safety to fix bugs.
+2. Update Your Terms of Service
+Add specific clauses:
+Payroll: "Titan Fleet provides time-tracking data only. Final wage calculation is the responsibility of the Operator."
+DVLA: "Titan Fleet does not interface directly with DVLA records unless explicitly stated. Licence validity must be verified by the Transport Manager."
+GPS: "Mobile GPS tracking is subject to device limitations. Titan Fleet is not liable for tracking gaps caused by device battery or OS restrictions."
+3. The "Trust" Sales Pitch
+Ironically, fixing these issues makes you more sellable.
+Old Pitch: "Our AI does everything." (Sounds risky)
+New Pitch: "Our AI assists your managers, but we put humans in the loop for critical decisions. We don't fake data, and we don't guess on payroll." (Sounds enterprise-grade)
