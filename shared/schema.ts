@@ -1558,7 +1558,7 @@ export type InsertAgentAction = z.infer<typeof insertAgentActionSchema>;
 // Beta Feedback — in-app feedback submissions from managers and drivers
 export const betaFeedback = pgTable("beta_feedback", {
   id: serial("id").primaryKey(),
-  type: varchar("type", { length: 20 }).notNull(), // bug | feature | praise
+  type: varchar("type", { length: 20 }).notNull(), // bug | feature | general
   message: text("message").notNull(),
   rating: integer("rating"), // 1-5 star rating, optional
   page: text("page"), // URL path where feedback was submitted

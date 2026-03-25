@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { MessageSquarePlus, X, Bug, Lightbulb, Heart, Star, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquarePlus, X, Bug, Lightbulb, ThumbsUp, Star, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { session } from "@/lib/session";
 
-type FeedbackType = "bug" | "feature" | "praise";
+type FeedbackType = "bug" | "feature" | "general";
 
 const MAX_CHARS = 500;
 
@@ -23,11 +23,11 @@ const TYPE_CONFIG: Record<FeedbackType, { label: string; shortLabel: string; ico
     placeholder: "What would you like to see? How would it help you?",
     activeClass: "bg-blue-100 text-blue-700 border-blue-200",
   },
-  praise: {
-    label: "Praise",
-    shortLabel: "Praise",
-    icon: Heart,
-    placeholder: "Tell us what you love! Your feedback motivates us.",
+  general: {
+    label: "General Feedback",
+    shortLabel: "General",
+    icon: ThumbsUp,
+    placeholder: "Share any thoughts, suggestions, or comments.",
     activeClass: "bg-green-100 text-green-700 border-green-200",
   },
 };
@@ -61,11 +61,10 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 interface FeedbackButtonProps {
-  variant?: "floating" | "inline";
+  variant?: "floating" | "driver";
 }
 
-export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+function FeedbackPanel({ onClose, token }: { onClose: () => void; token: string | null }) {
   const [type, setType] = useState<FeedbackType>("bug");
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState(0);
@@ -73,53 +72,43 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
   const [showRating, setShowRating] = useState(false);
   const { toast } = useToast();
 
+  const user = session.getUser();
+  const currentPage = window.location.pathname;
   const charsLeft = MAX_CHARS - message.length;
   const config = TYPE_CONFIG[type];
-
-  const handleOpen = () => {
-    setIsOpen(true);
-    setMessage("");
-    setRating(0);
-    setShowRating(false);
-  };
-
-  const handleClose = () => setIsOpen(false);
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
     setIsSubmitting(true);
     try {
-      const user = session.getUser();
-      const isAuthenticated = !!user;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
 
-      const endpoint = isAuthenticated ? "/api/beta-feedback" : "/api/feedback";
-      const body = isAuthenticated
-        ? { type, message: message.trim(), rating: rating > 0 ? rating : undefined, page: window.location.pathname }
-        : {
-            type,
-            message: message.trim(),
-            rating: rating > 0 ? rating : undefined,
-            page: window.location.pathname,
-            userName: user?.name,
-            userEmail: (user as any)?.email,
-            companyId: (user as any)?.companyId,
-          };
-
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/beta-feedback", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        headers,
+        body: JSON.stringify({
+          type,
+          message: message.trim(),
+          rating: rating > 0 ? rating : undefined,
+          page: currentPage,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to submit");
 
+      const titles: Record<FeedbackType, string> = {
+        bug: "Bug reported!",
+        feature: "Feature request sent!",
+        general: "Thanks for the feedback!",
+      };
       toast({
-        title: type === "bug" ? "Bug reported!" : type === "feature" ? "Feature request sent!" : "Thanks for the kind words!",
+        title: titles[type],
         description: "We review every submission — thank you.",
       });
       setMessage("");
       setRating(0);
-      setIsOpen(false);
+      onClose();
     } catch {
       toast({ variant: "destructive", title: "Failed to send", description: "Please try again." });
     } finally {
@@ -127,17 +116,13 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
     }
   };
 
-  const panel = (
+  return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.18 }}
-      className={`z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden ${
-        variant === "floating"
-          ? "fixed bottom-24 left-4 right-4 sm:left-4 sm:right-auto sm:w-80"
-          : "w-80"
-      }`}
+      className="fixed bottom-20 right-4 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
         <div>
@@ -145,15 +130,29 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
           <p className="text-xs text-slate-500 mt-0.5">Help us build a better platform</p>
         </div>
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="p-1 hover:bg-slate-200 rounded-lg transition-colors"
           aria-label="Close feedback panel"
+          data-testid="button-close-feedback"
         >
           <X className="h-4 w-4 text-slate-500" />
         </button>
       </div>
 
       <div className="p-4 space-y-3">
+        {user && (
+          <div className="bg-slate-50 rounded-lg px-3 py-2 space-y-1 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-500">From</span>
+              <span className="text-xs font-medium text-slate-700" data-testid="feedback-user-name">{user.name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-500">Page</span>
+              <span className="text-xs font-mono text-slate-600 truncate max-w-[160px]" data-testid="feedback-page-url">{currentPage}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-1.5">
           {(Object.keys(TYPE_CONFIG) as FeedbackType[]).map((t) => {
             const Icon = TYPE_CONFIG[t].icon;
@@ -170,8 +169,7 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
                 data-testid={`button-feedback-${t}`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{TYPE_CONFIG[t].label}</span>
-                <span className="sm:hidden">{TYPE_CONFIG[t].shortLabel}</span>
+                <span className="hidden sm:inline">{TYPE_CONFIG[t].shortLabel}</span>
               </button>
             );
           })}
@@ -237,20 +235,24 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
       </div>
     </motion.div>
   );
+}
 
-  if (variant === "floating") {
+export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const token = session.getToken();
+
+  if (variant === "driver") {
     return (
       <>
         <button
-          onClick={handleOpen}
-          className="fixed bottom-20 left-4 z-30 h-10 w-10 rounded-full bg-slate-800 text-white shadow-lg hover:bg-slate-700 transition-all flex items-center justify-center"
-          data-testid="button-feedback"
+          onClick={() => setIsOpen((v) => !v)}
+          className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+          data-testid="button-feedback-driver"
           aria-label="Send feedback"
           title="Send feedback"
         >
           <MessageSquarePlus className="h-4 w-4" />
         </button>
-
         <AnimatePresence>
           {isOpen && (
             <>
@@ -259,9 +261,9 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/40 z-40"
-                onClick={handleClose}
+                onClick={() => setIsOpen(false)}
               />
-              {panel}
+              <FeedbackPanel onClose={() => setIsOpen(false)} token={token} />
             </>
           )}
         </AnimatePresence>
@@ -272,13 +274,13 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
   return (
     <>
       <button
-        onClick={handleOpen}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium transition-colors border border-blue-200"
-        data-testid="button-feedback-inline"
+        onClick={() => setIsOpen((v) => !v)}
+        className="fixed bottom-6 right-4 z-40 h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center hover:scale-105"
+        data-testid="button-feedback"
         aria-label="Send feedback"
+        title="Send feedback"
       >
-        <MessageSquarePlus className="h-4 w-4" />
-        Feedback
+        <MessageSquarePlus className="h-5 w-5" />
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -288,11 +290,9 @@ export function FeedbackButton({ variant = "floating" }: FeedbackButtonProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 z-40"
-              onClick={handleClose}
+              onClick={() => setIsOpen(false)}
             />
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-              {panel}
-            </div>
+            <FeedbackPanel onClose={() => setIsOpen(false)} token={token} />
           </>
         )}
       </AnimatePresence>

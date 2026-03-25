@@ -281,7 +281,7 @@ export async function registerRoutes(
   app.post("/api/feedback", async (req, res) => {
     try {
       const feedbackSchema = z.object({
-        type: z.enum(["bug", "feature", "praise"]),
+        type: z.enum(["bug", "feature", "general"]),
         message: z.string().min(1).max(2000),
         rating: z.number().int().min(1).max(5).optional(),
         page: z.string().optional(),
@@ -326,7 +326,7 @@ export async function registerRoutes(
   app.post("/api/beta-feedback", async (req, res) => {
     try {
       const feedbackSchema = z.object({
-        type: z.enum(["bug", "feature", "praise"]),
+        type: z.enum(["bug", "feature", "general"]),
         message: z.string().min(1).max(2000),
         rating: z.number().int().min(1).max(5).optional(),
         page: z.string().optional(),

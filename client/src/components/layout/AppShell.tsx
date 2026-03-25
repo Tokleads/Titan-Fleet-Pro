@@ -122,7 +122,7 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
                 >
                   <HelpCircle className="h-4 w-4" />
                 </button>
-                {BETA_MODE && <FeedbackButton variant="floating" />}
+                {BETA_MODE && <FeedbackButton variant="driver" />}
                 <NotificationBell />
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </div>

@@ -391,8 +391,6 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {BETA_MODE && <FeedbackButton variant="inline" />}
-
             <NotificationBell />
             
             <div className="w-px h-8 bg-slate-200 mx-2" />
@@ -421,6 +419,9 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
 
       {/* Titan Intelligence Sidebar */}
       <TitanIntelligenceSidebar />
+
+      {/* Beta feedback floating button - bottom right, manager portal */}
+      {BETA_MODE && <FeedbackButton variant="floating" />}
       </div>
     </div>
   );

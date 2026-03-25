@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
-import { Bug, Lightbulb, Heart, Star, Filter, MessageSquare, Clock, CheckCircle2, Archive } from "lucide-react";
+import { Bug, Lightbulb, ThumbsUp, Star, Filter, MessageSquare, Clock, CheckCircle2, Archive } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,7 +13,7 @@ function authHeaders(): Record<string, string> {
 
 interface FeedbackItem {
   id: number;
-  type: "bug" | "feature" | "praise";
+  type: "bug" | "feature" | "general";
   message: string;
   rating: number | null;
   page: string | null;
@@ -28,7 +28,7 @@ interface FeedbackItem {
 const TYPE_CONFIG = {
   bug: { label: "Bug", icon: Bug, color: "text-red-500", bg: "bg-red-50 border-red-200" },
   feature: { label: "Feature", icon: Lightbulb, color: "text-blue-500", bg: "bg-blue-50 border-blue-200" },
-  praise: { label: "Praise", icon: Heart, color: "text-green-500", bg: "bg-green-50 border-green-200" },
+  general: { label: "General", icon: ThumbsUp, color: "text-green-500", bg: "bg-green-50 border-green-200" },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -111,7 +111,7 @@ export default function BetaFeedback() {
     new: items.filter((i) => i.status === "new").length,
     bug: items.filter((i) => i.type === "bug").length,
     feature: items.filter((i) => i.type === "feature").length,
-    praise: items.filter((i) => i.type === "praise").length,
+    general: items.filter((i) => i.type === "general").length,
   };
 
   return (
@@ -129,7 +129,7 @@ export default function BetaFeedback() {
             { label: "Unreviewed", value: counts.new, color: "text-amber-600", bg: "bg-amber-50", icon: Clock },
             { label: "Bug Reports", value: counts.bug, color: "text-red-600", bg: "bg-red-50", icon: Bug },
             { label: "Feature Requests", value: counts.feature, color: "text-blue-600", bg: "bg-blue-50", icon: Lightbulb },
-            { label: "Praise", value: counts.praise, color: "text-green-600", bg: "bg-green-50", icon: Heart },
+            { label: "General", value: counts.general, color: "text-green-600", bg: "bg-green-50", icon: ThumbsUp },
           ].map((stat) => (
             <div key={stat.label} className={`${stat.bg} border border-slate-200 rounded-xl p-4`}>
               <stat.icon className={`h-5 w-5 ${stat.color} mb-2`} />
@@ -150,7 +150,7 @@ export default function BetaFeedback() {
             <option value="">All Types</option>
             <option value="bug">Bugs</option>
             <option value="feature">Features</option>
-            <option value="praise">Praise</option>
+            <option value="general">General</option>
           </select>
           <select
             value={statusFilter}
