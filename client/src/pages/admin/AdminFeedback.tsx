@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AdminLayout } from "./AdminLayout";
 import { motion } from "framer-motion";
-import { Bug, Lightbulb, Heart, Star, Filter, RefreshCw, MessageSquare, CheckCircle2, Archive, Clock } from "lucide-react";
+import { Bug, Lightbulb, ThumbsUp, Star, Filter, RefreshCw, MessageSquare, CheckCircle2, Archive, Clock } from "lucide-react";
 
 interface FeedbackItem {
   id: number;
-  type: "bug" | "feature" | "praise";
+  type: "bug" | "feature" | "general";
   message: string;
   rating: number | null;
   page: string | null;
@@ -21,7 +21,7 @@ interface FeedbackItem {
 const TYPE_CONFIG = {
   bug: { label: "Bug", icon: Bug, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
   feature: { label: "Feature", icon: Lightbulb, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-  praise: { label: "Praise", icon: Heart, color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" },
+  general: { label: "General", icon: ThumbsUp, color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -126,7 +126,7 @@ export default function AdminFeedback() {
     new: items.filter((i) => i.status === "new").length,
     bug: items.filter((i) => i.type === "bug").length,
     feature: items.filter((i) => i.type === "feature").length,
-    praise: items.filter((i) => i.type === "praise").length,
+    general: items.filter((i) => i.type === "general").length,
   };
 
   return (
@@ -152,7 +152,7 @@ export default function AdminFeedback() {
             { label: "Unreviewed", value: counts.new, color: "text-amber-400", icon: Clock },
             { label: "Bug Reports", value: counts.bug, color: "text-red-400", icon: Bug },
             { label: "Feature Requests", value: counts.feature, color: "text-blue-400", icon: Lightbulb },
-            { label: "Praise", value: counts.praise, color: "text-green-400", icon: Heart },
+            { label: "General", value: counts.general, color: "text-green-400", icon: ThumbsUp },
           ].map((stat) => (
             <div key={stat.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
               <stat.icon className={`h-5 w-5 ${stat.color} mb-2`} />
@@ -176,7 +176,7 @@ export default function AdminFeedback() {
             <option value="">All Types</option>
             <option value="bug">Bugs</option>
             <option value="feature">Features</option>
-            <option value="praise">Praise</option>
+            <option value="general">General</option>
           </select>
           <select
             value={statusFilter}

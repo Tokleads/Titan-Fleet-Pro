@@ -363,8 +363,11 @@ export async function registerRoutes(
         userAgent: req.headers['user-agent'],
         status: 'new',
       });
-      // Send email notification (non-fatal)
+      // Send email notification (non-fatal). Set BETA_FEEDBACK_EMAIL env var to receive notifications.
       const BETA_FEEDBACK_EMAIL = process.env.BETA_FEEDBACK_EMAIL;
+      if (!BETA_FEEDBACK_EMAIL) {
+        console.log('[BETA-FEEDBACK] BETA_FEEDBACK_EMAIL not set — skipping email notification for feedback ID', saved.id);
+      }
       if (BETA_FEEDBACK_EMAIL) {
         try {
           const { sendEmail } = await import('./emailService');

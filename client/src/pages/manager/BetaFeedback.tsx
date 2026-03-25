@@ -214,7 +214,10 @@ export default function BetaFeedback() {
                           </span>
                           <span className="text-xs text-slate-500">{typeConf.label}</span>
                           {item.userName && (
-                            <span className="text-xs text-slate-500 font-medium">{item.userName}</span>
+                            <span className="text-xs text-slate-500 font-medium" data-testid={`feedback-username-${item.id}`}>{item.userName}</span>
+                          )}
+                          {item.companyName && (
+                            <span className="text-xs text-slate-400" data-testid={`feedback-company-${item.id}`}>{item.companyName}</span>
                           )}
                           <StarDisplay rating={item.rating} />
                         </div>
