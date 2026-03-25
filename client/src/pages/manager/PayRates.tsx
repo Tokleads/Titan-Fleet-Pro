@@ -23,7 +23,7 @@ interface PayRate {
   nightEndHour: number;
   dailyOvertimeThreshold: number;
   weeklyOvertimeThreshold: number;
-  unpaidBreakMinutes: number;
+  breakMinutes: number;
   isActive: boolean;
 }
 
@@ -666,8 +666,8 @@ export default function PayRates() {
                       <Clock className="h-4 w-4 text-slate-500" /> Unpaid Break Deduction
                     </label>
                     <select
-                      value={defaultRate.unpaidBreakMinutes ?? 0}
-                      onChange={e => setDefaultRate({ ...defaultRate, unpaidBreakMinutes: Number(e.target.value) })}
+                      value={defaultRate.breakMinutes ?? 0}
+                      onChange={e => setDefaultRate({ ...defaultRate, breakMinutes: Number(e.target.value) })}
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       data-testid="select-default-break-mins"
                     >

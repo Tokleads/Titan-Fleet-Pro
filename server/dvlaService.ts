@@ -115,9 +115,15 @@ export async function verifyLicense(licenseNumber: string): Promise<DVLADriverDa
     throw new Error('Invalid license number format');
   }
 
-  // Mock mode for development
+  // Guard: never return mocked/hash-generated data to callers.
+  // The API route already returns 501 when DVLA_LICENSE_ENABLED is not set,
+  // but this secondary guard ensures mock data cannot leak through any internal code path.
   if (MOCK_MODE) {
-    return generateMockLicenseData(licenseNumber);
+    throw new Error(
+      'DVLA live integration is not active (DVLA_API_KEY not set). ' +
+      'Mock data is disabled to prevent compliance errors. ' +
+      'Contact TitanFleet support to enable DVLA integration.'
+    );
   }
 
   try {

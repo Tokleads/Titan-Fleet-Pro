@@ -150,9 +150,9 @@ export async function calculateWages(
   
   const totalMinutes = Math.floor((departureTime.getTime() - arrivalTime.getTime()) / (1000 * 60));
 
-  // Use configurable unpaid break deduction from pay rate (not hardcoded 30-min rule)
-  const unpaidBreakMinutes = payRate.unpaidBreakMinutes ?? 0;
-  const netMinutes = Math.max(0, totalMinutes - unpaidBreakMinutes);
+  // Use configurable break deduction from pay rate (not hardcoded 30-min rule)
+  const breakMinutes = payRate.breakMinutes ?? 0;
+  const netMinutes = Math.max(0, totalMinutes - breakMinutes);
   
   const breakdown = await calculateHoursBreakdown(
     arrivalTime,

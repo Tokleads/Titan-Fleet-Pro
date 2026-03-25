@@ -278,21 +278,22 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
           </div>
         )}
 
-        {/* Disqualification Warning — manual record only */}
-        {license.isDisqualified && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Disqualification recorded (manual record)</strong>
-              <br />
-              This record indicates the driver may be disqualified. Verify immediately via{" "}
-              <a href="https://www.gov.uk/check-driving-information" target="_blank" rel="noopener noreferrer" className="underline">
-                DVLA
-              </a>{" "}
-              before permitting this driver to operate any vehicle.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Disqualification and penalty points are not displayed here.
+            All compliance data must be verified directly via DVLA's official service.
+            See amber notice above. */}
+        <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <p className="text-xs text-slate-500 text-center">
+            For endorsements, penalty points, and disqualification status — always verify via{" "}
+            <a
+              href="https://www.gov.uk/check-driving-information"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline font-medium"
+            >
+              DVLA&apos;s official service
+            </a>
+          </p>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2">
@@ -359,19 +360,14 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
                           {item.licenseStatus}
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Status: </span>
-                          <span className={item.status === 'success' ? 'text-green-600' : 'text-red-600'}>
-                            {item.status === 'success' ? 'Verified' : 'Failed'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Points: </span>
-                          <span className={item.penaltyPoints >= 9 ? 'text-red-500 font-medium' : ''}>
-                            {item.penaltyPoints}
-                          </span>
-                        </div>
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Record status: </span>
+                        <span className={item.status === 'success' ? 'text-green-600' : 'text-red-600'}>
+                          {item.status === 'success' ? 'Recorded' : 'Failed'}
+                        </span>
+                        <span className="ml-2 text-muted-foreground italic">
+                          (Verify penalty points via DVLA)
+                        </span>
                       </div>
                       {item.verifiedBy && (
                         <div className="text-xs text-muted-foreground">
