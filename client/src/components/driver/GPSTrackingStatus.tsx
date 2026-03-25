@@ -242,6 +242,15 @@ export function GPSTrackingStatus({
         <p className="text-xs text-muted-foreground text-center">
           Location updates every 5 minutes • Automatic battery optimization
         </p>
+
+        {/* iOS / screen-lock notice */}
+        <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+          <AlertCircle className="h-3.5 w-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-800">
+            <span className="font-medium">Keep app open: </span>
+            GPS tracking requires this app to remain open. Locking the screen on iPhone/iPad may pause tracking.
+          </p>
+        </div>
       </div>
     </Card>
   );

@@ -313,11 +313,19 @@ class GPSTrackingService {
    * Add location to offline queue
    */
   private addToOfflineQueue(location: LocationData): void {
+    // Deduplicate: skip if an identical timestamp+driver entry already exists
+    const duplicate = this.offlineQueue.some(
+      (q) => q.timestamp === location.timestamp && q.driverId === location.driverId
+    );
+    if (duplicate) return;
+
     this.offlineQueue.push(location);
-    
-    // Limit queue size to prevent memory issues
-    if (this.offlineQueue.length > 100) {
+
+    // Hard cap at 200 to prevent localStorage overflow (~200 × ~300 bytes ≈ 60 KB)
+    if (this.offlineQueue.length > 200) {
+      // Drop the oldest (front) entry when cap is exceeded
       this.offlineQueue.shift();
+      console.warn('[GPS] Offline queue cap (200) reached — oldest entry dropped');
     }
 
     this.saveOfflineQueue();
@@ -335,22 +343,31 @@ class GPSTrackingService {
     this.isSending = true;
 
     try {
-      // Send queued locations in batch
+      // Sort chronologically before sending — ensures server receives points in order
+      const sorted = [...this.offlineQueue].sort((a, b) => a.timestamp - b.timestamp);
+
       const response = await fetch('/api/driver/location/batch', {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({
-          locations: this.offlineQueue,
-        }),
+        body: JSON.stringify({ locations: sorted }),
       });
 
       if (response.ok) {
-        this.offlineQueue = [];
+        // Remove the successfully sent items immediately.
+        // Because we sent a snapshot (sorted), remove only those entries
+        // from the live queue so any points added during the flight are kept.
+        const sentTimestamps = new Set(sorted.map((l) => l.timestamp));
+        this.offlineQueue = this.offlineQueue.filter(
+          (l) => !sentTimestamps.has(l.timestamp)
+        );
         this.saveOfflineQueue();
         this.notifyStatusChange();
+        console.log(`[GPS] Flushed ${sorted.length} queued locations`);
+      } else {
+        console.warn('[GPS] Batch flush failed with status', response.status, '— will retry on next connection');
       }
     } catch (error) {
-      console.error('Failed to process offline queue:', error);
+      console.error('[GPS] Failed to process offline queue:', error);
     } finally {
       this.isSending = false;
     }

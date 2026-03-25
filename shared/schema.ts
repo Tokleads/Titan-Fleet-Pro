@@ -183,7 +183,9 @@ export const inspections = pgTable("inspections", {
   vehicleCategory: varchar("vehicle_category", { length: 10 }), // HGV | LGV - for min time requirement
   
   createdAt: timestamp("created_at").defaultNow().notNull()
-});
+}, (table) => [
+  index("idx_inspections_company_created_at").on(table.companyId, table.createdAt),
+]);
 
 export const insertInspectionSchema = createInsertSchema(inspections).omit({ id: true, createdAt: true });
 export type Inspection = typeof inspections.$inferSelect;
@@ -295,7 +297,9 @@ export const defects = pgTable("defects", {
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+}, (table) => [
+  index("idx_defects_company_status").on(table.companyId, table.status),
+]);
 
 export const insertDefectSchema = createInsertSchema(defects).omit({ id: true, createdAt: true, updatedAt: true });
 export type Defect = typeof defects.$inferSelect;
@@ -403,7 +407,9 @@ export const driverLocations = pgTable("driver_locations", {
   isStagnant: boolean("is_stagnant").default(false),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
-});
+}, (table) => [
+  index("idx_driver_locations_driver_created_at").on(table.driverId, table.createdAt),
+]);
 
 export const insertDriverLocationSchema = createInsertSchema(driverLocations).omit({ id: true, createdAt: true });
 export type DriverLocation = typeof driverLocations.$inferSelect;
@@ -455,7 +461,9 @@ export const timesheets = pgTable("timesheets", {
   proposedDepartureTime: timestamp("proposed_departure_time"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+}, (table) => [
+  index("idx_timesheets_driver_status").on(table.driverId, table.status),
+]);
 
 export const insertTimesheetSchema = createInsertSchema(timesheets).omit({ id: true, createdAt: true, updatedAt: true });
 export type Timesheet = typeof timesheets.$inferSelect;
@@ -514,7 +522,9 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").default(false).notNull(),
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull()
-});
+}, (table) => [
+  index("idx_notifications_company").on(table.companyId),
+]);
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 export type Notification = typeof notifications.$inferSelect;
@@ -1537,7 +1547,9 @@ export const agentActions = pgTable("agent_actions", {
   actionTaken: text("action_taken"),
   referenceId: integer("reference_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_agent_actions_company_created_at").on(table.companyId, table.createdAt),
+]);
 
 export const insertAgentActionSchema = createInsertSchema(agentActions).omit({ id: true, createdAt: true });
 export type AgentAction = typeof agentActions.$inferSelect;

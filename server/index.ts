@@ -527,6 +527,26 @@ app.use((req, res, next) => {
     console.error('Company name migration (non-fatal):', nameErr);
   }
 
+  // Migration: Performance indexes — six composite indexes for high-frequency query patterns v1
+  try {
+    const { db: dbIdx } = await import('./db');
+    const { sql: sqlIdx } = await import('drizzle-orm');
+    const idxMigName = 'perf_indexes_v1';
+    const idxExisting = await dbIdx.execute(sqlIdx`SELECT name FROM _migrations WHERE name = ${idxMigName}`);
+    if (!idxExisting.rows || idxExisting.rows.length === 0) {
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_inspections_company_created_at ON inspections (company_id, created_at)`);
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_defects_company_status ON defects (company_id, status)`);
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_driver_locations_driver_created_at ON driver_locations (driver_id, created_at)`);
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_timesheets_driver_status ON timesheets (driver_id, status)`);
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_agent_actions_company_created_at ON agent_actions (company_id, created_at)`);
+      await dbIdx.execute(sqlIdx`CREATE INDEX IF NOT EXISTS idx_notifications_company ON notifications (company_id)`);
+      await dbIdx.execute(sqlIdx`INSERT INTO _migrations (name) VALUES (${idxMigName})`);
+      console.log('[Migration] Created 6 performance indexes');
+    }
+  } catch (idxErr) {
+    console.error('Performance indexes migration (non-fatal):', idxErr);
+  }
+
   // Migration: pay_rates.break_minutes + defects.ai_note — stop-ship schema columns v1
   try {
     const { db: dbSchema } = await import('./db');
