@@ -80,6 +80,7 @@ const AdminCompanies = lazy(() => import("@/pages/admin/Companies"));
 const AdminSubscriptions = lazy(() => import("@/pages/admin/Subscriptions"));
 const AdminSignups = lazy(() => import("@/pages/admin/Signups"));
 const AdminReferrals = lazy(() => import("@/pages/admin/AdminReferrals"));
+const AdminFeedback = lazy(() => import("@/pages/admin/AdminFeedback"));
 const DCEuropeanDemo = lazy(() => import("@/pages/demo/DCEuropeanDemo"));
 const TruckerTimDemo = lazy(() => import("@/pages/demo/TruckerTimDemo"));
 const TitanFleetDemo = lazy(() => import("@/pages/demo/TitanFleetDemo"));
@@ -176,6 +177,7 @@ function Router() {
         <Route path="/admin/subscriptions" component={AdminSubscriptions} />
         <Route path="/admin/signups" component={AdminSignups} />
         <Route path="/admin/referrals" component={AdminReferrals} />
+        <Route path="/admin/feedback" component={AdminFeedback} />
         <Route path="/demo/dc-european" component={DCEuropeanDemo} />
         <Route path="/demo/trucker-tim" component={TruckerTimDemo} />
         <Route path="/demo" component={TitanFleetDemo} />

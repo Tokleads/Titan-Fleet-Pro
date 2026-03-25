@@ -10,7 +10,8 @@ import {
   ChevronRight,
   CreditCard,
   UserPlus,
-  Gift
+  Gift,
+  MessageSquarePlus
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { path: "/admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
   { path: "/admin/signups", icon: UserPlus, label: "Signups" },
   { path: "/admin/referrals", icon: Gift, label: "Referrals" },
+  { path: "/admin/feedback", icon: MessageSquarePlus, label: "Feedback" },
   { path: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 

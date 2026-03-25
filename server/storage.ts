@@ -22,7 +22,8 @@ import {
   type Delivery, type InsertDelivery,
   type Message, type InsertMessage,
   type CompanyCarRegister, type InsertCompanyCarRegister,
-  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages, companyCarRegister
+  type BetaFeedback, type InsertBetaFeedback,
+  companies, users, vehicles, inspections, fuelEntries, media, vehicleUsage, defects, trailers, documents, documentAcknowledgments, licenseUpgradeRequests, auditLogs, driverLocations, geofences, timesheets, stagnationAlerts, notifications, serviceHistory, referrals, deliveries, messages, companyCarRegister, betaFeedback
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, count, inArray, isNull } from "drizzle-orm";
@@ -222,6 +223,11 @@ export interface IStorage {
   getCarRegisterByDriver(driverId: number): Promise<CompanyCarRegister[]>;
   getCarRegisterByCompany(companyId: number): Promise<CompanyCarRegister[]>;
   getActiveCarAssignments(companyId: number): Promise<CompanyCarRegister[]>;
+
+  // Beta Feedback operations
+  createFeedback(feedback: InsertBetaFeedback): Promise<BetaFeedback>;
+  getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string }): Promise<{ items: BetaFeedback[]; total: number }>;
+  updateFeedbackStatus(id: number, status: string, adminNote?: string): Promise<BetaFeedback | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2114,6 +2120,35 @@ export class DatabaseStorage implements IStorage {
         sql`${companyCarRegister.endTime} IS NULL`
       ))
       .orderBy(desc(companyCarRegister.startTime));
+  }
+
+  async createFeedback(feedback: InsertBetaFeedback): Promise<BetaFeedback> {
+    const [newFeedback] = await db.insert(betaFeedback).values(feedback).returning();
+    return newFeedback;
+  }
+
+  async getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string }): Promise<{ items: BetaFeedback[]; total: number }> {
+    const { limit = 50, offset = 0, type, status } = options || {};
+    const conditions = [];
+    if (type) conditions.push(eq(betaFeedback.type, type));
+    if (status) conditions.push(eq(betaFeedback.status, status));
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const [items, [{ total }]] = await Promise.all([
+      db.select().from(betaFeedback)
+        .where(whereClause)
+        .orderBy(desc(betaFeedback.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ total: count() }).from(betaFeedback).where(whereClause),
+    ]);
+    return { items, total: Number(total) };
+  }
+
+  async updateFeedbackStatus(id: number, status: string, adminNote?: string): Promise<BetaFeedback | undefined> {
+    const updates: Partial<BetaFeedback> = { status };
+    if (adminNote !== undefined) updates.adminNote = adminNote;
+    const [updated] = await db.update(betaFeedback).set(updates).where(eq(betaFeedback.id, id)).returning();
+    return updated || undefined;
   }
 }
 export const storage = new DatabaseStorage();

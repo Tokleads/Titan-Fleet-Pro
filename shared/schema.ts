@@ -1554,3 +1554,25 @@ export const agentActions = pgTable("agent_actions", {
 export const insertAgentActionSchema = createInsertSchema(agentActions).omit({ id: true, createdAt: true });
 export type AgentAction = typeof agentActions.$inferSelect;
 export type InsertAgentAction = z.infer<typeof insertAgentActionSchema>;
+
+// Beta Feedback — in-app feedback submissions from managers and drivers
+export const betaFeedback = pgTable("beta_feedback", {
+  id: serial("id").primaryKey(),
+  type: varchar("type", { length: 20 }).notNull(), // bug | feature | praise
+  message: text("message").notNull(),
+  rating: integer("rating"), // 1-5 star rating, optional
+  page: text("page"), // URL path where feedback was submitted
+  userId: integer("user_id").references(() => users.id),
+  userEmail: text("user_email"), // captured from session or form
+  userName: text("user_name"),
+  companyId: integer("company_id").references(() => companies.id),
+  companyName: text("company_name"),
+  userAgent: text("user_agent"),
+  status: varchar("status", { length: 20 }).notNull().default("new"), // new | reviewed | actioned | closed
+  adminNote: text("admin_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBetaFeedbackSchema = createInsertSchema(betaFeedback).omit({ id: true, createdAt: true });
+export type BetaFeedback = typeof betaFeedback.$inferSelect;
+export type InsertBetaFeedback = z.infer<typeof insertBetaFeedbackSchema>;

@@ -73,6 +73,7 @@ export async function registerRoutes(
     '/api/feedback',
     '/api/referral/validate/',
     '/api/admin/login',
+    '/api/admin/feedback',
     '/api/auth/',
     '/api/logout',
     '/health',
@@ -279,18 +280,93 @@ export async function registerRoutes(
   // Feedback endpoint
   app.post("/api/feedback", async (req, res) => {
     try {
-      const feedbackSchema = z.object({ type: z.string(), message: z.string(), page: z.string().optional(), userId: z.number().optional() });
+      const feedbackSchema = z.object({
+        type: z.enum(["bug", "feature", "praise"]),
+        message: z.string().min(1).max(2000),
+        rating: z.number().int().min(1).max(5).optional(),
+        page: z.string().optional(),
+        userId: z.number().optional(),
+        userEmail: z.string().optional(),
+        userName: z.string().optional(),
+        companyId: z.number().optional(),
+        companyName: z.string().optional(),
+      });
       const validation = feedbackSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const { type, page } = validation.data;
-      const message = sanitizeInput(validation.data.message);
-      console.log(`[FEEDBACK] ${type}: ${message} (from ${page})`);
+      const data = validation.data;
+      const message = sanitizeInput(data.message);
+      console.log(`[FEEDBACK] ${data.type}${data.rating ? ` (${data.rating}★)` : ''}: ${message.substring(0, 100)} (from ${data.page})`);
+      try {
+        await storage.createFeedback({
+          type: data.type,
+          message,
+          rating: data.rating,
+          page: data.page,
+          userId: data.userId,
+          userEmail: data.userEmail,
+          userName: data.userName,
+          companyId: data.companyId,
+          companyName: data.companyName,
+          userAgent: req.headers['user-agent'],
+          status: 'new',
+        });
+      } catch (dbErr) {
+        console.error("[FEEDBACK] DB save failed (non-fatal):", dbErr);
+      }
       res.json({ success: true });
     } catch (error) {
       console.error("Failed to save feedback:", error);
       res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // Admin: Get all feedback (protected by admin token)
+  app.get("/api/admin/feedback", async (req, res) => {
+    try {
+      const adminToken = req.headers['x-admin-token'] as string;
+      const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+      if (!ADMIN_TOKEN || !adminToken || adminToken !== ADMIN_TOKEN) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const { limit = '50', offset = '0', type, status } = req.query;
+      const result = await storage.getAllFeedback({
+        limit: Number(limit),
+        offset: Number(offset),
+        type: type as string | undefined,
+        status: status as string | undefined,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get feedback:", error);
+      res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  // Admin: Update feedback status
+  app.patch("/api/admin/feedback/:id", async (req, res) => {
+    try {
+      const adminToken = req.headers['x-admin-token'] as string;
+      const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+      if (!ADMIN_TOKEN || !adminToken || adminToken !== ADMIN_TOKEN) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const updateSchema = z.object({ status: z.string(), adminNote: z.string().optional() });
+      const validation = updateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input" });
+      }
+      const updated = await storage.updateFeedbackStatus(
+        Number(req.params.id),
+        validation.data.status,
+        validation.data.adminNote
+      );
+      if (!updated) return res.status(404).json({ error: "Feedback not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update feedback:", error);
+      res.status(500).json({ error: "Failed to update feedback" });
     }
   });
 
