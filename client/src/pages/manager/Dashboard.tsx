@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ManagerLayout } from "./ManagerLayout";
 import { session } from "@/lib/session";
@@ -112,13 +112,20 @@ export default function ManagerDashboard() {
   const [showMissedInspections, setShowMissedInspections] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("tourSeen_manager"));
 
-  const gettingStartedDismissKey = `gettingStarted_dismissed_${companyId}`;
-  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(
-    () => !!localStorage.getItem(`gettingStarted_dismissed_${companyId}`)
-  );
+  const gettingStartedDismissKey = companyId ? `gettingStarted_dismissed_${companyId}` : null;
+  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(false);
+
+  // Sync dismiss state when companyId becomes defined (handles deferred auth resolution)
+  useEffect(() => {
+    if (gettingStartedDismissKey) {
+      setGettingStartedDismissed(!!localStorage.getItem(gettingStartedDismissKey));
+    }
+  }, [gettingStartedDismissKey]);
 
   function handleDismissGettingStarted() {
-    localStorage.setItem(gettingStartedDismissKey, '1');
+    if (gettingStartedDismissKey) {
+      localStorage.setItem(gettingStartedDismissKey, '1');
+    }
     setGettingStartedDismissed(true);
   }
 

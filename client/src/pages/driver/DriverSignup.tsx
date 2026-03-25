@@ -58,10 +58,27 @@ export default function DriverSignup() {
 
   function copyPin() {
     if (!result) return;
-    navigator.clipboard.writeText(result.pin).then(() => {
-      setPinCopied(true);
-      setTimeout(() => setPinCopied(false), 2500);
-    });
+    const pin = result.pin;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pin).then(() => {
+        setPinCopied(true);
+        setTimeout(() => setPinCopied(false), 2500);
+      }).catch(() => fallbackCopy(pin));
+    } else {
+      fallbackCopy(pin);
+    }
+  }
+
+  function fallbackCopy(text: string) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); setPinCopied(true); setTimeout(() => setPinCopied(false), 2500); } catch {}
+    document.body.removeChild(ta);
   }
 
   if (loading) {
