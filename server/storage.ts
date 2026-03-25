@@ -226,7 +226,7 @@ export interface IStorage {
 
   // Beta Feedback operations
   createFeedback(feedback: InsertBetaFeedback): Promise<BetaFeedback>;
-  getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string }): Promise<{ items: BetaFeedback[]; total: number }>;
+  getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string; companyId?: number }): Promise<{ items: BetaFeedback[]; total: number }>;
   updateFeedbackStatus(id: number, status: string, adminNote?: string): Promise<BetaFeedback | undefined>;
 }
 
@@ -2127,11 +2127,12 @@ export class DatabaseStorage implements IStorage {
     return newFeedback;
   }
 
-  async getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string }): Promise<{ items: BetaFeedback[]; total: number }> {
-    const { limit = 50, offset = 0, type, status } = options || {};
+  async getAllFeedback(options?: { limit?: number; offset?: number; type?: string; status?: string; companyId?: number }): Promise<{ items: BetaFeedback[]; total: number }> {
+    const { limit = 50, offset = 0, type, status, companyId } = options || {};
     const conditions = [];
     if (type) conditions.push(eq(betaFeedback.type, type));
     if (status) conditions.push(eq(betaFeedback.status, status));
+    if (companyId) conditions.push(eq(betaFeedback.companyId, companyId));
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const [items, [{ total }]] = await Promise.all([
       db.select().from(betaFeedback)

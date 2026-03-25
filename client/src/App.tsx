@@ -73,6 +73,7 @@ const DriverCPC = lazy(() => import("@/pages/manager/DriverCPC"));
 const DriverHours = lazy(() => import("@/pages/manager/DriverHours"));
 const EarnedRecognition = lazy(() => import("@/pages/manager/EarnedRecognition"));
 const ScheduledReports = lazy(() => import("@/pages/manager/ScheduledReports"));
+const ManagerBetaFeedback = lazy(() => import("@/pages/manager/BetaFeedback"));
 const TransportManagerApp = lazy(() => import("@/pages/manager/TransportManagerApp"));
 const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -170,6 +171,7 @@ function Router() {
         <Route path="/manager/driver-hours" component={DriverHours} />
         <Route path="/manager/earned-recognition" component={EarnedRecognition} />
         <Route path="/manager/scheduled-reports" component={ScheduledReports} />
+        <Route path="/manager/beta-feedback" component={ManagerBetaFeedback} />
         <Route path="/manager/app" component={TransportManagerApp} />
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/login" component={AdminLogin} />

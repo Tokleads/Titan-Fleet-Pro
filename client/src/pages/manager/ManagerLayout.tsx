@@ -36,12 +36,16 @@ import {
   Timer,
   Award,
   CalendarClock,
-  Bot
+  Bot,
+  MessageSquarePlus
 } from "lucide-react";
 import tenantConfig from "@/config/tenant";
 import { session } from "@/lib/session";
 import { TitanIntelligenceSidebar } from "@/components/TitanIntelligenceSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { FeedbackButton } from "@/components/FeedbackButton";
+
+const BETA_MODE = import.meta.env.VITE_BETA_MODE === "true" || import.meta.env.DEV;
 
 const navItems = [
   { path: "/manager", icon: LayoutDashboard, label: "Dashboard", permissionKey: "dashboard" },
@@ -264,6 +268,20 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {BETA_MODE && user?.role === 'ADMIN' && (
+            <Link
+              href="/manager/beta-feedback"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                location === '/manager/beta-feedback'
+                  ? 'bg-blue-50 text-blue-600 shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              data-testid="nav-beta-feedback"
+            >
+              <MessageSquarePlus className={`h-5 w-5 flex-shrink-0 ${location === '/manager/beta-feedback' ? 'text-blue-600' : 'text-slate-400'}`} />
+              {sidebarOpen && <span className="font-medium text-sm">Beta Feedback</span>}
+            </Link>
+          )}
         </nav>
 
         {/* User section */}
@@ -373,6 +391,8 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {BETA_MODE && <FeedbackButton variant="inline" />}
+
             <NotificationBell />
             
             <div className="w-px h-8 bg-slate-200 mx-2" />

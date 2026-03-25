@@ -322,6 +322,128 @@ export async function registerRoutes(
     }
   });
 
+  // Beta Feedback: Authenticated endpoints (company-scoped)
+  app.post("/api/beta-feedback", async (req, res) => {
+    try {
+      const feedbackSchema = z.object({
+        type: z.enum(["bug", "feature", "praise"]),
+        message: z.string().min(1).max(2000),
+        rating: z.number().int().min(1).max(5).optional(),
+        page: z.string().optional(),
+      });
+      const validation = feedbackSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const data = validation.data;
+      const message = sanitizeInput(data.message);
+      const user = req.user as any;
+      const company = await storage.getCompanyById(user.companyId);
+      console.log(`[BETA-FEEDBACK] ${data.type}${data.rating ? ` (${data.rating}★)` : ''}: ${message.substring(0, 100)} (${user.name} @ ${company?.name})`);
+      const saved = await storage.createFeedback({
+        type: data.type,
+        message,
+        rating: data.rating,
+        page: data.page,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        companyId: user.companyId,
+        companyName: company?.name,
+        userAgent: req.headers['user-agent'],
+        status: 'new',
+      });
+      // Send email notification (non-fatal)
+      const BETA_FEEDBACK_EMAIL = process.env.BETA_FEEDBACK_EMAIL;
+      if (BETA_FEEDBACK_EMAIL) {
+        try {
+          const { sendEmail } = await import('./emailService');
+          await sendEmail({
+            to: BETA_FEEDBACK_EMAIL,
+            subject: `[Beta Feedback] ${data.type.toUpperCase()} from ${user.name} @ ${company?.name || 'Unknown'}`,
+            html: `
+              <h2>New Beta Feedback Submission</h2>
+              <p><strong>Type:</strong> ${data.type}</p>
+              ${data.rating ? `<p><strong>Rating:</strong> ${'★'.repeat(data.rating)}${'☆'.repeat(5 - data.rating)} (${data.rating}/5)</p>` : ''}
+              <p><strong>From:</strong> ${user.name} (${user.email})</p>
+              <p><strong>Company:</strong> ${company?.name || 'Unknown'}</p>
+              <p><strong>Page:</strong> ${data.page || 'Not specified'}</p>
+              <hr />
+              <p><strong>Message:</strong></p>
+              <blockquote style="border-left: 3px solid #2563eb; padding-left: 12px; color: #374151;">${message.replace(/\n/g, '<br/>')}</blockquote>
+              <hr />
+              <p style="color: #6b7280; font-size: 12px;">Review at: ${req.protocol}://${req.get('host')}/admin/feedback | Feedback ID: ${saved.id}</p>
+            `,
+            text: `Beta Feedback (${data.type}) from ${user.name} @ ${company?.name}\n\n${message}`,
+          });
+        } catch (emailErr) {
+          console.error('[BETA-FEEDBACK] Email notification failed (non-fatal):', emailErr);
+        }
+      }
+      res.json({ success: true, id: saved.id });
+    } catch (error) {
+      console.error("Failed to save beta feedback:", error);
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // Beta Feedback: Manager ADMIN review endpoint
+  app.get("/api/beta-feedback", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const user = req.user as any;
+      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(user.role)) {
+        return res.status(403).json({ error: "Manager access required" });
+      }
+      const { limit = '50', offset = '0', type, status } = req.query;
+      // Scope to company for non-platform-admin managers
+      const result = await storage.getAllFeedback({
+        limit: Number(limit),
+        offset: Number(offset),
+        type: type as string | undefined,
+        status: status as string | undefined,
+        companyId: user.companyId,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get beta feedback:", error);
+      res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  // Beta Feedback: Update status (manager ADMIN)
+  app.patch("/api/beta-feedback/:id", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const user = req.user as any;
+      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(user.role)) {
+        return res.status(403).json({ error: "Manager access required" });
+      }
+      const updateSchema = z.object({ status: z.string(), adminNote: z.string().optional() });
+      const validation = updateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input" });
+      }
+      const updated = await storage.updateFeedbackStatus(
+        Number(req.params.id),
+        validation.data.status,
+        validation.data.adminNote
+      );
+      if (!updated) return res.status(404).json({ error: "Feedback not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update feedback:", error);
+      res.status(500).json({ error: "Failed to update feedback" });
+    }
+  });
+
   // Admin: Get all feedback (protected by admin token)
   app.get("/api/admin/feedback", async (req, res) => {
     try {

@@ -5,8 +5,11 @@ import { useState, useEffect } from "react";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
+import { FeedbackButton } from "@/components/FeedbackButton";
 import { gpsTrackingService } from "@/services/gpsTracking";
 import { session } from "@/lib/session";
+
+const BETA_MODE = import.meta.env.VITE_BETA_MODE === "true" || import.meta.env.DEV;
 
 function useDriverGPSTracking() {
   const [sessionReady, setSessionReady] = useState(false);
@@ -119,6 +122,7 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
                 >
                   <HelpCircle className="h-4 w-4" />
                 </button>
+                {BETA_MODE && <FeedbackButton variant="floating" />}
                 <NotificationBell />
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </div>
