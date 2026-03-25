@@ -388,11 +388,11 @@ export default function Timesheets() {
         </div>
 
         {/* Payroll Accuracy Disclaimer */}
-        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4" data-testid="banner-timesheet-disclaimer">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-blue-800">
-            <span className="font-semibold">Timesheet accuracy notice: </span>
-            Clock-in/out times are GPS-assisted and may not reflect actual working time. Break deductions and adjustments must be confirmed before use in payroll. Always review with your payroll team before processing wages.
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4" data-testid="banner-timesheet-disclaimer">
+          <Info className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-900">
+            <span className="font-semibold">Warning — Payroll Estimates Only: </span>
+            Clock-in/out times are GPS-assisted and may not reflect actual working time. Break deductions and adjustments must be confirmed before use in payroll. These figures are not for statutory payroll purposes — always review with your payroll team before processing wages.
           </p>
         </div>
 

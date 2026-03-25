@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Shield, Crown, Lock } from "lucide-react";
+import { AlertTriangle, Shield, Crown, Lock, FileUp } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface LicenseVerificationDialogProps {
   open: boolean;
@@ -17,6 +18,8 @@ export function LicenseVerificationDialog({
   onOpenChange,
   driverName,
 }: LicenseVerificationDialogProps) {
+  const [, navigate] = useLocation();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -84,6 +87,29 @@ export function LicenseVerificationDialog({
               will be available in a future release. Licence records can be recorded manually
               in the driver profile in the meantime.
             </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+            <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <FileUp className="h-4 w-4" />
+              Upload licence evidence
+            </p>
+            <p className="text-xs text-slate-600">
+              Attach a copy of the driver's DVLA check result, photocard, or share-code printout
+              to the driver's document record for audit trail purposes.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-1 w-full text-xs"
+              onClick={() => {
+                onOpenChange(false);
+                navigate('/manager/documents');
+              }}
+            >
+              <FileUp className="h-3.5 w-3.5 mr-1.5" />
+              Go to Documents &rarr;
+            </Button>
           </div>
         </div>
 

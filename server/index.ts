@@ -527,6 +527,28 @@ app.use((req, res, next) => {
     console.error('Company name migration (non-fatal):', nameErr);
   }
 
+  // Migration: pay_rates.break_minutes + defects.ai_note — stop-ship schema columns v1
+  try {
+    const { db: dbSchema } = await import('./db');
+    const { sql: sqlSchema } = await import('drizzle-orm');
+    const schemaMigName = 'break_minutes_and_ai_note_schema_v1';
+    const schemaExisting = await dbSchema.execute(sqlSchema`SELECT name FROM _migrations WHERE name = ${schemaMigName}`);
+    if (!schemaExisting.rows || schemaExisting.rows.length === 0) {
+      await dbSchema.execute(sqlSchema`
+        ALTER TABLE pay_rates
+          ADD COLUMN IF NOT EXISTS break_minutes INTEGER NOT NULL DEFAULT 0
+      `);
+      await dbSchema.execute(sqlSchema`
+        ALTER TABLE defects
+          ADD COLUMN IF NOT EXISTS ai_note TEXT
+      `);
+      await dbSchema.execute(sqlSchema`INSERT INTO _migrations (name) VALUES (${schemaMigName})`);
+      console.log('[Migration] Added pay_rates.break_minutes and defects.ai_note columns');
+    }
+  } catch (schemaMigErr) {
+    console.error('Schema migration break_minutes+ai_note (non-fatal):', schemaMigErr);
+  }
+
   };
 
   // Register admin routes
