@@ -3,6 +3,9 @@ import { db } from "./db";
 import { defects } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { getComplianceContext } from "./complianceSearchService";
+import { logAgentAction } from "./agentLogger";
+
+const CRITICAL_CONFIDENCE_THRESHOLD = 60;
 
 export interface AITriageResult {
   severity: string;
@@ -205,11 +208,36 @@ export async function triageDefect(defectId: number, baseUrl?: string): Promise<
       result = await triageDefectTextOnly(defect.description, complianceContext || undefined);
     }
 
+    // Safety guardrail: CRITICAL severity with low confidence must be downgraded
+    // to HIGH for human review rather than triggering automated prohibition actions
+    let finalSeverity = result.severity;
+    let finalAnalysis = result.analysis;
+
+    if (result.severity === "CRITICAL" && result.confidence < CRITICAL_CONFIDENCE_THRESHOLD) {
+      finalSeverity = "HIGH";
+      finalAnalysis = `[AI GUARDRAIL — REQUIRES MANUAL REVIEW] Confidence ${result.confidence}% is below the ${CRITICAL_CONFIDENCE_THRESHOLD}% threshold required for CRITICAL classification. Original AI assessment: ${result.analysis}`;
+      console.warn(`[AI Triage] Guardrail triggered for defect ${defectId}: CRITICAL downgraded to HIGH (confidence ${result.confidence}%)`);
+
+      try {
+        await logAgentAction({
+          companyId: defect.companyId,
+          actionType: "defect_escalated",
+          severity: "warning",
+          title: "AI Guardrail: Low-Confidence CRITICAL Suppressed",
+          description: `Defect ID ${defectId} was assessed as CRITICAL with only ${result.confidence}% confidence. Severity downgraded to HIGH pending manual inspection. Description: "${defect.description}".`,
+          actionTaken: "Severity downgraded CRITICAL → HIGH. Manual review flagged.",
+          referenceId: defectId,
+        });
+      } catch (logErr) {
+        console.warn(`[AI Triage] Failed to log guardrail action for defect ${defectId}:`, logErr);
+      }
+    }
+
     await db.update(defects).set({
-      aiSeverity: result.severity,
+      aiSeverity: finalSeverity,
       aiCategory: result.category,
       aiConfidence: result.confidence,
-      aiAnalysis: result.analysis,
+      aiAnalysis: finalAnalysis,
       aiTriaged: true,
       aiTriagedAt: new Date()
     }).where(eq(defects.id, defectId));

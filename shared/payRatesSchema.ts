@@ -29,6 +29,9 @@ export const payRates = pgTable("pay_rates", {
   dailyOvertimeThreshold: integer("daily_overtime_threshold").notNull().default(840), // 14 hours in minutes
   weeklyOvertimeThreshold: integer("weekly_overtime_threshold").notNull().default(2400), // 40 hours in minutes
   
+  // Break deduction (configurable per company — replaces hardcoded 30-min rule)
+  unpaidBreakMinutes: integer("unpaid_break_minutes").notNull().default(0),
+
   // Settings
   isActive: boolean("is_active").notNull().default(true),
   effectiveFrom: timestamp("effective_from").notNull().defaultNow(),

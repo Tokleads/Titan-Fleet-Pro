@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { PoundSterling, Clock, Moon, Calendar, TrendingUp, Save, Download, User, ChevronDown, ChevronRight, Check, X, Pencil, Search } from 'lucide-react';
+import { PoundSterling, Clock, Moon, Calendar, TrendingUp, Save, Download, User, ChevronDown, ChevronRight, Check, X, Pencil, Search, AlertTriangle } from 'lucide-react';
 import { ManagerLayout } from './ManagerLayout';
 import { session } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ interface PayRate {
   nightEndHour: number;
   dailyOvertimeThreshold: number;
   weeklyOvertimeThreshold: number;
+  unpaidBreakMinutes: number;
   isActive: boolean;
 }
 
@@ -282,6 +283,18 @@ export default function PayRates() {
           <p className="mt-0.5 text-sm text-slate-500">
             Set individual driver wages and export timesheets for payroll
           </p>
+        </div>
+
+        {/* Payroll Disclaimer */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4" data-testid="banner-payroll-disclaimer">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-amber-900">Payroll Estimates — Not for Statutory Purposes</p>
+            <p className="text-xs text-amber-800">
+              Wage calculations are indicative only. Break deductions, overtime thresholds, and bank holiday rates must be validated against your employment contracts and current UK National Minimum Wage legislation before making any payments.
+              TitanFleet accepts no liability for payroll errors. Always have a qualified payroll professional review exports before processing.
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -637,6 +650,31 @@ export default function PayRates() {
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <p className="text-xs text-slate-400">e.g. 6 = 6 AM</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Weekly Overtime After (hrs)</label>
+                    <input
+                      type="number"
+                      value={defaultRate.weeklyOvertimeThreshold / 60}
+                      onChange={e => setDefaultRate({ ...defaultRate, weeklyOvertimeThreshold: Number(e.target.value) * 60 })}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-slate-400">ISO week (Mon–Sun). UK standard = 40 hrs</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-slate-500" /> Unpaid Break Deduction (mins)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5"
+                      value={defaultRate.unpaidBreakMinutes ?? 0}
+                      onChange={e => setDefaultRate({ ...defaultRate, unpaidBreakMinutes: Number(e.target.value) })}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      data-testid="input-default-break-mins"
+                    />
+                    <p className="text-xs text-slate-400">Deducted from each shift before overtime calculation. Set 0 to disable.</p>
                   </div>
                 </div>
               </div>

@@ -135,9 +135,19 @@ export function registerComplianceRoutes(app: Express) {
   });
 
   /**
-   * Verify a driver's license
+   * Verify a driver's license — requires live DVLA integration
+   * Returns 501 until the integration is production-ready (prevents mocked data from being stored)
    */
   app.post("/api/manager/drivers/:driverId/verify-license", async (req, res) => {
+    // Guard: DVLA live integration is not yet active — never return mocked data to clients
+    const DVLA_LICENSE_ENABLED = process.env.DVLA_LICENSE_ENABLED === 'true';
+    if (!DVLA_LICENSE_ENABLED) {
+      return res.status(501).json({
+        error: "DVLA live license verification is not yet active. Please verify manually via https://www.gov.uk/check-driving-information",
+        comingSoon: true
+      });
+    }
+
     try {
       const driverId = parseInt(req.params.driverId);
       const { licenseNumber } = req.body;

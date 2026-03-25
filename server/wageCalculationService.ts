@@ -17,7 +17,7 @@
 import { db } from "./db";
 import { payRates, bankHolidays, wageCalculations } from "../shared/payRatesSchema";
 import { timesheets, type Timesheet } from "../shared/schema";
-import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
+import { eq, and, lte, gte, isNull, sql, ne, between, sum } from "drizzle-orm";
 
 export interface WageBreakdown {
   regularMinutes: number;
@@ -92,8 +92,49 @@ function getNextUKMidnight(date: Date): Date {
 }
 
 /**
- * Calculate wages for a timesheet
+ * Get ISO week start (Monday 00:00 UK time) and end (Sunday 23:59:59) for a given date
  */
+function getUKWeekBounds(date: Date): { weekStart: Date; weekEnd: Date } {
+  const ukDateStr = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/London'
+  }).format(date);
+  const [dd, mm, yyyy] = ukDateStr.split('/');
+  const ukLocal = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+
+  // ISO week: Monday = 1, Sunday = 0 (JS convention 0=Sun, 1=Mon...)
+  const jsDay = ukLocal.getDay();
+  const daysFromMonday = jsDay === 0 ? 6 : jsDay - 1;
+  const monday = new Date(ukLocal.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+  const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000 + 23 * 60 * 60 * 1000 + 59 * 60 * 1000 + 59 * 1000);
+  return { weekStart: monday, weekEnd: sunday };
+}
+
+/**
+ * Sum total completed timesheet minutes for a driver in a given week (excluding the current timesheet)
+ */
+async function getPreviousWeekMinutes(
+  driverId: number,
+  companyId: number,
+  weekStart: Date,
+  weekEnd: Date,
+  excludeTimesheetId: number
+): Promise<number> {
+  const rows = await db
+    .select({ totalMinutes: timesheets.totalMinutes })
+    .from(timesheets)
+    .where(
+      and(
+        eq(timesheets.driverId, driverId),
+        eq(timesheets.companyId, companyId),
+        eq(timesheets.status, 'COMPLETED'),
+        ne(timesheets.id, excludeTimesheetId),
+        gte(timesheets.arrivalTime, weekStart),
+        lte(timesheets.arrivalTime, weekEnd)
+      )
+    );
+  return rows.reduce((acc, r) => acc + (r.totalMinutes ?? 0), 0);
+}
+
 export async function calculateWages(
   timesheetId: number,
   companyId: number,
@@ -108,6 +149,10 @@ export async function calculateWages(
   }
   
   const totalMinutes = Math.floor((departureTime.getTime() - arrivalTime.getTime()) / (1000 * 60));
+
+  // Use configurable unpaid break deduction from pay rate (not hardcoded 30-min rule)
+  const unpaidBreakMinutes = payRate.unpaidBreakMinutes ?? 0;
+  const netMinutes = Math.max(0, totalMinutes - unpaidBreakMinutes);
   
   const breakdown = await calculateHoursBreakdown(
     arrivalTime,
@@ -117,9 +162,22 @@ export async function calculateWages(
     companyId
   );
   
+  // Daily overtime
   const dailyOvertimeThreshold = payRate.dailyOvertimeThreshold;
-  const netMinutes = totalMinutes - (totalMinutes > 360 ? 30 : 0);
-  const overtimeMinutes = Math.max(0, netMinutes - dailyOvertimeThreshold);
+  const dailyOvertimeMinutes = Math.max(0, netMinutes - dailyOvertimeThreshold);
+
+  // Weekly overtime — sum previous completed shifts in same ISO week
+  const { weekStart, weekEnd } = getUKWeekBounds(arrivalTime);
+  const prevWeekMinutes = await getPreviousWeekMinutes(driverId, companyId, weekStart, weekEnd, timesheetId);
+  const weeklyThreshold = payRate.weeklyOvertimeThreshold;
+  // How many of THIS shift's minutes push over the weekly threshold?
+  const totalWeekMinutes = prevWeekMinutes + netMinutes;
+  const weeklyOvertimeTotal = Math.max(0, totalWeekMinutes - weeklyThreshold);
+  const prevWeekOvertimeAlready = Math.max(0, prevWeekMinutes - weeklyThreshold);
+  const weeklyOvertimeOnThisShift = Math.max(0, weeklyOvertimeTotal - prevWeekOvertimeAlready);
+
+  // Final overtime = whichever is greater — daily or weekly (avoids double-counting)
+  const overtimeMinutes = Math.max(dailyOvertimeMinutes, weeklyOvertimeOnThisShift);
   
   const baseRate = parseFloat(payRate.baseRate);
   const nightRate = parseFloat(payRate.nightRate);

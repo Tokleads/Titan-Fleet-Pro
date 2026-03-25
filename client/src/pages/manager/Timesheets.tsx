@@ -24,7 +24,8 @@ import {
   X,
   ClipboardList,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  Info
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -384,6 +385,15 @@ export default function Timesheets() {
             <Download className="h-4 w-4" />
             Export CSV
           </button>
+        </div>
+
+        {/* Payroll Accuracy Disclaimer */}
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4" data-testid="banner-timesheet-disclaimer">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-blue-800">
+            <span className="font-semibold">Timesheet accuracy notice: </span>
+            Clock-in/out times are GPS-assisted and may not reflect actual working time. Break deductions and adjustments must be confirmed before use in payroll. Always review with your payroll team before processing wages.
+          </p>
         </div>
 
         {/* Tabs for Admin */}

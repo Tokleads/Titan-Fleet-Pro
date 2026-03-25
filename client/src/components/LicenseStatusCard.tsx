@@ -205,9 +205,21 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
-        <CardDescription>Last verified {formatDate(license.lastVerifiedAt)}</CardDescription>
+        <CardDescription>Last recorded {formatDate(license.lastVerifiedAt)}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* DVLA Integration Notice */}
+        <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-xs">
+            <strong>Manual record only.</strong> Live DVLA lookup is not yet active. Data below was entered manually or from a prior check. Always confirm accuracy via{" "}
+            <a href="https://www.gov.uk/check-driving-information" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+              DVLA&apos;s own service
+            </a>{" "}
+            before making compliance decisions.
+          </AlertDescription>
+        </Alert>
+
         {/* License Status */}
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Status</span>
@@ -272,14 +284,18 @@ export function LicenseStatusCard({ driverId, driverName, onVerifyClick }: Licen
           </div>
         )}
 
-        {/* Disqualification Warning */}
+        {/* Disqualification Warning — manual record only */}
         {license.isDisqualified && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Driver is currently disqualified</strong>
+              <strong>Disqualification recorded (manual record)</strong>
               <br />
-              This driver is not legally allowed to drive.
+              This record indicates the driver may be disqualified. Verify immediately via{" "}
+              <a href="https://www.gov.uk/check-driving-information" target="_blank" rel="noopener noreferrer" className="underline">
+                DVLA
+              </a>{" "}
+              before permitting this driver to operate any vehicle.
             </AlertDescription>
           </Alert>
         )}
