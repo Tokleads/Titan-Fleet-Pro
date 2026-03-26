@@ -424,7 +424,7 @@ export async function triggerBypassClockIn(params: {
     if (managers.length === 0) return;
 
     const title = `Off-Depot Clock-In — ${driver.name}`;
-    const message = `${driver.name} clocked in outside a registered depot. Reason: "${params.bypassReason}". Approve or reject on the Timesheets page.`;
+    const message = `${driver.name} clocked in outside a registered depot. Reason: "${params.bypassReason}". Go to Timesheets > Off-Depot Clock-Ins tab to approve or reject. [/manager/timesheets]`;
 
     for (const manager of managers) {
       await createNotificationHelper({

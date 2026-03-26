@@ -237,12 +237,14 @@ export default function Timesheets() {
     },
   });
 
+  const [bypassNote, setBypassNote] = useState<Record<number, string>>({});
+
   const bypassApproveMutation = useMutation({
-    mutationFn: async ({ id, action }: { id: number; action: 'approved' | 'rejected' }) => {
+    mutationFn: async ({ id, action, note }: { id: number; action: 'approved' | 'rejected'; note?: string }) => {
       const res = await fetch(`/api/timesheets/${id}/bypass`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ action, userId: currentUser?.id }),
+        body: JSON.stringify({ action, note }),
       });
       if (!res.ok) throw new Error("Failed to update bypass");
       return res.json();
@@ -658,25 +660,35 @@ export default function Timesheets() {
                           </td>
                           <td className="px-4 py-3">
                             {bypassStatus === 'pending' ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'approved' })}
-                                  disabled={bypassApproveMutation.isPending}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                                  data-testid={`button-bypass-approve-${ts.id}`}
-                                >
-                                  <Check className="h-3 w-3" />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'rejected' })}
-                                  disabled={bypassApproveMutation.isPending}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                                  data-testid={`button-bypass-reject-${ts.id}`}
-                                >
-                                  <X className="h-3 w-3" />
-                                  Reject
-                                </button>
+                              <div className="space-y-2 min-w-[220px]">
+                                <textarea
+                                  value={bypassNote[ts.id] || ''}
+                                  onChange={e => setBypassNote(prev => ({ ...prev, [ts.id]: e.target.value }))}
+                                  placeholder="Optional note (visible in audit log)..."
+                                  rows={2}
+                                  className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                  data-testid={`input-bypass-note-${ts.id}`}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'approved', note: bypassNote[ts.id] })}
+                                    disabled={bypassApproveMutation.isPending}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                    data-testid={`button-bypass-approve-${ts.id}`}
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'rejected', note: bypassNote[ts.id] })}
+                                    disabled={bypassApproveMutation.isPending}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                    data-testid={`button-bypass-reject-${ts.id}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                    Reject
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <span className="text-xs text-slate-400 italic">Already actioned</span>
@@ -844,6 +856,9 @@ export default function Timesheets() {
                         Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Clock-In Location
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         Flags
                       </th>
                       {canEdit && (
@@ -856,7 +871,7 @@ export default function Timesheets() {
                   <tbody className="divide-y divide-slate-100">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={canEdit ? 8 : 7} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={canEdit ? 9 : 8} className="px-4 py-8 text-center text-slate-400">
                           Loading timesheets...
                         </td>
                       </tr>
@@ -947,6 +962,31 @@ export default function Timesheets() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
+                            {timesheet.locationBypassReason ? (
+                              <div className="text-xs text-slate-600">
+                                <p className="font-medium text-amber-700">Off-depot</p>
+                                {timesheet.arrivalLatitude && timesheet.arrivalLongitude ? (
+                                  <a
+                                    href={`https://maps.google.com/?q=${timesheet.arrivalLatitude},${timesheet.arrivalLongitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                    data-testid={`link-location-map-${timesheet.id}`}
+                                  >
+                                    {Number(timesheet.arrivalLatitude).toFixed(4)}, {Number(timesheet.arrivalLongitude).toFixed(4)}
+                                  </a>
+                                ) : <span className="text-slate-400">No GPS</span>}
+                              </div>
+                            ) : timesheet.depotName ? (
+                              <div className="flex items-center gap-1 text-xs text-slate-600">
+                                <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                                {timesheet.depotName}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
                               {getBypassBadge(timesheet)}
                               {timesheet.manualDepotSelection && !timesheet.locationBypassReason && (
@@ -1018,7 +1058,7 @@ export default function Timesheets() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={canEdit ? 8 : 7} className="px-4 py-12 text-center">
+                        <td colSpan={canEdit ? 9 : 8} className="px-4 py-12 text-center">
                           <Calendar className="h-12 w-12 mx-auto mb-3 text-slate-300" />
                           <p className="text-slate-500 font-medium">No timesheets found</p>
                           <p className="text-sm text-slate-400 mt-1">

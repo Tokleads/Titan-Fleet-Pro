@@ -332,35 +332,57 @@ export function registerFinancialRoutes(app: Express) {
   // Bypass clock-in approval / rejection
   app.patch("/api/timesheets/:id/bypass", requirePermission('timesheets'), async (req, res) => {
     try {
+      const actorJwt = req.user;
+      if (!actorJwt) return res.status(401).json({ error: "Unauthorized" });
+      if (!['ADMIN', 'TRANSPORT_MANAGER'].includes(actorJwt.role)) {
+        return res.status(403).json({ error: "Only Transport Managers and Admins can approve bypass clock-ins" });
+      }
+
       const bypassSchema = z.object({
         action: z.enum(['approved', 'rejected']),
-        userId: z.number(),
         note: z.string().max(500).optional(),
       });
       const validation = bypassSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const { action, userId, note } = validation.data;
-
-      const actioner = await storage.getUser(Number(userId));
-      if (!actioner || !['ADMIN', 'TRANSPORT_MANAGER'].includes(actioner.role)) {
-        return res.status(403).json({ error: "Only Transport Managers and Admins can approve bypass clock-ins" });
-      }
+      const { action, note } = validation.data;
 
       const timesheetId = Number(req.params.id);
       const existing = await storage.getTimesheetById(timesheetId);
       if (!existing) {
         return res.status(404).json({ error: "Timesheet not found" });
       }
+      // Enforce same-company tenancy
+      if (existing.companyId !== actorJwt.companyId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
       if (!existing.locationBypassReason) {
         return res.status(400).json({ error: "This timesheet has no bypass reason" });
       }
 
+      const noteText = note ? `Bypass ${action}: ${note}` : `Bypass ${action} by ${actorJwt.name || `user ${actorJwt.userId}`}`;
+
       const updated = await storage.updateTimesheet(timesheetId, {
         locationBypassStatus: action,
-        adjustmentNote: note ? `Bypass ${action}: ${note}` : (existing.adjustmentNote ?? undefined),
+        adjustmentNote: noteText,
         updatedAt: new Date(),
+      });
+
+      await storage.createAuditLog({
+        companyId: actorJwt.companyId,
+        userId: actorJwt.userId,
+        action: action === 'approved' ? 'BYPASS_APPROVED' : 'BYPASS_REJECTED',
+        entity: 'timesheet',
+        entityId: timesheetId,
+        details: {
+          timesheetId,
+          driverId: existing.driverId,
+          bypassReason: existing.locationBypassReason,
+          actionedBy: actorJwt.userId,
+          actionedAt: new Date().toISOString(),
+          note: note ?? null,
+        },
       });
 
       res.json(updated);
