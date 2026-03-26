@@ -96,6 +96,8 @@ export function ManagerLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user || !company) {
       setLocation('/manager/login');
+    } else if (user.role === 'DRIVER') {
+      setLocation('/driver');
     }
   }, [user, company, setLocation]);
 
