@@ -86,8 +86,6 @@ function useDriverGPSTracking() {
   }, [sessionReady]);
 }
 
-const MANAGER_ROLES = ['ADMIN', 'TRANSPORT_MANAGER', 'OFFICE', 'PLANNER', 'AUDITOR', 'MECHANIC', 'MANAGER', 'manager'];
-
 export function DriverLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { currentCompany, tenant } = useBrand();
@@ -100,7 +98,7 @@ export function DriverLayout({ children }: { children: React.ReactNode }) {
     const company = session.getCompany();
     if (!user || !company) {
       setLocation('/');
-    } else if (MANAGER_ROLES.includes(user.role)) {
+    } else if (user.role !== 'DRIVER') {
       setLocation('/manager');
     }
   }, [setLocation]);
