@@ -50,6 +50,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
   const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [showManualSelection, setShowManualSelection] = useState(false);
   const [locationExpanded, setLocationExpanded] = useState(false);
+  const [showBypassForm, setShowBypassForm] = useState(false);
+  const [bypassReason, setBypassReason] = useState('');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(() => {
     // Check if policy was accepted today
@@ -168,12 +170,13 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     return null;
   };
 
-  // Clock in mutation
+  // Clock in mutation (accepts optional bypass reason)
   const clockInMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideBypassReason?: string) => {
       const depot = getSelectedDepot() || (nearestDepot ? nearestDepot.geofence : null);
       const isManualSelection = !isInsideGeofence;
       const noLocation = !currentLocation;
+      const bypass = overrideBypassReason || undefined;
 
       const response = await fetch('/api/timesheets/clock-in', {
         method: 'POST',
@@ -185,9 +188,10 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           latitude: currentLocation ? currentLocation.lat.toString() : "0",
           longitude: currentLocation ? currentLocation.lng.toString() : "0",
           accuracy: gpsAccuracy,
-          manualSelection: isManualSelection || noLocation,
+          manualSelection: bypass ? true : (isManualSelection || noLocation),
           lowAccuracy: isLowAccuracy || noLocation,
-          locationOverride: noLocation
+          locationOverride: noLocation,
+          locationBypassReason: bypass,
         })
       });
 
@@ -203,6 +207,8 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
       queryClient.invalidateQueries({ queryKey: ['active-timesheet', driverId] });
       setSelectedDepotId(null);
       setShowManualSelection(false);
+      setShowBypassForm(false);
+      setBypassReason('');
     }
   });
 
@@ -251,7 +257,12 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
 
   const hasNoDepots = geofences.filter(g => g.isActive).length === 0;
   const locationDenied = locationError === 'permission_denied' || locationError === 'Geolocation is not supported by your browser';
-  const canClockIn = locationDenied || (currentLocation && isAccuracyValid);
+
+  // Hard block when company has depots but driver is not inside one
+  const isGeofenceBlocked = !hasNoDepots && (!currentLocation || locationDenied || (currentLocation && !isInsideGeofence));
+  const canClockIn = hasNoDepots
+    ? (locationDenied || (currentLocation && isAccuracyValid))
+    : (!locationDenied && currentLocation !== null && isAccuracyValid && isInsideGeofence);
 
   // Handle policy acceptance
   const handleAcceptPolicy = () => {
@@ -260,7 +271,7 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     setPolicyAccepted(true);
     setShowPolicyModal(false);
     // Now proceed with clock in
-    clockInMutation.mutate();
+    clockInMutation.mutate(undefined);
   };
 
   // Handle clock in button click - show policy if not accepted
@@ -268,8 +279,15 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
     if (!policyAccepted) {
       setShowPolicyModal(true);
     } else {
-      clockInMutation.mutate();
+      clockInMutation.mutate(undefined);
     }
+  };
+
+  // Handle bypass submission
+  const handleBypassSubmit = () => {
+    const trimmed = bypassReason.trim();
+    if (!trimmed) return;
+    clockInMutation.mutate(trimmed);
   };
 
   if (loadingTimesheet) {
@@ -344,50 +362,112 @@ export default function ClockInOut({ companyId, driverId, driverName }: ClockInO
           <Card className="p-0 overflow-hidden border-primary/20 shadow-lg">
             <div className="p-5 text-center space-y-3">
               <p className="text-sm text-muted-foreground font-medium">Welcome, {driverName}</p>
-              <Button
-                size="lg"
-                className="w-full h-16 text-xl font-bold titan-btn-press"
-                onClick={handleClockInClick}
-                disabled={!canClockIn || clockInMutation.isPending}
-                data-testid="button-clock-in"
-              >
-                {clockInMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                    Clocking In...
-                  </>
-                ) : locationDenied ? (
-                  <>
-                    <CheckCircle className="mr-2 h-6 w-6" />
-                    Clock In (No GPS)
-                  </>
-                ) : !currentLocation ? (
-                  <>
-                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                    Getting Location...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-6 w-6" />
-                    Clock In
-                  </>
-                )}
-              </Button>
 
-              {locationDenied && (
-                <p className="text-xs text-amber-600">
-                  Location unavailable — clock-in will be flagged for manager review
-                </p>
-              )}
-              {currentLocation && !isInsideGeofence && !hasNoDepots && !locationDenied && (
-                <p className="text-xs text-amber-600">
-                  You're outside depot range — clock-in will be flagged for manager review
-                </p>
-              )}
-              {isLowAccuracy && !locationDenied && (
-                <p className="text-xs text-amber-600">
-                  Low GPS accuracy — clock-in will be flagged for manager review
-                </p>
+              {isGeofenceBlocked ? (
+                /* Hard block — driver must be at a depot or submit bypass */
+                <div className="space-y-3 text-left">
+                  <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-800">Depot check required</p>
+                      <p className="text-xs text-red-700 mt-0.5">
+                        {locationDenied
+                          ? 'GPS is unavailable. You must be at a registered depot to start your shift.'
+                          : !currentLocation
+                          ? 'Acquiring your GPS location…'
+                          : nearestDepot
+                          ? `You're outside depot range. Nearest: ${nearestDepot.geofence.name} (${nearestDepot.distance >= 1000 ? `${(nearestDepot.distance / 1000).toFixed(1)}km` : `${nearestDepot.distance.toFixed(0)}m`} away).`
+                          : 'You are not inside any registered depot.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bypass toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowBypassForm(!showBypassForm)}
+                    className="w-full text-sm text-slate-600 flex items-center justify-center gap-2 py-2 hover:text-slate-800 transition-colors"
+                    data-testid="button-toggle-bypass"
+                  >
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showBypassForm ? 'rotate-180' : ''}`} />
+                    I'm tramping / away from my depot
+                  </button>
+
+                  {showBypassForm && (
+                    <div className="space-y-2 pt-1 border-t border-slate-100">
+                      <p className="text-xs text-slate-500">
+                        Enter your reason (e.g. "Tramping — overnight Birmingham NEC"). Your manager will be notified and must approve this clock-in.
+                      </p>
+                      <textarea
+                        value={bypassReason}
+                        onChange={(e) => setBypassReason(e.target.value)}
+                        placeholder="Reason for clocking in away from depot…"
+                        rows={3}
+                        maxLength={500}
+                        className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        data-testid="input-bypass-reason"
+                      />
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full h-12 border-amber-400 text-amber-700 hover:bg-amber-50"
+                        onClick={handleBypassSubmit}
+                        disabled={!bypassReason.trim() || clockInMutation.isPending}
+                        data-testid="button-bypass-clock-in"
+                      >
+                        {clockInMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Submitting…
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="mr-2 h-5 w-5" />
+                            Request Bypass Clock-In
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Normal clock-in button */
+                <>
+                  <Button
+                    size="lg"
+                    className="w-full h-16 text-xl font-bold titan-btn-press"
+                    onClick={handleClockInClick}
+                    disabled={!canClockIn || clockInMutation.isPending}
+                    data-testid="button-clock-in"
+                  >
+                    {clockInMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                        Clocking In...
+                      </>
+                    ) : locationDenied ? (
+                      <>
+                        <CheckCircle className="mr-2 h-6 w-6" />
+                        Clock In (No GPS)
+                      </>
+                    ) : !currentLocation ? (
+                      <>
+                        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                        Getting Location...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-6 w-6" />
+                        Clock In
+                      </>
+                    )}
+                  </Button>
+                  {isLowAccuracy && !locationDenied && (
+                    <p className="text-xs text-amber-600">
+                      Low GPS accuracy — clock-in will be flagged for manager review
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </Card>

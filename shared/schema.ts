@@ -459,6 +459,8 @@ export const timesheets = pgTable("timesheets", {
   originalDepartureTime: timestamp("original_departure_time"),
   proposedArrivalTime: timestamp("proposed_arrival_time"),
   proposedDepartureTime: timestamp("proposed_departure_time"),
+  locationBypassReason: text("location_bypass_reason"),
+  locationBypassStatus: varchar("location_bypass_status", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => [

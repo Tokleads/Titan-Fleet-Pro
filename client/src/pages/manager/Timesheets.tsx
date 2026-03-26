@@ -38,6 +38,8 @@ interface Timesheet {
   departureTime?: string;
   totalMinutes?: number;
   status: string;
+  arrivalLatitude?: string | null;
+  arrivalLongitude?: string | null;
   arrivalAccuracy?: number | null;
   departureAccuracy?: number | null;
   manualDepotSelection?: boolean;
@@ -48,6 +50,8 @@ interface Timesheet {
   originalDepartureTime?: string | null;
   proposedArrivalTime?: string | null;
   proposedDepartureTime?: string | null;
+  locationBypassReason?: string | null;
+  locationBypassStatus?: string | null;
   driver?: {
     name: string;
     email: string;
@@ -84,7 +88,7 @@ export default function Timesheets() {
     start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
-  const [activeTab, setActiveTab] = useState<"timesheets" | "pending">("timesheets");
+  const [activeTab, setActiveTab] = useState<"timesheets" | "pending" | "bypass">("timesheets");
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editArrival, setEditArrival] = useState("");
@@ -233,6 +237,34 @@ export default function Timesheets() {
     },
   });
 
+  const bypassApproveMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: number; action: 'approved' | 'rejected' }) => {
+      const res = await fetch(`/api/timesheets/${id}/bypass`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ action, userId: currentUser?.id }),
+      });
+      if (!res.ok) throw new Error("Failed to update bypass");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+      queryClient.invalidateQueries({ queryKey: ["bypass-pending"] });
+    },
+  });
+
+  const { data: pendingBypasses, isLoading: bypassLoading } = useQuery<Timesheet[]>({
+    queryKey: ["bypass-pending", companyId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] });
+      const res = await fetch(`/api/timesheets/${companyId}?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch timesheets");
+      const data: Timesheet[] = await res.json();
+      return Array.isArray(data) ? data.filter(ts => ts.locationBypassReason) : [];
+    },
+    enabled: !!companyId,
+  });
+
   const filteredTimesheets = useMemo(() => {
     if (!timesheets) return [];
     return timesheets.filter((ts) => {
@@ -335,6 +367,37 @@ export default function Timesheets() {
   const completedCount = filteredTimesheets.filter(ts => ts.status === "COMPLETED").length;
   const activeCount = filteredTimesheets.filter(ts => ts.status === "ACTIVE").length;
   const pendingCount = pendingAdjustments?.length || 0;
+  const bypassPendingCount = pendingBypasses?.filter(ts => ts.locationBypassStatus === 'pending').length || 0;
+
+  const getBypassBadge = (ts: Timesheet) => {
+    if (!ts.locationBypassReason) return null;
+    const status = ts.locationBypassStatus;
+    if (status === 'pending' || !status) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700" title={`Bypass reason: ${ts.locationBypassReason}`} data-testid={`badge-bypass-pending-${ts.id}`}>
+          <AlertTriangle className="h-3 w-3" />
+          Bypass — Pending
+        </span>
+      );
+    }
+    if (status === 'approved') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700" title={`Bypass reason: ${ts.locationBypassReason}`} data-testid={`badge-bypass-approved-${ts.id}`}>
+          <CheckCircle2 className="h-3 w-3" />
+          Bypass — Approved
+        </span>
+      );
+    }
+    if (status === 'rejected') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700" title={`Bypass reason: ${ts.locationBypassReason}`} data-testid={`badge-bypass-rejected-${ts.id}`}>
+          <XCircle className="h-3 w-3" />
+          Bypass — Rejected
+        </span>
+      );
+    }
+    return null;
+  };
 
   const getAdjustmentBadge = (ts: Timesheet) => {
     if (!ts.adjustmentStatus) return null;
@@ -396,8 +459,8 @@ export default function Timesheets() {
           </p>
         </div>
 
-        {/* Tabs for Admin */}
-        {isAdmin && (
+        {/* Tabs for Admin / Transport Manager */}
+        {(isAdmin || userRole === 'TRANSPORT_MANAGER') && (
           <div className="flex gap-2 border-b border-slate-200">
             <button
               onClick={() => setActiveTab("timesheets")}
@@ -411,20 +474,39 @@ export default function Timesheets() {
               <Clock className="h-4 w-4 inline mr-1.5" />
               Timesheets
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab("pending")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "pending"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+                data-testid="tab-pending-adjustments"
+              >
+                <ClipboardList className="h-4 w-4 inline mr-1.5" />
+                Pending Adjustments
+                {pendingCount > 0 && (
+                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+            )}
             <button
-              onClick={() => setActiveTab("pending")}
+              onClick={() => setActiveTab("bypass")}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "pending"
-                  ? "border-blue-600 text-blue-600"
+                activeTab === "bypass"
+                  ? "border-amber-600 text-amber-600"
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
-              data-testid="tab-pending-adjustments"
+              data-testid="tab-bypass"
             >
-              <ClipboardList className="h-4 w-4 inline mr-1.5" />
-              Pending Adjustments
-              {pendingCount > 0 && (
-                <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingCount}
+              <AlertTriangle className="h-4 w-4 inline mr-1.5" />
+              Off-Depot Clock-Ins
+              {bypassPendingCount > 0 && (
+                <span className="ml-2 bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {bypassPendingCount}
                 </span>
               )}
             </button>
@@ -527,8 +609,99 @@ export default function Timesheets() {
           </div>
         )}
 
+        {/* Off-Depot Clock-Ins (Bypass) Tab */}
+        {(isAdmin || userRole === 'TRANSPORT_MANAGER') && activeTab === "bypass" && (
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <h2 className="text-lg font-semibold text-slate-900">Off-Depot Clock-Ins</h2>
+              <p className="text-sm text-slate-500">Drivers who clocked in outside their depot geofence and submitted a bypass reason. Review and approve or reject each request.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Driver</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Clock-In</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Reason Provided</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bypassLoading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                        <div className="animate-spin h-6 w-6 border-2 border-amber-500 border-t-transparent rounded-full mx-auto mb-2" />
+                        Loading...
+                      </td>
+                    </tr>
+                  ) : pendingBypasses && pendingBypasses.length > 0 ? (
+                    pendingBypasses.map((ts) => {
+                      const bypassStatus = ts.locationBypassStatus || 'pending';
+                      return (
+                        <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-slate-900 text-sm">{ts.driverName || `Driver #${ts.userId}`}</p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {ts.arrivalTime ? new Date(ts.arrivalTime).toLocaleDateString('en-GB') : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {ts.arrivalTime ? new Date(ts.arrivalTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </td>
+                          <td className="px-4 py-3 max-w-xs">
+                            <p className="text-sm text-slate-700 italic">"{ts.locationBypassReason}"</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {getBypassBadge(ts)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {bypassStatus === 'pending' ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'approved' })}
+                                  disabled={bypassApproveMutation.isPending}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                                  data-testid={`button-bypass-approve-${ts.id}`}
+                                >
+                                  <Check className="h-3 w-3" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => bypassApproveMutation.mutate({ id: ts.id, action: 'rejected' })}
+                                  disabled={bypassApproveMutation.isPending}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                  data-testid={`button-bypass-reject-${ts.id}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Already actioned</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center">
+                        <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-300" />
+                        <p className="text-slate-500 font-medium">No off-depot clock-ins in the last 30 days</p>
+                        <p className="text-sm text-slate-400 mt-1">All drivers clocked in from within their assigned depot geofences</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Timesheets Tab */}
-        {(activeTab === "timesheets" || !isAdmin) && (
+        {(activeTab === "timesheets" || (activeTab !== "bypass" && !isAdmin)) && (
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -775,7 +948,8 @@ export default function Timesheets() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">
-                              {timesheet.manualDepotSelection && (
+                              {getBypassBadge(timesheet)}
+                              {timesheet.manualDepotSelection && !timesheet.locationBypassReason && (
                                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700" title="Driver manually selected depot - not within geofence" data-testid={`flag-manual-${timesheet.id}`}>
                                   <AlertTriangle className="h-3 w-3" />
                                   Manual

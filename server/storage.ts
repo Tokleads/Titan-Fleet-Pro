@@ -149,7 +149,7 @@ export interface IStorage {
   // Timesheet operations
   getTimesheets(companyId: number, status?: string, startDate?: string, endDate?: string, driverId?: number): Promise<(Timesheet & { driver?: User })[]>;
   getActiveTimesheet(driverId: number): Promise<Timesheet | undefined>;
-  clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet>;
+  clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean, locationBypassReason?: string | null): Promise<Timesheet>;
   clockOut(timesheetId: number, latitude: string, longitude: string): Promise<Timesheet>;
   getTimesheetById(id: number): Promise<Timesheet | undefined>;
   updateTimesheet(id: number, updates: Partial<Timesheet>): Promise<Timesheet | undefined>;
@@ -1325,7 +1325,7 @@ export class DatabaseStorage implements IStorage {
     return active || undefined;
   }
   
-  async clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean): Promise<Timesheet> {
+  async clockIn(companyId: number, driverId: number, depotId: number | null, latitude: string, longitude: string, arrivalAccuracy?: number | null, manualDepotSelection?: boolean, locationBypassReason?: string | null): Promise<Timesheet> {
     // Check if driver already has an active timesheet
     const existing = await this.getActiveTimesheet(driverId);
     if (existing) {
@@ -1358,7 +1358,9 @@ export class DatabaseStorage implements IStorage {
       totalMinutes: null,
       departureLatitude: null,
       departureLongitude: null,
-      departureAccuracy: null
+      departureAccuracy: null,
+      locationBypassReason: locationBypassReason ?? null,
+      locationBypassStatus: locationBypassReason ? 'pending' : null,
     }).returning();
     
     if (!timesheet) {

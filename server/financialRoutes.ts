@@ -5,6 +5,7 @@ import { db } from "./db";
 import { eq, and, gte, desc, isNull, sql, or } from "drizzle-orm";
 import { timesheets, users, insertPayRateSchema, insertBankHolidaySchema } from "@shared/schema";
 import { requirePermission } from "./permissionGuard";
+import { triggerBypassClockIn } from "./notificationTriggers";
 
 export function registerFinancialRoutes(app: Express) {
   // ==================== TIMESHEETS ====================
@@ -279,12 +280,12 @@ export function registerFinancialRoutes(app: Express) {
   // Clock in
   app.post("/api/timesheets/clock-in", async (req, res) => {
     try {
-      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().nullable().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional(), locationOverride: z.boolean().optional() });
+      const clockInSchema = z.object({ driverId: z.number(), companyId: z.number(), vehicleId: z.number().nullable().optional(), depotId: z.number().nullable().optional(), latitude: z.union([z.string(), z.number()]), longitude: z.union([z.string(), z.number()]), accuracy: z.number().nullable().optional(), manualSelection: z.boolean().optional(), lowAccuracy: z.boolean().optional(), locationOverride: z.boolean().optional(), locationBypassReason: z.string().max(500).optional() });
       const validation = clockInSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
       }
-      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy, locationOverride } = validation.data;
+      const { companyId, driverId, depotId, latitude, longitude, accuracy, manualSelection, lowAccuracy, locationOverride, locationBypassReason } = validation.data;
 
       const existingActive = await db.select().from(timesheets)
         .where(and(
@@ -308,13 +309,64 @@ export function registerFinancialRoutes(app: Express) {
         latitude,
         longitude,
         accuracy ? Math.round(Number(accuracy)) : null,
-        manualSelection === true || lowAccuracy === true || locationOverride === true
+        manualSelection === true || lowAccuracy === true || locationOverride === true,
+        locationBypassReason || null
       );
+
+      if (locationBypassReason && timesheet) {
+        triggerBypassClockIn({
+          companyId: Number(companyId),
+          driverId: Number(driverId),
+          timesheetId: timesheet.id,
+          bypassReason: locationBypassReason,
+        }).catch(err => console.error('Bypass notification error:', err));
+      }
       
       res.json(timesheet);
     } catch (error) {
       console.error("Clock in error:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to clock in" });
+    }
+  });
+
+  // Bypass clock-in approval / rejection
+  app.patch("/api/timesheets/:id/bypass", requirePermission('timesheets'), async (req, res) => {
+    try {
+      const bypassSchema = z.object({
+        action: z.enum(['approved', 'rejected']),
+        userId: z.number(),
+        note: z.string().max(500).optional(),
+      });
+      const validation = bypassSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", issues: validation.error.issues });
+      }
+      const { action, userId, note } = validation.data;
+
+      const actioner = await storage.getUser(Number(userId));
+      if (!actioner || !['ADMIN', 'TRANSPORT_MANAGER'].includes(actioner.role)) {
+        return res.status(403).json({ error: "Only Transport Managers and Admins can approve bypass clock-ins" });
+      }
+
+      const timesheetId = Number(req.params.id);
+      const existing = await storage.getTimesheetById(timesheetId);
+      if (!existing) {
+        return res.status(404).json({ error: "Timesheet not found" });
+      }
+      if (!existing.locationBypassReason) {
+        return res.status(400).json({ error: "This timesheet has no bypass reason" });
+      }
+
+      const updated = await storage.updateTimesheet(timesheetId, {
+        locationBypassStatus: action,
+        adjustmentNote: note ? `Bypass ${action}: ${note}` : (existing.adjustmentNote ?? undefined),
+        updatedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Bypass approval error:", error);
+      res.status(500).json({ error: "Failed to update bypass status" });
     }
   });
   

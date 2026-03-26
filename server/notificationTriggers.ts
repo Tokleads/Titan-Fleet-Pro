@@ -410,6 +410,39 @@ export async function triggerDeliveryCompleted(params: {
   }
 }
 
+export async function triggerBypassClockIn(params: {
+  companyId: number;
+  driverId: number;
+  timesheetId: number;
+  bypassReason: string;
+}) {
+  try {
+    const driver = await storage.getUser(params.driverId);
+    if (!driver) return;
+
+    const managers = await getManagersByCompany(params.companyId);
+    if (managers.length === 0) return;
+
+    const title = `Off-Depot Clock-In — ${driver.name}`;
+    const message = `${driver.name} clocked in outside a registered depot. Reason: "${params.bypassReason}". Approve or reject on the Timesheets page.`;
+
+    for (const manager of managers) {
+      await createNotificationHelper({
+        companyId: params.companyId,
+        senderId: params.driverId,
+        recipientId: manager.id,
+        title,
+        message,
+        priority: 'HIGH',
+      });
+    }
+
+    console.log(`Bypass clock-in notification sent to ${managers.length} manager(s) for driver ${driver.name}`);
+  } catch (error) {
+    console.error('triggerBypassClockIn error:', error);
+  }
+}
+
 export const notificationTriggers = {
   defectReported: triggerDefectReported,
   inspectionFailed: triggerInspectionFailed,
@@ -418,4 +451,5 @@ export const notificationTriggers = {
   checkDefectEscalation,
   checkFuelAnomalies,
   deliveryCompleted: triggerDeliveryCompleted,
+  bypassClockIn: triggerBypassClockIn,
 };
