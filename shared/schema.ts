@@ -205,6 +205,8 @@ export const fuelEntries = pgTable("fuel_entries", {
   location: text("location"),
   receiptDriveFileId: text("receipt_drive_file_id"),
   fuelCardDriveFileId: text("fuel_card_drive_file_id"),
+  receiptPhotoUrl: text("receipt_photo_url"),
+  fuelCardPhotoUrl: text("fuel_card_photo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 

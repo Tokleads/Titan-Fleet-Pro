@@ -507,6 +507,22 @@ app.use((req, res, next) => {
     console.error('Bypass columns migration (non-fatal):', bypassMigErr);
   }
 
+  // Migration: Add receipt/fuel card photo URL columns to fuel_entries
+  try {
+    const { db: dbFuelPhoto } = await import('./db');
+    const { sql: sqlFuelPhoto } = await import('drizzle-orm');
+    const fuelPhotoMigName = 'fuel_entries_photo_url_columns_v1';
+    const fuelPhotoMigExisting = await dbFuelPhoto.execute(sqlFuelPhoto`SELECT name FROM _migrations WHERE name = ${fuelPhotoMigName}`);
+    if (!fuelPhotoMigExisting.rows || fuelPhotoMigExisting.rows.length === 0) {
+      await dbFuelPhoto.execute(sqlFuelPhoto`ALTER TABLE fuel_entries ADD COLUMN IF NOT EXISTS receipt_photo_url TEXT`);
+      await dbFuelPhoto.execute(sqlFuelPhoto`ALTER TABLE fuel_entries ADD COLUMN IF NOT EXISTS fuel_card_photo_url TEXT`);
+      await dbFuelPhoto.execute(sqlFuelPhoto`INSERT INTO _migrations (name) VALUES (${fuelPhotoMigName})`);
+      console.log('[Migration] Added receipt_photo_url and fuel_card_photo_url columns to fuel_entries');
+    }
+  } catch (fuelPhotoMigErr) {
+    console.error('Fuel photo columns migration (non-fatal):', fuelPhotoMigErr);
+  }
+
   try {
     const { db: dbPwReset2 } = await import('./db');
     const { users: usersPwReset2 } = await import('@shared/schema');

@@ -1,5 +1,8 @@
 import type { Express, Request, Response } from "express";
 import type { UploadedFile } from "express-fileupload";
+import multer from "multer";
+import { randomUUID } from "crypto";
+import { objectStorageClient } from "./objectStorage";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -1064,6 +1067,32 @@ export async function registerRoutes(
       res.json(inspectionList);
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Upload fuel photo (receipt or fuel card)
+  const fuelPhotoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req, file, cb) => {
+    if (['image/jpeg','image/jpg','image/png','image/webp','image/heic'].includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }});
+  app.post("/api/fuel/upload-photo", fuelPhotoUpload.single("photo"), async (req: Request & { file?: Express.Multer.File }, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+      const privateDir = process.env.PRIVATE_OBJECT_DIR || '';
+      if (!privateDir) return res.status(500).json({ error: "Object storage not configured" });
+      const ext = req.file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
+      const filename = `fuel-photos/${randomUUID()}.${ext}`;
+      const fullPath = `${privateDir}/${filename}`;
+      const parts = fullPath.startsWith('/') ? fullPath.slice(1).split('/') : fullPath.split('/');
+      const bucketName = parts[0];
+      const objectName = parts.slice(1).join('/');
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(req.file.buffer, { contentType: req.file.mimetype });
+      res.json({ url: `/objects/${filename}` });
+    } catch (err: any) {
+      console.error('Fuel photo upload error:', err);
+      res.status(500).json({ error: err.message || "Upload failed" });
     }
   });
 
