@@ -308,7 +308,7 @@ export function registerFinancialRoutes(app: Express) {
       if (!isManagerInitiated && !depotId && !locationBypassReason) {
         const companyGeofences = await db.select({ id: geofences.id })
           .from(geofences)
-          .where(eq(geofences.companyId, Number(companyId)))
+          .where(and(eq(geofences.companyId, Number(companyId)), eq(geofences.isActive, true)))
           .limit(1);
         if (companyGeofences.length > 0) {
           return res.status(403).json({

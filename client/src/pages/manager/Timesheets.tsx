@@ -644,7 +644,7 @@ export default function Timesheets() {
                       return (
                         <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-4 py-3">
-                            <p className="font-medium text-slate-900 text-sm">{ts.driverName || `Driver #${ts.userId}`}</p>
+                            <p className="font-medium text-slate-900 text-sm">{ts.driver?.name || `Driver #${ts.driverId}`}</p>
                           </td>
                           <td className="px-4 py-3 text-sm text-slate-600">
                             {ts.arrivalTime ? new Date(ts.arrivalTime).toLocaleDateString('en-GB') : '—'}
