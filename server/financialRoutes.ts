@@ -302,9 +302,8 @@ export function registerFinancialRoutes(app: Express) {
         });
       }
 
-      // Server-side geofence enforcement: compute geofence membership from coordinates.
-      // Client-provided depotId is ignored for enforcement decisions (untrusted input).
-      const isManagerInitiated = locationOverride === true;
+      // Server-side geofence enforcement: compute geofence membership from submitted coordinates.
+      // Client-provided depotId and locationOverride are NOT used for enforcement decisions.
       const lat = parseFloat(String(latitude));
       const lon = parseFloat(String(longitude));
 
@@ -323,7 +322,7 @@ export function registerFinancialRoutes(app: Express) {
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       }
 
-      // Find geofence the driver is inside
+      // Derive matched geofence purely from server-computed distance
       let matchedGeofenceId: number | null = null;
       for (const gf of activeGeofences) {
         const dist = haversineMeters(lat, lon, parseFloat(gf.latitude), parseFloat(gf.longitude));
@@ -333,8 +332,8 @@ export function registerFinancialRoutes(app: Express) {
         }
       }
 
-      // If company has active geofences, driver must be inside one OR provide a bypass reason
-      if (!isManagerInitiated && activeGeofences.length > 0 && matchedGeofenceId === null && !locationBypassReason) {
+      // Hard block: company has active geofences, driver not inside any, and no bypass reason
+      if (activeGeofences.length > 0 && matchedGeofenceId === null && !locationBypassReason) {
         return res.status(403).json({
           error: "off_depot",
           message: "You are not within a registered depot geofence. Please provide a reason to clock in from this location.",
