@@ -962,26 +962,39 @@ export default function Timesheets() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            {timesheet.locationBypassReason ? (
+                            {(timesheet.locationBypassReason || timesheet.manualDepotSelection) && timesheet.arrivalLatitude && timesheet.arrivalLongitude ? (
                               <div className="text-xs text-slate-600">
                                 <p className="font-medium text-amber-700">Off-depot</p>
-                                {timesheet.arrivalLatitude && timesheet.arrivalLongitude ? (
-                                  <a
-                                    href={`https://maps.google.com/?q=${timesheet.arrivalLatitude},${timesheet.arrivalLongitude}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                    data-testid={`link-location-map-${timesheet.id}`}
-                                  >
-                                    {Number(timesheet.arrivalLatitude).toFixed(4)}, {Number(timesheet.arrivalLongitude).toFixed(4)}
-                                  </a>
-                                ) : <span className="text-slate-400">No GPS</span>}
+                                <a
+                                  href={`https://maps.google.com/?q=${timesheet.arrivalLatitude},${timesheet.arrivalLongitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                  data-testid={`link-location-map-${timesheet.id}`}
+                                >
+                                  {Number(timesheet.arrivalLatitude).toFixed(4)}, {Number(timesheet.arrivalLongitude).toFixed(4)}
+                                </a>
+                              </div>
+                            ) : (timesheet.locationBypassReason || timesheet.manualDepotSelection) ? (
+                              <div className="text-xs text-slate-600">
+                                <p className="font-medium text-amber-700">Off-depot</p>
+                                <span className="text-slate-400">No GPS coordinates</span>
                               </div>
                             ) : timesheet.depotName ? (
                               <div className="flex items-center gap-1 text-xs text-slate-600">
                                 <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
                                 {timesheet.depotName}
                               </div>
+                            ) : timesheet.arrivalLatitude && timesheet.arrivalLongitude ? (
+                              <a
+                                href={`https://maps.google.com/?q=${timesheet.arrivalLatitude},${timesheet.arrivalLongitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline"
+                                data-testid={`link-location-coords-${timesheet.id}`}
+                              >
+                                {Number(timesheet.arrivalLatitude).toFixed(4)}, {Number(timesheet.arrivalLongitude).toFixed(4)}
+                              </a>
                             ) : (
                               <span className="text-xs text-slate-400">—</span>
                             )}

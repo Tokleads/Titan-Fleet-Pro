@@ -3,7 +3,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, and, gte, desc, isNull, sql, or } from "drizzle-orm";
-import { timesheets, users, insertPayRateSchema, insertBankHolidaySchema } from "@shared/schema";
+import { timesheets, users, geofences, insertPayRateSchema, insertBankHolidaySchema } from "@shared/schema";
 import { requirePermission } from "./permissionGuard";
 import { triggerBypassClockIn } from "./notificationTriggers";
 
@@ -301,7 +301,23 @@ export function registerFinancialRoutes(app: Express) {
           activeTimesheetId: existingActive[0].id 
         });
       }
-      
+
+      // Server-side geofence enforcement: if company has depots and no depotId matched,
+      // require a bypass reason. locationOverride=true is kept for manager-initiated clock-ins only.
+      const isManagerInitiated = locationOverride === true;
+      if (!isManagerInitiated && !depotId && !locationBypassReason) {
+        const companyGeofences = await db.select({ id: geofences.id })
+          .from(geofences)
+          .where(eq(geofences.companyId, Number(companyId)))
+          .limit(1);
+        if (companyGeofences.length > 0) {
+          return res.status(403).json({
+            error: "off_depot",
+            message: "You are not within a registered depot geofence. Please provide a reason to clock in from this location.",
+          });
+        }
+      }
+
       const timesheet = await storage.clockIn(
         Number(companyId),
         Number(driverId),

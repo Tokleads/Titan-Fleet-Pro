@@ -491,6 +491,22 @@ app.use((req, res, next) => {
     console.error('Documents migration (non-fatal):', docMigErr);
   }
 
+  // Migration: Add geofence bypass columns to timesheets
+  try {
+    const { db: dbBypass } = await import('./db');
+    const { sql: sqlBypass } = await import('drizzle-orm');
+    const bypassMigName = 'timesheets_geofence_bypass_columns_v1';
+    const bypassMigExisting = await dbBypass.execute(sqlBypass`SELECT name FROM _migrations WHERE name = ${bypassMigName}`);
+    if (!bypassMigExisting.rows || bypassMigExisting.rows.length === 0) {
+      await dbBypass.execute(sqlBypass`ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS location_bypass_reason TEXT`);
+      await dbBypass.execute(sqlBypass`ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS location_bypass_status VARCHAR(20)`);
+      await dbBypass.execute(sqlBypass`INSERT INTO _migrations (name) VALUES (${bypassMigName})`);
+      console.log('[Migration] Added location_bypass_reason and location_bypass_status columns to timesheets');
+    }
+  } catch (bypassMigErr) {
+    console.error('Bypass columns migration (non-fatal):', bypassMigErr);
+  }
+
   try {
     const { db: dbPwReset2 } = await import('./db');
     const { users: usersPwReset2 } = await import('@shared/schema');
