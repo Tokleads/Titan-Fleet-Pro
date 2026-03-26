@@ -302,30 +302,53 @@ export function registerFinancialRoutes(app: Express) {
         });
       }
 
-      // Server-side geofence enforcement: if company has depots and no depotId matched,
-      // require a bypass reason. locationOverride=true is kept for manager-initiated clock-ins only.
+      // Server-side geofence enforcement: compute geofence membership from coordinates.
+      // Client-provided depotId is ignored for enforcement decisions (untrusted input).
       const isManagerInitiated = locationOverride === true;
-      if (!isManagerInitiated && !depotId && !locationBypassReason) {
-        const companyGeofences = await db.select({ id: geofences.id })
-          .from(geofences)
-          .where(and(eq(geofences.companyId, Number(companyId)), eq(geofences.isActive, true)))
-          .limit(1);
-        if (companyGeofences.length > 0) {
-          return res.status(403).json({
-            error: "off_depot",
-            message: "You are not within a registered depot geofence. Please provide a reason to clock in from this location.",
-          });
+      const lat = parseFloat(String(latitude));
+      const lon = parseFloat(String(longitude));
+
+      // Fetch all active geofences for this company
+      const activeGeofences = await db.select()
+        .from(geofences)
+        .where(and(eq(geofences.companyId, Number(companyId)), eq(geofences.isActive, true)));
+
+      // Haversine distance check
+      function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      // Find geofence the driver is inside
+      let matchedGeofenceId: number | null = null;
+      for (const gf of activeGeofences) {
+        const dist = haversineMeters(lat, lon, parseFloat(gf.latitude), parseFloat(gf.longitude));
+        if (dist <= gf.radiusMeters) {
+          matchedGeofenceId = gf.id;
+          break;
         }
+      }
+
+      // If company has active geofences, driver must be inside one OR provide a bypass reason
+      if (!isManagerInitiated && activeGeofences.length > 0 && matchedGeofenceId === null && !locationBypassReason) {
+        return res.status(403).json({
+          error: "off_depot",
+          message: "You are not within a registered depot geofence. Please provide a reason to clock in from this location.",
+        });
       }
 
       const timesheet = await storage.clockIn(
         Number(companyId),
         Number(driverId),
-        depotId ? Number(depotId) : null,
+        matchedGeofenceId,
         latitude,
         longitude,
         accuracy ? Math.round(Number(accuracy)) : null,
-        manualSelection === true || lowAccuracy === true || locationOverride === true,
+        matchedGeofenceId === null,
         locationBypassReason || null
       );
 
