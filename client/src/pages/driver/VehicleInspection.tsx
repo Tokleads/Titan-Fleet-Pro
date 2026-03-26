@@ -8,6 +8,48 @@ import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import type { Vehicle } from "@shared/schema";
 
+// ─── Draft persistence helpers ────────────────────────────────────────────────
+interface InspectionDraft {
+  vehicleId: number;
+  inspectionType: string;
+  hasTrailer: boolean;
+  driverId: number;
+  sections: Section[];
+  odometer: string;
+  checkStarted: boolean;
+  startedAt: string | null;
+  elapsedSeconds: number;
+  currentStep: number;
+  cabPhotos: { objectPath: string }[];
+  savedAt: string;
+}
+
+function draftKey(vehicleId: number, type: string, trailer: boolean) {
+  return `tf_insp_draft_v1_${vehicleId}_${type}_${trailer ? 1 : 0}`;
+}
+
+function loadDraft(vehicleId: number, type: string, trailer: boolean, driverId: number): InspectionDraft | null {
+  try {
+    const raw = localStorage.getItem(draftKey(vehicleId, type, trailer));
+    if (!raw) return null;
+    const d: InspectionDraft = JSON.parse(raw);
+    if (d.driverId !== driverId || d.vehicleId !== vehicleId) return null;
+    return d;
+  } catch { return null; }
+}
+
+function saveDraftToStorage(draft: InspectionDraft) {
+  try {
+    localStorage.setItem(draftKey(draft.vehicleId, draft.inspectionType, draft.hasTrailer), JSON.stringify(draft));
+  } catch {}
+}
+
+function clearDraftFromStorage(vehicleId: number, type: string, trailer: boolean) {
+  try {
+    localStorage.removeItem(draftKey(vehicleId, type, trailer));
+  } catch {}
+}
+
 function authHeaders(): Record<string, string> {
   const token = session.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -216,7 +258,63 @@ export default function VehicleInspection() {
 
   const company = session.getCompany();
   const user = session.getUser();
-  
+
+  // ── Draft persistence ────────────────────────────────────────────
+  const [pendingDraft, setPendingDraft] = useState<InspectionDraft | null>(null);
+
+  // On mount: check for a saved draft and offer to resume
+  useEffect(() => {
+    if (!params?.id || !user?.id) return;
+    const draft = loadDraft(Number(params.id), inspectionType, hasTrailer, user.id);
+    if (draft && draft.checkStarted) {
+      setPendingDraft(draft);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function resumeDraft(draft: InspectionDraft) {
+    setSections(draft.sections);
+    setOdometer(draft.odometer);
+    setCheckStarted(true);
+    // Rebase the timer: pretend check started (elapsedSeconds) ago
+    setStartedAt(new Date(Date.now() - draft.elapsedSeconds * 1000));
+    setElapsedSeconds(draft.elapsedSeconds);
+    setCurrentStep(draft.currentStep);
+    setCabPhotos(draft.cabPhotos.map(p => ({ objectPath: p.objectPath, preview: p.objectPath })));
+    setPendingDraft(null);
+    toast({ title: "Check resumed", description: "Your previous progress has been restored." });
+  }
+
+  function discardDraft() {
+    if (!params?.id) return;
+    clearDraftFromStorage(Number(params.id), inspectionType, hasTrailer);
+    setPendingDraft(null);
+  }
+
+  // Auto-save draft whenever key state changes (only when check is active)
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (!checkStarted || !params?.id || !user?.id || !vehicle) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveDraftToStorage({
+        vehicleId: Number(params.id),
+        inspectionType,
+        hasTrailer,
+        driverId: user.id,
+        sections,
+        odometer,
+        checkStarted,
+        startedAt: startedAt?.toISOString() ?? null,
+        elapsedSeconds,
+        currentStep,
+        cabPhotos: cabPhotos.map(p => ({ objectPath: p.objectPath })),
+        savedAt: new Date().toISOString(),
+      });
+    }, 800);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [sections, odometer, checkStarted, startedAt, elapsedSeconds, currentStep, cabPhotos]);
+  // ────────────────────────────────────────────────────────────────
+
   // Determine minimum time based on vehicle category
   const vehicleCategory = (vehicle as any)?.vehicleCategory || "HGV";
   const minCheckTime = vehicleCategory === "LGV" ? MIN_CHECK_TIME_LGV : MIN_CHECK_TIME_HGV;
@@ -567,6 +665,9 @@ export default function VehicleInspection() {
         ? ` (Completed in ${formatTime(durationSeconds)} - under recommended time)`
         : ` (Duration: ${formatTime(durationSeconds)})`;
 
+      // Clear the saved draft now it's been submitted
+      if (params?.id) clearDraftFromStorage(Number(params.id), inspectionType, hasTrailer);
+
       toast({
         title: failedItems.length > 0 ? "Check Submitted with Defects" : "Safety Check Complete",
         description: failedItems.length > 0 
@@ -605,8 +706,22 @@ export default function VehicleInspection() {
     );
   }
 
-  // Start Check Screen - shown before inspection begins
+  // Start Check Screen - shown before inspection begins (with optional draft resume)
   if (!checkStarted) {
+    const savedMins = pendingDraft ? Math.floor(pendingDraft.elapsedSeconds / 60) : 0;
+    const savedSecs = pendingDraft ? pendingDraft.elapsedSeconds % 60 : 0;
+    const savedTimeLabel = pendingDraft ? `${savedMins}:${String(savedSecs).padStart(2, '0')}` : '';
+    const savedAt = pendingDraft ? new Date(pendingDraft.savedAt) : null;
+    const savedAtLabel = savedAt
+      ? savedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    const savedItemsChecked = pendingDraft
+      ? pendingDraft.sections.flatMap(s => s.items).filter(i => i.status !== 'unchecked').length
+      : 0;
+    const savedItemsTotal = pendingDraft
+      ? pendingDraft.sections.flatMap(s => s.items).length
+      : 0;
+
     return (
       <DriverLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
@@ -623,20 +738,50 @@ export default function VehicleInspection() {
               <Clock className="h-3 w-3" />
               {vehicleCategory} · Min {minCheckTimeMinutes} min
             </div>
+
+            {/* Draft resume card */}
+            {pendingDraft && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+                <p className="text-xs font-semibold text-amber-700 mb-1">⏸ In-progress check found</p>
+                <p className="text-xs text-amber-600">
+                  Saved at {savedAtLabel} · {savedItemsChecked}/{savedItemsTotal} items · {savedTimeLabel} elapsed
+                </p>
+                <div className="flex gap-2 mt-2.5">
+                  <button
+                    onClick={() => resumeDraft(pendingDraft)}
+                    className="flex-1 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors"
+                    data-testid="button-resume-draft"
+                  >
+                    Continue Check
+                  </button>
+                  <button
+                    onClick={discardDraft}
+                    className="px-3 py-2 rounded-lg border border-amber-300 text-amber-700 text-sm hover:bg-amber-100 transition-colors"
+                    data-testid="button-discard-draft"
+                  >
+                    Start Fresh
+                  </button>
+                </div>
+              </div>
+            )}
             
-            <TitanButton
-              size="lg"
-              className="w-full mb-3"
-              onClick={handleStartCheck}
-              data-testid="button-start-check"
-            >
-              <Play className="h-5 w-5 mr-2" />
-              Start Check
-            </TitanButton>
-            
-            <p className="text-[11px] text-slate-400 mb-2">
-              Timed for DVSA compliance evidence
-            </p>
+            {!pendingDraft && (
+              <>
+                <TitanButton
+                  size="lg"
+                  className="w-full mb-3"
+                  onClick={handleStartCheck}
+                  data-testid="button-start-check"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Start Check
+                </TitanButton>
+                
+                <p className="text-[11px] text-slate-400 mb-2">
+                  Timed for DVSA compliance evidence
+                </p>
+              </>
+            )}
             
             <button
               onClick={() => setLocation(`/driver/vehicle/${vehicle.id}`)}
@@ -703,9 +848,15 @@ export default function VehicleInspection() {
               {checkedItems.length}/{allItems.length} items
             </span>
           </div>
-          {failedItems.length > 0 && (
-            <p className="text-[12px] text-amber-600 mt-1.5 font-medium">{failedItems.length} fault(s) recorded</p>
-          )}
+          <div className="flex items-center justify-between mt-0.5">
+            {failedItems.length > 0 ? (
+              <p className="text-[12px] text-amber-600 font-medium">{failedItems.length} fault(s) recorded</p>
+            ) : <span />}
+            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Auto-saved
+            </span>
+          </div>
         </div>
 
         <div className="space-y-3 pt-4 titan-page-enter">
