@@ -238,6 +238,7 @@ export default function Timesheets() {
   });
 
   const [bypassNote, setBypassNote] = useState<Record<number, string>>({});
+  const [bypassShowAll, setBypassShowAll] = useState(false);
 
   const bypassApproveMutation = useMutation({
     mutationFn: async ({ id, action, note }: { id: number; action: 'approved' | 'rejected'; note?: string }) => {
@@ -614,9 +615,18 @@ export default function Timesheets() {
         {/* Off-Depot Clock-Ins (Bypass) Tab */}
         {(isAdmin || userRole === 'TRANSPORT_MANAGER') && activeTab === "bypass" && (
           <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100">
-              <h2 className="text-lg font-semibold text-slate-900">Off-Depot Clock-Ins</h2>
-              <p className="text-sm text-slate-500">Drivers who clocked in outside their depot geofence and submitted a bypass reason. Review and approve or reject each request.</p>
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Off-Depot Clock-Ins</h2>
+                <p className="text-sm text-slate-500">Drivers who clocked in outside their depot geofence and submitted a bypass reason.</p>
+              </div>
+              <button
+                onClick={() => setBypassShowAll(prev => !prev)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${bypassShowAll ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}
+                data-testid="toggle-bypass-show-all"
+              >
+                {bypassShowAll ? 'Show Pending Only' : 'Show All'}
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -639,7 +649,7 @@ export default function Timesheets() {
                       </td>
                     </tr>
                   ) : pendingBypasses && pendingBypasses.length > 0 ? (
-                    pendingBypasses.map((ts) => {
+                    pendingBypasses.filter(ts => bypassShowAll || ts.locationBypassStatus === 'pending' || !ts.locationBypassStatus).map((ts) => {
                       const bypassStatus = ts.locationBypassStatus || 'pending';
                       return (
                         <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
