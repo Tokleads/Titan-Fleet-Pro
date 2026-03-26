@@ -8,7 +8,7 @@ function authHeaders(): Record<string, string> {
   const token = session.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut, Calendar, ClipboardCheck } from "lucide-react";
+import { Check, AlertTriangle, Fuel, Clock, FileText, ChevronRight, ChevronDown, MapPin, LogIn, LogOut, Calendar, ClipboardCheck, Receipt, CreditCard, Gauge } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
@@ -31,6 +31,7 @@ export default function DriverHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "inspections" | "fuel" | "shifts">("all");
   const [expandedShiftId, setExpandedShiftId] = useState<number | null>(null);
+  const [expandedFuelId, setExpandedFuelId] = useState<number | null>(null);
 
   const today = new Date();
   const mondayThisWeek = getMonday(today);
@@ -311,18 +312,127 @@ export default function DriverHistory() {
                       </span>
                     </div>
                   ) : item.type === "fuel" ? (
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                        <Fuel className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 text-sm">
-                          {item.data.fuelType === "ADBLUE" ? "AdBlue" : "Diesel"} · {item.data.litres}L
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDate(item.date)} · £{item.data.cost ? Number(item.data.cost).toFixed(2) : "—"}
-                        </p>
-                      </div>
+                    <div>
+                      <button
+                        onClick={() => setExpandedFuelId(expandedFuelId === item.data.id ? null : item.data.id)}
+                        className="w-full flex items-center gap-3 text-left"
+                        data-testid={`button-fuel-expand-${item.data.id}`}
+                      >
+                        <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                          <Fuel className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-sm">
+                            {item.data.fuelType === "ADBLUE" ? "AdBlue" : "Diesel"}{item.data.litres ? ` · ${item.data.litres}L` : ""}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDate(item.date)}{item.data.price ? ` · £${(item.data.price / 100).toFixed(2)}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {(item.data.receiptPhotoUrl || item.data.fuelCardPhotoUrl) && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600">
+                              📎 Photos
+                            </span>
+                          )}
+                          {expandedFuelId === item.data.id
+                            ? <ChevronDown className="h-4 w-4 text-slate-400" />
+                            : <ChevronRight className="h-4 w-4 text-slate-400" />
+                          }
+                        </div>
+                      </button>
+
+                      {expandedFuelId === item.data.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="mt-3 pt-3 border-t border-slate-100 space-y-3"
+                        >
+                          {/* Key figures */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-blue-50 rounded-xl p-2.5 text-center">
+                              <Gauge className="h-3.5 w-3.5 text-blue-500 mx-auto mb-0.5" />
+                              <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Odometer</p>
+                              <p className="text-sm font-bold text-slate-900">{item.data.odometer ? item.data.odometer.toLocaleString() : "—"}</p>
+                            </div>
+                            <div className="bg-blue-50 rounded-xl p-2.5 text-center">
+                              <Fuel className="h-3.5 w-3.5 text-blue-500 mx-auto mb-0.5" />
+                              <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Litres</p>
+                              <p className="text-sm font-bold text-slate-900">{item.data.litres ?? "—"}</p>
+                            </div>
+                            <div className="bg-blue-50 rounded-xl p-2.5 text-center">
+                              <Receipt className="h-3.5 w-3.5 text-blue-500 mx-auto mb-0.5" />
+                              <p className="text-[10px] text-blue-600 font-medium uppercase tracking-wider">Cost</p>
+                              <p className="text-sm font-bold text-slate-900">{item.data.price ? `£${(item.data.price / 100).toFixed(2)}` : "—"}</p>
+                            </div>
+                          </div>
+
+                          {/* Location */}
+                          {item.data.location && (
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <MapPin className="h-3.5 w-3.5 shrink-0" />
+                              <span>{item.data.location}</span>
+                            </div>
+                          )}
+
+                          {/* Photos */}
+                          {(item.data.receiptPhotoUrl || item.data.fuelCardPhotoUrl) && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Evidence Photos</p>
+                              <div className={`grid gap-2 ${item.data.receiptPhotoUrl && item.data.fuelCardPhotoUrl ? "grid-cols-2" : "grid-cols-1"}`}>
+                                {item.data.receiptPhotoUrl && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1">
+                                      <Receipt className="h-3 w-3 text-slate-400" />
+                                      <span className="text-[10px] text-slate-500">Receipt</span>
+                                    </div>
+                                    <a
+                                      href={item.data.receiptPhotoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 transition-colors"
+                                      data-testid={`link-receipt-photo-${item.data.id}`}
+                                    >
+                                      <img
+                                        src={item.data.receiptPhotoUrl}
+                                        alt="Receipt"
+                                        className="w-full h-28 object-cover"
+                                        data-testid={`img-receipt-${item.data.id}`}
+                                      />
+                                    </a>
+                                  </div>
+                                )}
+                                {item.data.fuelCardPhotoUrl && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1">
+                                      <CreditCard className="h-3 w-3 text-slate-400" />
+                                      <span className="text-[10px] text-slate-500">Fuel Card</span>
+                                    </div>
+                                    <a
+                                      href={item.data.fuelCardPhotoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 transition-colors"
+                                      data-testid={`link-fuelcard-photo-${item.data.id}`}
+                                    >
+                                      <img
+                                        src={item.data.fuelCardPhotoUrl}
+                                        alt="Fuel Card"
+                                        className="w-full h-28 object-cover"
+                                        data-testid={`img-fuelcard-${item.data.id}`}
+                                      />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {!item.data.receiptPhotoUrl && !item.data.fuelCardPhotoUrl && (
+                            <p className="text-xs text-slate-400 italic">No photos attached</p>
+                          )}
+                        </motion.div>
+                      )}
                     </div>
                   ) : item.type === "shift" ? (
                     <div>
