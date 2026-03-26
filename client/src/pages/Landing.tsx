@@ -1,23 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useBrand } from "@/hooks/use-brand";
 import { TitanButton } from "@/components/titan-ui/Button";
 import { TitanInput } from "@/components/titan-ui/Input";
 import { TitanCard } from "@/components/titan-ui/Card";
-import { ArrowRight, Truck, ShieldCheck, QrCode, Bell, AlertCircle, Info, AlertTriangle, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Truck, ShieldCheck, QrCode } from "lucide-react";
+import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import { useToast } from "@/hooks/use-toast";
-
-interface BroadcastNotification {
-  id: number;
-  title: string;
-  message: string;
-  type: string;
-  priority: string;
-  createdAt: string;
-}
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -29,38 +20,6 @@ export default function Landing() {
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<"driver" | "manager">("driver");
-  const [announcements, setAnnouncements] = useState<BroadcastNotification[]>([]);
-  const [showAnnouncements, setShowAnnouncements] = useState(true);
-  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(false);
-
-  // Fetch announcements when company code has 3+ characters
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      if (companyCode.length < 3) {
-        setAnnouncements([]);
-        return;
-      }
-      
-      setIsLoadingAnnouncements(true);
-      try {
-        const response = await fetch(`/api/notifications/public/${companyCode.toUpperCase()}`);
-        if (response.ok) {
-          const data = await response.json();
-          setAnnouncements(data);
-          setShowAnnouncements(true);
-        } else {
-          setAnnouncements([]);
-        }
-      } catch (error) {
-        setAnnouncements([]);
-      } finally {
-        setIsLoadingAnnouncements(false);
-      }
-    };
-
-    const debounce = setTimeout(fetchAnnouncements, 500);
-    return () => clearTimeout(debounce);
-  }, [companyCode]);
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,69 +105,6 @@ export default function Landing() {
                                 )}
                             </div>
 
-                            {/* Company Announcements */}
-                            <AnimatePresence>
-                              {announcements.length > 0 && showAnnouncements && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: "auto" }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  className="space-y-2"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                      <Bell className="h-4 w-4" />
-                                      <span>Company Announcements</span>
-                                    </div>
-                                    <button 
-                                      type="button"
-                                      onClick={() => setShowAnnouncements(false)}
-                                      className="text-slate-400 hover:text-slate-600 p-1"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                                    {announcements.map((announcement) => (
-                                      <div 
-                                        key={announcement.id}
-                                        className={`p-3 rounded-lg border text-sm ${
-                                          announcement.priority?.toLowerCase() === 'urgent' 
-                                            ? 'bg-red-50 border-red-200 text-red-800'
-                                            : announcement.priority?.toLowerCase() === 'high'
-                                            ? 'bg-amber-50 border-amber-200 text-amber-800'
-                                            : 'bg-blue-50 border-blue-200 text-blue-800'
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2">
-                                          {announcement.priority?.toLowerCase() === 'urgent' ? (
-                                            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                          ) : announcement.priority?.toLowerCase() === 'high' ? (
-                                            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                          ) : (
-                                            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <p className="font-medium">{announcement.title}</p>
-                                            <p className="text-xs opacity-80 mt-0.5">{announcement.message}</p>
-                                            <p className="text-[10px] opacity-60 mt-1">
-                                              {new Date(announcement.createdAt).toLocaleDateString('en-GB', { 
-                                                weekday: 'short', 
-                                                day: 'numeric', 
-                                                month: 'short',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                              })}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                            
                             <div className="space-y-1.5">
                                 <label className="titan-section-label ml-1">Driver PIN</label>
                                 <TitanInput 
